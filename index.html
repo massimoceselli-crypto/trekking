@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trekking App Professionale</title>
+    <link rel="stylesheet" href="https://unpkg.com" />
+    <script src="https://unpkg.com"></script>
+    <style>
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; background: #f0f0f0; }
+        #map { height: 100vh; width: 100%; z-index: 1; }
+        
+        .panel {
+            position: absolute; top: 10px; left: 10px; z-index: 1000;
+            background: white; padding: 15px; border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2); width: 250px;
+            max-height: 90vh; overflow-y: auto;
+        }
+
+        .stats-box { background: #f8f9fa; padding: 10px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #28a745; }
+        .stat-item { font-size: 14px; font-weight: bold; margin: 4px 0; color: #333; }
+        .stat-label { color: #666; font-size: 11px; text-transform: uppercase; display: block; }
+
+        .btn-group { display: flex; flex-direction: column; gap: 6px; }
+        button, .file-label { 
+            padding: 10px; cursor: pointer; border: none; border-radius: 6px; 
+            font-weight: bold; font-size: 13px; transition: 0.2s; text-align: center;
+        }
+
+        #btnStart { background: #28a745; color: white; }
+        #btnStop { background: #dc3545; color: white; display: none; }
+        .btn-bivio { background: #ff4d4d; color: white; } /* Rosso */
+        .btn-sosta { background: #ffcc00; color: black; } /* Giallo */
+        #btnClearFlags { background: #6c757d; color: white; }
+        .btn-load { background: #007bff; color: white; }
+        
+        .del-btn { background: #ff0000; color: white; border: none; padding: 5px; width: 100%; border-radius: 4px; cursor: pointer; margin-top: 5px; }
+        input[type="file"] { display: none; }
+        hr { border: 0; border-top: 1px solid #eee; margin: 10px 0; }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <!-- STATISTICHE (Punti 6, 7, 8) -->
+    <div class="stats-box">
+        <div class="stat-item"><span class="stat-label">6) Altitudine Attuale</span> <span id="altNow">---</span> m</div>
+        <div class="stat-item"><span class="stat-label">7) Max Raggiunta</span> <span id="altMax">---</span> m</div>
+        <div class="stat-item"><span class="stat-label">8) Distanza Percorsa</span> <span id="dist">0.00</span> km</div>
+    </div>
+
+    <div class="btn-group">
+        <!-- COMANDI (Punti 1, 2, 3, 5, 9, 10) -->
+        <button id="btnStart" onclick="startRecording()">1) AVVIA PERCORSO</button>
+        <button id="btnStop" onclick="stopAndSave()">10) STOP E SALVA CON NOME</button>
+        
+        <hr>
+        <button class="btn-bivio" onclick="dropFlag('Bivio', 'red')">2) SEGNALA BIVIO (🚩 Rossa)</button>
+        <button class="btn-sosta" onclick="dropFlag('Sosta', 'orange')">3) SEGNALA SOSTA (🚩 Gialla)</button>
+        
+        <p style="font-size: 10px; color: #888; margin: 0;">4) Per rimuovere singola: clicca sulla bandierina</p>
+        
+        <button id="btnClearFlags" onclick="clearAllFlags()">5) RIMUOVI TUTTE LE BANDIERINE</button>
+        
+        <hr>
+        <label for="fileInput" class="file-label btn-load">9) CARICA VECCHIO FILE</label>
+        <input type="file" id="fileInput" accept=".json" onchange="loadOldPath(event)">
+    </div>
+</div>
+
+<div id="map"></div>
+
+<script>
+    const map = L.map('map').setView([41.87, 12.56], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+
+    let recordedPath = []; 
+    let flagsMarkers = []; 
+    let currentPolyline = L.polyline([], { color: '#007bff', weight: 5 }).addTo(map);
+    let userMarker = null;
+    let isRecording = false;
+    let totalDist = 0;
+    let maxAlt = -Infinity;
+    let currentPos = null;
+
+    if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(pos => {
+            const { latitude: lat, longitude: lng, altitude: alt } = pos.coords;
+            currentPos = {lat, lng, alt};
+
+            if (alt !== null) {
+                const rAlt = Math.round(alt);
+                document.getElementById('altNow').innerText = rAlt;
+                if (rAlt > maxAlt) {
+                    maxAlt = rAlt;
+                    document.getElementById('altMax').innerText = maxAlt;
+                }
+            }
+
+            if (!userMarker) {
+                userMarker = L.circleMarker([lat, lng], { radius: 9, fillColor: "red", color: "white", fillOpacity: 1 }).addTo(map);
+                map.setView([lat, lng], 16);
+            } else {
+                userMarker.setLatLng([lat, lng]);
+            }
+
+            if (isRecording) {
+                if (recordedPath.length > 0) {
+                    const last = recordedPath[recordedPath.length - 1];
+                    const d = L.latLng(last, last).distanceTo(L.latLng(lat, lng));
+                    if (d > 5) {
+                        totalDist += d;
+                        recordedPath.push([lat, lng, alt]);
+                        currentPolyline.setLatLngs(recordedPath);
+                        document.getElementById('dist').innerText = (totalDist / 1000).toFixed(2);
+                    }
+                } else { recordedPath.push([lat, lng, alt]); }
+            }
+        }, null, { enableHighAccuracy: true });
+    }
+
+    // Funzione Bandierine (Punti 2, 3, 4)
+    function dropFlag(tipo, colore, loadedNote = null, lat = null, lng = null) {
+        const fLat = lat || currentPos.lat;
+        const fLng = lng || currentPos.lng;
+        let nota = loadedNote || prompt(`Nota per ${tipo}:`, tipo);
+        if (nota === null) return;
+
+        // Crea un'icona colorata
+        const iconHtml = `<div style="background-color:${colore}; width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);"></div>`;
+        const customIcon = L.divIcon({ html: iconHtml, className: '' });
+
+        const marker = L.marker([fLat, fLng], { icon: customIcon }).addTo(map);
+        
+        const div = document.createElement('div');
+        div.innerHTML = `<b>${tipo}: ${nota}</b><br>`;
+        const delBtn = document.createElement('button');
+        delBtn.innerText = "4) Elimina questa";
+        delBtn.className = "del-btn";
+        delBtn.onclick = () => { map.removeLayer(marker); flagsMarkers = flagsMarkers.filter(m => m !== marker); };
+        div.appendChild(delBtn);
+
+        marker.bindPopup(div);
+        marker.tipoDato = { tipo, nota, colore };
+        flagsMarkers.push(marker);
+    }
+
+    function clearAllFlags() {
+        if(confirm("Eliminare tutte le bandierine?")) {
+            flagsMarkers.forEach(m => map.removeLayer(m));
+            flagsMarkers = [];
+        }
+    }
+
+    function startRecording() {
+        isRecording = true;
+        recordedPath = []; flagsMarkers.forEach(m => map.removeLayer(m)); flagsMarkers = [];
+        totalDist = 0; maxAlt = -Infinity;
+        currentPolyline.setLatLngs([]);
+        document.getElementById('btnStart').style.display = 'none';
+        document.getElementById('btnStop').style.display = 'block';
+    }
+
+    // Salvataggio (Punto 10)
+    function stopAndSave() {
+        isRecording = false;
+        document.getElementById('btnStart').style.display = 'block';
+        document.getElementById('btnStop').style.display = 'none';
+
+        const nomeFile = prompt("10) Inserisci il NOME del file da salvare:", "Percorso_Montagna");
+        if (!nomeFile) return;
+
+        const data = {
+            nome: nomeFile,
+            distanza: document.getElementById('dist').innerText,
+            maxAlt: maxAlt,
+            percorso: recordedPath,
+            bandierine: flagsMarkers.map(m => ({ lat: m.getLatLng().lat, lng: m.getLatLng().lng, info: m.tipoDato }))
+        };
+
+        const blob = new Blob([JSON.stringify(data)], {type: "application/json"});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = nomeFile + ".json";
+        a.click();
+    }
+
+    function loadOldPath(event) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const d = JSON.parse(e.target.result);
+            L.polyline(d.percorso, { color: 'orange', weight: 4, dashArray: '5,10' }).addTo(map);
+            if (d.bandierine) {
+                d.bandierine.forEach(f => dropFlag(f.info.tipo, f.info.colore, f.info.nota, f.lat, f.lng));
+            }
+            map.fitBounds(L.polyline(d.percorso).getBounds());
+        };
+        reader.readAsText(event.target.files[0]);
+    }
+</script>
+</body>
+</html>
