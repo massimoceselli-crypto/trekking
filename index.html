@@ -3,127 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TREKKING GPS DEFINITIVO</title>
+    <title>TREKKING GPS V5</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; background: #1a1a1a; font-family: sans-serif; }
-        #map { height: 70vh; width: 100%; background: #222; }
-        .controls { height: 30vh; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; box-sizing: border-box; background: #333; }
-        button { 
-            border: none; border-radius: 10px; color: white; font-weight: bold; font-size: 14px; text-transform: uppercase;
-            box-shadow: 0 4px #000; active { box-shadow: 0 2px #000; transform: translateY(2px); }
-        }
-        .btn-start { background: #2ecc71; grid-column: span 2; font-size: 18px; }
+        body, html { margin: 0; padding: 0; height: 100%; background: #1a1a1a; font-family: sans-serif; color: white; }
+        #map { height: 65vh; width: 100%; background: #222; }
+        .controls { height: 35vh; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; background: #2c3e50; }
+        button { border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 13px; text-transform: uppercase; cursor: pointer; transition: 0.2s; }
+        .btn-start { background: #27ae60; grid-column: span 2; font-size: 16px; }
         .btn-pause { background: #e67e22; }
-        .btn-reverse { background: #3498db; }
-        .btn-save { background: #f1c40f; color: black; }
-        .btn-reset { background: #95a5a6; }
-        .recording { background: #e74c3c !important; animation: blink 1s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-        #status { position: absolute; top: 10px; left: 10px; z-index: 1000; background: rgba(0,0,0,0.7); color: #0f0; padding: 5px 10px; border-radius: 5px; font-size: 12px; }
+        .btn-reverse { background: #2980b9; }
+        .btn-file { background: #8e44ad; }
+        .btn-reset { background: #7f8c8d; }
+        .recording { background: #c0392b !important; animation: pulse 1.5s infinite; }
+        .paused { background: #7f8c8d !important; border: 2px solid white; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+        #status { position: absolute; top: 10px; left: 10px; z-index: 1000; background: rgba(0,0,0,0.8); padding: 5px 12px; border-radius: 20px; font-size: 12px; border: 1px solid #27ae60; }
+        input[type="file"] { display: none; }
     </style>
 </head>
 <body>
 
-    <div id="status">GPS: In attesa...</div>
+    <div id="status">Attesa segnale GPS...</div>
     <div id="map"></div>
 
     <div class="controls">
         <button id="startBtn" class="btn-start">▶ Inizia Percorso</button>
-        <button id="pauseBtn" class="btn-pause">🚩 Sosta</button>
-        <button id="reverseBtn" class="btn-reverse">🔄 Inverti</button>
-        <button id="saveBtn" class="btn-save">💾 Salva</button>
-        <button id="resetBtn" class="btn-reset">🗑️ Reset</button>
+        <button id="pauseBtn" class="btn-pause" disabled>🚩 Sosta</button>
+        <button id="reverseBtn" class="btn-reverse" disabled>🔄 A Ritroso</button>
+        
+        <label class="btn-file" style="display: flex; align-items: center; justify-content: center; border-radius: 8px;">
+            📂 Carica
+            <input type="file" id="loadFile" accept=".json">
+        </label>
+        
+        <button id="saveBtn" class="btn-file" style="background:#f1c40f; color:black;">💾 Salva</button>
+        <button id="resetBtn" class="btn-reset" style="grid-column: span 2;">🗑️ Reset Totale</button>
     </div>
 
     <script>
-        let map, pathLine, reverseLine, userMarker;
-        let coords = [];
-        let watchId = null;
-        let isReversed = false;
-        const statusEl = document.getElementById('status');
+        let map, pathLine, userArrow, coords = [], watchId = null;
+        let isPaused = false, isReversed = false, currentHeading = 0;
 
-        // Inizializzazione sicura della mappa
-        try {
-            map = L.map('map', { zoomControl: false }).setView([45.0, 9.0], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-            
-            pathLine = L.polyline([], {color: '#2ecc71', weight: 5}).addTo(map);
-            reverseLine = L.polyline([], {color: '#e74c3c', weight: 5, dashArray: '10, 10'});
-            userMarker = L.circleMarker([0,0], {radius: 8, color: 'white', fillColor: '#3498db', fillOpacity: 1}).addTo(map);
-            
-            statusEl.innerText = "Mappa OK. Pronto.";
-        } catch (e) {
-            statusEl.innerText = "Errore caricamento mappa!";
-            statusEl.style.color = "red";
-        }
+        // Inizializzazione Mappa
+        map = L.map('map', { zoomControl: false }).setView([45, 9], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        // Icona Freccia
+        const arrowIcon = L.divIcon({
+            html: `<div id="arrow" style="transform: rotate(0deg); font-size: 30px;">⬆️</div>`,
+            className: 'arrow-icon',
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+        });
+
+        userArrow = L.marker([0,0], {icon: arrowIcon}).addTo(map);
+        pathLine = L.polyline([], {color: '#2ecc71', weight: 6}).addTo(map);
 
         function updatePos(position) {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
             const pos = [lat, lng];
             
-            statusEl.innerText = `GPS OK: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-            userMarker.setLatLng(pos);
+            // Gestione Rotazione (Heading)
+            if (position.coords.heading !== null) {
+                currentHeading = position.coords.heading;
+            } else if (coords.length > 0) {
+                // Calcolo direzione approssimativa tra ultimi due punti se il sensore non risponde
+                const last = coords[coords.length-1];
+                currentHeading = Math.atan2(lng - last[1], lat - last[0]) * 180 / Math.PI;
+            }
 
-            if (watchId !== null && !isReversed) {
+            let displayHeading = isReversed ? (currentHeading + 180) : currentHeading;
+            document.getElementById('arrow').style.transform = `rotate(${displayHeading}deg)`;
+            
+            userArrow.setLatLng(pos);
+            document.getElementById('status').innerHTML = `🟢 GPS Attivo | Lat: ${lat.toFixed(4)}`;
+
+            if (watchId !== null && !isPaused && !isReversed) {
                 coords.push(pos);
                 pathLine.setLatLngs(coords);
                 map.panTo(pos);
             }
         }
 
+        // Tasto START/STOP
         document.getElementById('startBtn').onclick = function() {
             if (watchId === null) {
-                watchId = navigator.geolocation.watchPosition(updatePos, 
-                    (err) => { statusEl.innerText = "Errore GPS: " + err.message; }, 
-                    { enableHighAccuracy: true }
-                );
-                this.innerText = "⏹ Ferma";
+                watchId = navigator.geolocation.watchPosition(updatePos, (err) => alert(err.message), {enableHighAccuracy: true});
+                this.innerText = "⏹ Concludi e Salva";
                 this.classList.add('recording');
-                L.marker(userMarker.getLatLng()).addTo(map).bindPopup("Partenza");
+                document.getElementById('pauseBtn').disabled = false;
+                L.marker(userArrow.getLatLng()).addTo(map).bindPopup("Inizio");
             } else {
+                // Conclusione percorso
                 navigator.geolocation.clearWatch(watchId);
                 watchId = null;
+                savePath();
                 this.innerText = "▶ Inizia Percorso";
                 this.classList.remove('recording');
             }
         };
 
+        // Tasto SOSTA (Toggle)
         document.getElementById('pauseBtn').onclick = function() {
-            const p = userMarker.getLatLng();
-            L.marker([p.lat, p.lng], {
-                icon: L.divIcon({html: '🚩', className: 'my-div-icon', iconSize: [30, 30]})
-            }).addTo(map).bindPopup("Sosta");
-        };
-
-        document.getElementById('reverseBtn').onclick = function() {
-            if (coords.length < 2) return;
-            isReversed = !isReversed;
-            if (isReversed) {
-                reverseLine.setLatLngs([...coords].reverse()).addTo(map);
-                pathLine.remove();
-                this.innerText = "⬅️ Modo Inv.";
+            isPaused = !isPaused;
+            if (isPaused) {
+                this.innerText = "▶ Riparti";
+                this.classList.add('paused');
+                L.marker(userArrow.getLatLng(), {icon: L.divIcon({html:'🚩', iconSize:[25,25]})}).addTo(map);
             } else {
-                reverseLine.remove();
-                pathLine.addTo(map);
-                this.innerText = "🔄 Inverti";
+                this.innerText = "🚩 Sosta";
+                this.classList.remove('paused');
             }
         };
 
-        document.getElementById('saveBtn').onclick = function() {
+        // Tasto A RITROSO
+        document.getElementById('reverseBtn').onclick = function() {
+            if (coords.length < 2) return;
+            isReversed = !isReversed;
+            this.classList.toggle('recording');
+            this.innerText = isReversed ? "⬅️ Inversione ON" : "🔄 A Ritroso";
+            if(isReversed) alert("Segui la freccia al contrario per tornare indietro!");
+        };
+
+        // Funzione SALVA
+        function savePath() {
+            if (coords.length < 2) return;
             const blob = new Blob([JSON.stringify(coords)], {type: "application/json"});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url; a.download = "percorso.json"; a.click();
+            a.href = url;
+            a.download = `trekking_${new Date().getTime()}.json`;
+            a.click();
+            document.getElementById('reverseBtn').disabled = false;
+        }
+        document.getElementById('saveBtn').onclick = savePath;
+
+        // Funzione CARICA (Ridisegna sulla mappa)
+        document.getElementById('loadFile').onchange = function(e) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const imported = JSON.parse(event.target.result);
+                    coords = imported;
+                    pathLine.setLatLngs(coords);
+                    map.fitBounds(pathLine.getBounds());
+                    document.getElementById('reverseBtn').disabled = false;
+                    alert("Percorso caricato correttamente sulla mappa!");
+                } catch (err) {
+                    alert("Errore: il file non è un percorso valido.");
+                }
+            };
+            reader.readAsText(e.target.files[0]);
         };
 
         document.getElementById('resetBtn').onclick = function() {
-            if(confirm("Vuoi resettare?")) location.reload();
+            if(confirm("Vuoi cancellare tutto e ricominciare?")) location.reload();
         };
 
-        // Chiedi subito posizione
         navigator.geolocation.getCurrentPosition(updatePos);
     </script>
 </body>
