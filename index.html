@@ -3,167 +3,311 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TREKKING GPS V5</title>
+    <title>SentieroVivo - GPS Tracker</title>
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; background: #1a1a1a; font-family: sans-serif; color: white; }
-        #map { height: 65vh; width: 100%; background: #222; }
-        .controls { height: 35vh; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; background: #2c3e50; }
-        button { border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 13px; text-transform: uppercase; cursor: pointer; transition: 0.2s; }
-        .btn-start { background: #27ae60; grid-column: span 2; font-size: 16px; }
-        .btn-pause { background: #e67e22; }
-        .btn-reverse { background: #2980b9; }
-        .btn-file { background: #8e44ad; }
-        .btn-reset { background: #7f8c8d; }
-        .recording { background: #c0392b !important; animation: pulse 1.5s infinite; }
-        .paused { background: #7f8c8d !important; border: 2px solid white; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
-        #status { position: absolute; top: 10px; left: 10px; z-index: 1000; background: rgba(0,0,0,0.8); padding: 5px 12px; border-radius: 20px; font-size: 12px; border: 1px solid #27ae60; }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; background: #121212; color: #fff; overflow: hidden; }
+        #map { height: 100vh; width: 100vw; z-index: 1; }
+
+        /* Status bar superiore */
+        #gps-status {
+            position: fixed;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(20, 20, 20, 0.85);
+            backdrop-filter: blur(10px);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: #ffaa00; animation: pulse 1.5s infinite; }
+        .dot.active { background: #2ecc71; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+        /* Pannello comandi fluttuante */
+        .panel {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            max-width: 400px;
+            margin: 0 auto;
+            z-index: 1000;
+            background: rgba(25, 25, 25, 0.9);
+            backdrop-filter: blur(16px);
+            padding: 18px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .stat-value { font-size: 15px; font-weight: 700; color: #fff; display: block; margin-top: 2px; }
+        .stat-label { color: #aaa; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .btn-full { grid-column: span 2; }
+        
+        button, .file-label {
+            padding: 12px;
+            cursor: pointer;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.2s ease;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        button:active { transform: scale(0.97); }
+
+        #btnStart { background: #2ecc71; color: white; grid-column: span 2; }
+        #btnStop { background: #e74c3c; color: white; grid-column: span 2; display: none; }
+        .btn-bivio { background: rgba(231, 76, 60, 0.2); color: #ff6b6b; border: 1px solid rgba(231, 76, 60, 0.4); }
+        .btn-sosta { background: rgba(241, 196, 15, 0.2); color: #f1c40f; border: 1px solid rgba(241, 196, 15, 0.4); }
+        .btn-clear { background: rgba(255, 255, 255, 0.08); color: #ccc; }
+        .btn-load { background: rgba(52, 152, 219, 0.2); color: #3498db; border: 1px solid rgba(52, 152, 219, 0.4); }
+        .btn-save { background: #3498db; color: white; }
+
+        .del-btn { background: #e74c3c; color: white; border: none; padding: 6px 10px; width: 100%; border-radius: 6px; cursor: pointer; margin-top: 8px; font-size: 11px; }
         input[type="file"] { display: none; }
     </style>
 </head>
 <body>
 
-    <div id="status">Attesa segnale GPS...</div>
-    <div id="map"></div>
-
-    <div class="controls">
-        <button id="startBtn" class="btn-start">▶ Inizia Percorso</button>
-        <button id="pauseBtn" class="btn-pause" disabled>🚩 Sosta</button>
-        <button id="reverseBtn" class="btn-reverse" disabled>🔄 A Ritroso</button>
-        
-        <label class="btn-file" style="display: flex; align-items: center; justify-content: center; border-radius: 8px;">
-            📂 Carica
-            <input type="file" id="loadFile" accept=".json">
-        </label>
-        
-        <button id="saveBtn" class="btn-file" style="background:#f1c40f; color:black;">💾 Salva</button>
-        <button id="resetBtn" class="btn-reset" style="grid-column: span 2;">🗑️ Reset Totale</button>
+    <div id="gps-status">
+        <div id="statusDot" class="dot"></div>
+        <span id="statusText">Ricerca segnale GPS...</span>
     </div>
 
+    <div class="panel">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-label">Altitudine</span>
+                <span class="stat-value"><span id="altNow">---</span>m</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Max Quota</span>
+                <span class="stat-value"><span id="altMax">---</span>m</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Distanza</span>
+                <span class="stat-value"><span id="dist">0.00</span>km</span>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button id="btnStart" onclick="startRecording()">▶ Avvia Tracciamento</button>
+            <button id="btnStop" onclick="stopAndSave()">⏹ Termina e Salva</button>
+            
+            <button class="btn-bivio" onclick="dropFlag('Bivio', '#e74c3c')">📍 Segna Bivio</button>
+            <button class="btn-sosta" onclick="dropFlag('Sosta', '#f1c40f')">⛺ Segna Sosta</button>
+            
+            <label for="fileInput" class="file-label btn-load">📁 Carica JSON</label>
+            <input type="file" id="fileInput" accept=".json" onchange="loadOldPath(event)">
+            
+            <button class="btn-clear" onclick="clearAllFlags()">🗑 Pulisci Note</button>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        let map, pathLine, userArrow, coords = [], watchId = null;
-        let isPaused = false, isReversed = false, currentHeading = 0;
+        const map = L.map('map', { zoomControl: false }).setView([41.87, 12.56], 13);
+        L.control.zoom({ position: 'topright' }).addTo(map);
 
-        // Inizializzazione Mappa
-        map = L.map('map', { zoomControl: false }).setView([45, 9], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
 
-        // Icona Freccia
-        const arrowIcon = L.divIcon({
-            html: `<div id="arrow" style="transform: rotate(0deg); font-size: 30px;">⬆️</div>`,
-            className: 'arrow-icon',
-            iconSize: [30, 30],
-            iconAnchor: [15, 15]
-        });
+        let recordedPath = [];
+        let flagsMarkers = [];
+        let currentPolyline = L.polyline([], { color: '#3498db', weight: 5, opacity: 0.8 }).addTo(map);
+        let userMarker = null;
+        let isRecording = false;
+        let totalDist = 0;
+        let maxAlt = -Infinity;
+        let currentPos = null;
 
-        userArrow = L.marker([0,0], {icon: arrowIcon}).addTo(map);
-        pathLine = L.polyline([], {color: '#2ecc71', weight: 6}).addTo(map);
+        // Gestione GPS robusta e senza blocchi
+        if ("geolocation" in navigator) {
+            navigator.geolocation.watchPosition(
+                (pos) => {
+                    const { latitude: lat, longitude: lng, altitude: alt } = pos.coords;
+                    currentPos = { lat, lng, alt };
 
-        function updatePos(position) {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-            const pos = [lat, lng];
-            
-            // Gestione Rotazione (Heading)
-            if (position.coords.heading !== null) {
-                currentHeading = position.coords.heading;
-            } else if (coords.length > 0) {
-                // Calcolo direzione approssimativa tra ultimi due punti se il sensore non risponde
-                const last = coords[coords.length-1];
-                currentHeading = Math.atan2(lng - last[1], lat - last[0]) * 180 / Math.PI;
+                    // Aggiorna stato UI GPS
+                    document.getElementById('statusDot').classList.add('active');
+                    document.getElementById('statusText').innerText = `GPS Attivo (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+
+                    if (alt !== null && !isNaN(alt)) {
+                        const rAlt = Math.round(alt);
+                        document.getElementById('altNow').innerText = rAlt;
+                        if (rAlt > maxAlt) {
+                            maxAlt = rAlt;
+                            document.getElementById('altMax').innerText = maxAlt;
+                        }
+                    }
+
+                    if (!userMarker) {
+                        userMarker = L.circleMarker([lat, lng], {
+                            radius: 8,
+                            fillColor: "#3498db",
+                            color: "#fff",
+                            weight: 2,
+                            fillOpacity: 1
+                        }).addTo(map);
+                        map.setView([lat, lng], 17);
+                    } else {
+                        userMarker.setLatLng([lat, lng]);
+                    }
+
+                    if (isRecording) {
+                        if (recordedPath.length > 0) {
+                            const last = recordedPath[recordedPath.length - 1];
+                            const d = L.latLng(last[0], last[1]).distanceTo(L.latLng(lat, lng));
+                            if (d > 3) { // Registra se ci si sposta di almeno 3 metri
+                                totalDist += d;
+                                recordedPath.push([lat, lng, alt]);
+                                currentPolyline.setLatLngs(recordedPath);
+                                document.getElementById('dist').innerText = (totalDist / 1000).toFixed(2);
+                            }
+                        } else {
+                            recordedPath.push([lat, lng, alt]);
+                        }
+                    }
+                },
+                (err) => {
+                    console.warn("Errore GPS:", err.message);
+                    document.getElementById('statusDot').classList.remove('active');
+                    document.getElementById('statusText').innerText = "Segnale GPS debole o assente";
+                },
+                { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 }
+            );
+        } else {
+            document.getElementById('statusText').innerText = "Geolocalizzazione non supportata";
+        }
+
+        function dropFlag(tipo, colore, loadedNote = null, lat = null, lng = null) {
+            if (!currentPos && !lat) {
+                alert("Posizione GPS non ancora acquisita.");
+                return;
             }
+            const fLat = lat || currentPos.lat;
+            const fLng = lng || currentPos.lng;
+            let nota = loadedNote || prompt(`Aggiungi una nota per ${tipo}:`, tipo);
+            if (nota === null) return;
 
-            let displayHeading = isReversed ? (currentHeading + 180) : currentHeading;
-            document.getElementById('arrow').style.transform = `rotate(${displayHeading}deg)`;
+            const iconHtml = `<div style="background-color:${colore}; width:14px; height:14px; border-radius:50%; border:2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.4);"></div>`;
+            const customIcon = L.divIcon({ html: iconHtml, className: '', iconSize: [14, 14], iconAnchor: [7, 7] });
+
+            const marker = L.marker([fLat, fLng], { icon: customIcon }).addTo(map);
             
-            userArrow.setLatLng(pos);
-            document.getElementById('status').innerHTML = `🟢 GPS Attivo | Lat: ${lat.toFixed(4)}`;
+            const div = document.createElement('div');
+            div.innerHTML = `<b style="color:#111;">${tipo}</b><br><span style="color:#446;">${nota}</span>`;
+            const delBtn = document.createElement('button');
+            delBtn.innerText = "Rimuovi indicatore";
+            delBtn.className = "del-btn";
+            delBtn.onclick = () => { map.removeLayer(marker); flagsMarkers = flagsMarkers.filter(m => m !== marker); };
+            div.appendChild(delBtn);
 
-            if (watchId !== null && !isPaused && !isReversed) {
-                coords.push(pos);
-                pathLine.setLatLngs(coords);
-                map.panTo(pos);
+            marker.bindPopup(div);
+            marker.tipoDato = { tipo, nota, colore };
+            flagsMarkers.push(marker);
+        }
+
+        function clearAllFlags() {
+            if(confirm("Vuoi rimuovere tutti i punti di sosta/bivio?")) {
+                flagsMarkers.forEach(m => map.removeLayer(m));
+                flagsMarkers = [];
             }
         }
 
-        // Tasto START/STOP
-        document.getElementById('startBtn').onclick = function() {
-            if (watchId === null) {
-                watchId = navigator.geolocation.watchPosition(updatePos, (err) => alert(err.message), {enableHighAccuracy: true});
-                this.innerText = "⏹ Concludi e Salva";
-                this.classList.add('recording');
-                document.getElementById('pauseBtn').disabled = false;
-                L.marker(userArrow.getLatLng()).addTo(map).bindPopup("Inizio");
-            } else {
-                // Conclusione percorso
-                navigator.geolocation.clearWatch(watchId);
-                watchId = null;
-                savePath();
-                this.innerText = "▶ Inizia Percorso";
-                this.classList.remove('recording');
-            }
-        };
+        function startRecording() {
+            isRecording = true;
+            recordedPath = [];
+            flagsMarkers.forEach(m => map.removeLayer(m));
+            flagsMarkers = [];
+            totalDist = 0;
+            maxAlt = -Infinity;
+            currentPolyline.setLatLngs([]);
+            document.getElementById('btnStart').style.display = 'none';
+            document.getElementById('btnStop').style.display = 'block';
+        }
 
-        // Tasto SOSTA (Toggle)
-        document.getElementById('pauseBtn').onclick = function() {
-            isPaused = !isPaused;
-            if (isPaused) {
-                this.innerText = "▶ Riparti";
-                this.classList.add('paused');
-                L.marker(userArrow.getLatLng(), {icon: L.divIcon({html:'🚩', iconSize:[25,25]})}).addTo(map);
-            } else {
-                this.innerText = "🚩 Sosta";
-                this.classList.remove('paused');
-            }
-        };
+        function stopAndSave() {
+            isRecording = false;
+            document.getElementById('btnStart').style.display = 'block';
+            document.getElementById('btnStop').style.display = 'none';
 
-        // Tasto A RITROSO
-        document.getElementById('reverseBtn').onclick = function() {
-            if (coords.length < 2) return;
-            isReversed = !isReversed;
-            this.classList.toggle('recording');
-            this.innerText = isReversed ? "⬅️ Inversione ON" : "🔄 A Ritroso";
-            if(isReversed) alert("Segui la freccia al contrario per tornare indietro!");
-        };
+            const nomeFile = prompt("Inserisci il nome per salvare il percorso:", "Trekking_" + new Date().toISOString().slice(0,10));
+            if (!nomeFile) return;
 
-        // Funzione SALVA
-        function savePath() {
-            if (coords.length < 2) return;
-            const blob = new Blob([JSON.stringify(coords)], {type: "application/json"});
-            const url = URL.createObjectURL(blob);
+            const data = {
+                nome: nomeFile,
+                distanza: document.getElementById('dist').innerText,
+                maxAlt: maxAlt === -Infinity ? 0 : maxAlt,
+                percorso: recordedPath,
+                bandierine: flagsMarkers.map(m => ({ lat: m.getLatLng().lat, lng: m.getLatLng().lng, info: m.tipoDato }))
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
             const a = document.createElement('a');
-            a.href = url;
-            a.download = `trekking_${new Date().getTime()}.json`;
+            a.href = URL.createObjectURL(blob);
+            a.download = nomeFile + ".json";
             a.click();
-            document.getElementById('reverseBtn').disabled = false;
         }
-        document.getElementById('saveBtn').onclick = savePath;
 
-        // Funzione CARICA (Ridisegna sulla mappa)
-        document.getElementById('loadFile').onchange = function(e) {
+        function loadOldPath(event) {
+            const file = event.target.files[0];
+            if (!file) return;
             const reader = new FileReader();
-            reader.onload = function(event) {
+            reader.onload = e => {
                 try {
-                    const imported = JSON.parse(event.target.result);
-                    coords = imported;
-                    pathLine.setLatLngs(coords);
-                    map.fitBounds(pathLine.getBounds());
-                    document.getElementById('reverseBtn').disabled = false;
-                    alert("Percorso caricato correttamente sulla mappa!");
+                    const d = JSON.parse(e.target.result);
+                    if (d.percorso && d.percorso.length > 0) {
+                        L.polyline(d.percorso, { color: '#e67e22', weight: 4, dashArray: '6,6' }).addTo(map);
+                        if (d.bandierine) {
+                            d.bandierine.forEach(f => dropFlag(f.info.tipo, f.info.colore, f.info.nota, f.lat, f.lng));
+                        }
+                        map.fitBounds(L.polyline(d.percorso).getBounds());
+                    }
                 } catch (err) {
-                    alert("Errore: il file non è un percorso valido.");
+                    alert("Errore nella lettura del file JSON.");
                 }
             };
-            reader.readAsText(e.target.files[0]);
-        };
-
-        document.getElementById('resetBtn').onclick = function() {
-            if(confirm("Vuoi cancellare tutto e ricominciare?")) location.reload();
-        };
-
-        navigator.geolocation.getCurrentPosition(updatePos);
+            reader.readAsText(file);
+        }
     </script>
 </body>
 </html>
