@@ -70,7 +70,6 @@
         .stat-label { color: #aaa; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
 
         .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .btn-full { grid-column: span 2; }
         
         button, .file-label {
             padding: 12px;
@@ -92,9 +91,9 @@
         #btnStop { background: #e74c3c; color: white; grid-column: span 2; display: none; }
         .btn-bivio { background: rgba(231, 76, 60, 0.2); color: #ff6b6b; border: 1px solid rgba(231, 76, 60, 0.4); }
         .btn-sosta { background: rgba(241, 196, 15, 0.2); color: #f1c40f; border: 1px solid rgba(241, 196, 15, 0.4); }
+        .btn-reverse { background: rgba(155, 89, 182, 0.2); color: #bb8fce; border: 1px solid rgba(155, 89, 182, 0.4); grid-column: span 2; }
         .btn-clear { background: rgba(255, 255, 255, 0.08); color: #ccc; }
         .btn-load { background: rgba(52, 152, 219, 0.2); color: #3498db; border: 1px solid rgba(52, 152, 219, 0.4); }
-        .btn-save { background: #3498db; color: white; }
 
         .del-btn { background: #e74c3c; color: white; border: none; padding: 6px 10px; width: 100%; border-radius: 6px; cursor: pointer; margin-top: 8px; font-size: 11px; }
         input[type="file"] { display: none; }
@@ -130,6 +129,8 @@
             <button class="btn-bivio" onclick="dropFlag('Bivio', '#e74c3c')">📍 Segna Bivio</button>
             <button class="btn-sosta" onclick="dropFlag('Sosta', '#f1c40f')">⛺ Segna Sosta</button>
             
+            <button class="btn-reverse" onclick="reversePath()">🔄 Inverti Percorso (Ritorno)</button>
+
             <label for="fileInput" class="file-label btn-load">📁 Carica JSON</label>
             <input type="file" id="fileInput" accept=".json" onchange="loadOldPath(event)">
             
@@ -155,6 +156,7 @@
         let currentPolyline = L.polyline([], { color: '#3498db', weight: 5, opacity: 0.8 }).addTo(map);
         let userMarker = null;
         let isRecording = false;
+        let isReversed = false;
         let totalDist = 0;
         let maxAlt = -Infinity;
         let currentPos = null;
@@ -196,7 +198,7 @@
                         if (recordedPath.length > 0) {
                             const last = recordedPath[recordedPath.length - 1];
                             const d = L.latLng(last[0], last[1]).distanceTo(L.latLng(lat, lng));
-                            if (d > 3) { // Registra se ci si sposta di almeno 3 metri
+                            if (d > 3) {
                                 totalDist += d;
                                 recordedPath.push([lat, lng, alt]);
                                 currentPolyline.setLatLngs(recordedPath);
@@ -246,6 +248,21 @@
             flagsMarkers.push(marker);
         }
 
+        function reversePath() {
+            if (recordedPath.length < 2) {
+                alert("Non c'è ancora un percorso sufficiente da invertire.");
+                return;
+            }
+            recordedPath.reverse();
+            currentPolyline.setLatLngs(recordedPath);
+            
+            isReversed = !isReversed;
+            // Cambia colore della linea per indicare che siamo in modalità ritorno
+            currentPolyline.setStyle({ color: isReversed ? '#9b59b6' : '#3498db' });
+            
+            alert(isReversed ? "Percorso invertito: pronto per il ritorno a ritroso!" : "Percorso ripristinato nella direzione originale.");
+        }
+
         function clearAllFlags() {
             if(confirm("Vuoi rimuovere tutti i punti di sosta/bivio?")) {
                 flagsMarkers.forEach(m => map.removeLayer(m));
@@ -255,12 +272,14 @@
 
         function startRecording() {
             isRecording = true;
+            isReversed = false;
             recordedPath = [];
             flagsMarkers.forEach(m => map.removeLayer(m));
             flagsMarkers = [];
             totalDist = 0;
             maxAlt = -Infinity;
             currentPolyline.setLatLngs([]);
+            currentPolyline.setStyle({ color: '#3498db' });
             document.getElementById('btnStart').style.display = 'none';
             document.getElementById('btnStop').style.display = 'block';
         }
