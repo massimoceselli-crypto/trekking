@@ -68,7 +68,40 @@
       margin-top: 2px;
     }
 
-    /* Pulsanti di Controllo in Basso Grid */
+    /* Pulsanti Zoom e Blocco Mappa */
+    .map-controls {
+      position: absolute;
+      top: 90px;
+      left: 16px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .btn-circle {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(20, 20, 20, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      font-size: 1.2rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+
+    .btn-circle.active-lock {
+      background: #ffc107;
+      color: #000;
+      border-color: #ffc107;
+    }
+
+    /* Pulsanti di Controllo in Basso */
     .controls {
       position: absolute;
       bottom: 20px;
@@ -84,16 +117,16 @@
 
     .btn-row {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       width: 100%;
     }
 
     .btn {
       flex: 1;
-      padding: 12px 6px;
+      padding: 12px 4px;
       border: none;
       border-radius: 12px;
-      font-size: 0.82rem;
+      font-size: 0.8rem;
       font-weight: 600;
       cursor: pointer;
       display: flex;
@@ -110,6 +143,7 @@
     .btn-pause { background-color: #17a2b8; color: #ffffff; }
     .btn-bivio { background-color: #ffc107; color: #000000; }
     .btn-photo { background-color: #6f42c1; color: #ffffff; }
+    .btn-save { background-color: #007bff; color: #ffffff; }
     .btn-reverse { background-color: #ff9f1c; color: #011627; }
 
     /* Indicatore Stato GPS */
@@ -139,7 +173,7 @@
       box-shadow: 0 0 8px #28a745;
     }
 
-    /* Freccina Blu Direzionale */
+    /* Freccia Blu Direzionale */
     .arrow-icon {
       display: flex;
       align-items: center;
@@ -154,51 +188,65 @@
     }
 
     /* Stili Marcatori Personalizzati */
-    .stop-marker-icon {
-      background-color: #17a2b8;
-      color: #ffffff;
-      border: 2px solid #ffffff;
+    .stop-marker-icon, .bivio-marker-icon, .photo-marker-icon, .start-marker-icon, .end-marker-icon {
       border-radius: 50%;
       font-size: 11px;
       font-weight: bold;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-    }
-
-    .bivio-marker-icon {
-      background-color: #ffc107;
-      color: #000000;
-      border: 2px solid #000000;
-      border-radius: 50%;
-      font-size: 13px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       box-shadow: 0 2px 8px rgba(0,0,0,0.5);
     }
 
-    .photo-marker-icon {
-      background-color: #6f42c1;
-      color: #ffffff;
-      border: 2px solid #ffffff;
-      border-radius: 50%;
-      font-size: 13px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-    }
+    .start-marker-icon { background-color: #28a745; color: #fff; border: 2px solid #fff; font-size: 10px; }
+    .end-marker-icon { background-color: #dc3545; color: #fff; border: 2px solid #fff; font-size: 10px; }
+    .stop-marker-icon { background-color: #17a2b8; color: #fff; border: 2px solid #fff; }
+    .bivio-marker-icon { background-color: #ffc107; color: #000; border: 2px solid #000; font-size: 13px; }
+    .photo-marker-icon { background-color: #6f42c1; color: #fff; border: 2px solid #fff; font-size: 13px; }
 
     .photo-popup-img {
       width: 100%;
-      max-width: 200px;
+      max-width: 180px;
       height: auto;
       border-radius: 8px;
       margin-top: 6px;
+      cursor: pointer;
+    }
+
+    /* Modal per Visualizzazione Foto */
+    .photo-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.92);
+      z-index: 2000;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .photo-modal img {
+      max-width: 95%;
+      max-height: 80%;
+      border-radius: 12px;
+      object-fit: contain;
+      box-shadow: 0 0 20px rgba(255,255,255,0.2);
+    }
+
+    .photo-modal-btn {
+      margin-top: 16px;
+      padding: 12px 28px;
+      background-color: #e71d36;
+      color: #ffffff;
+      border: none;
+      border-radius: 25px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -219,6 +267,12 @@
     </div>
   </div>
 
+  <div class="map-controls">
+    <button class="btn-circle" onclick="map.zoomIn()">+</button>
+    <button class="btn-circle" onclick="map.zoomOut()">-</button>
+    <button class="btn-circle" id="btn-lock" onclick="toggleMapLock()">🔓</button>
+  </div>
+
   <div class="gps-status">
     <div class="dot" id="gps-dot"></div>
     <span id="gps-text">GPS: In attesa...</span>
@@ -226,7 +280,13 @@
 
   <div id="map"></div>
 
-  <!-- Input nascosto per scattare la foto da fotocamera smartphone -->
+  <!-- Modal Foto Ingrandita -->
+  <div class="photo-modal" id="photoModal">
+    <img id="modalImg" src="" alt="Foto Ingrandita">
+    <button class="photo-modal-btn" onclick="closePhotoModal()">✕ Chiudi Foto</button>
+  </div>
+
+  <!-- Input nascosto per scattare foto -->
   <input type="file" id="photo-input" accept="image/*" capture="environment" style="display: none;" onchange="handlePhotoCaptured(event)">
 
   <div class="controls">
@@ -238,6 +298,7 @@
     <div class="btn-row">
       <button class="btn btn-start" id="btn-toggle" onclick="toggleTracking()">Avvia Registrazione</button>
       <button class="btn btn-reverse" onclick="reverseTrack()">Inverti Traccia</button>
+      <button class="btn btn-save" onclick="saveTrack()">💾 Salva</button>
     </div>
   </div>
 
@@ -247,13 +308,17 @@
   <script>
     let map;
     let arrowMarker = null;
+    let startMarker = null;
+    let endMarker = null;
     let trackPolyline;
     let tracking = false;
+    let mapLocked = false;
     let trackPoints = [];
     let totalDistance = 0;
     let watchId = null;
     let lastAltFetchTime = 0;
 
+    let trailName = "SentieroVivo";
     let lastLatLng = null;
     let currentHeading = 0;
 
@@ -263,7 +328,7 @@
     let bivioLocations = [];
 
     function initMap() {
-      map = L.map('map', { zoomControl: false }).setView([43.548, 10.310], 15);
+      map = L.map('map', { zoomControl: false }).setView([43.548, 10.310], 16);
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -279,6 +344,18 @@
       }).addTo(map);
 
       startGPS();
+    }
+
+    function toggleMapLock() {
+      mapLocked = !mapLocked;
+      const btn = document.getElementById('btn-lock');
+      if (mapLocked) {
+        btn.innerText = "🔒";
+        btn.classList.add('active-lock');
+      } else {
+        btn.innerText = "🔓";
+        btn.classList.remove('active-lock');
+      }
     }
 
     function startGPS() {
@@ -308,7 +385,6 @@
 
       const currentLatLng = [lat, lng];
 
-      // Calcolo direzione per Freccia Blu
       if (position.coords.heading !== null && !isNaN(position.coords.heading)) {
         currentHeading = position.coords.heading;
       } else if (lastLatLng) {
@@ -318,10 +394,9 @@
 
       updateArrowMarker(currentLatLng, currentHeading);
 
-      if (!lastLatLng) {
-        map.setView(currentLatLng, 16);
-      } else {
-        map.panTo(currentLatLng);
+      if (!mapLocked) {
+        if (!lastLatLng) map.setView(currentLatLng, 16);
+        else map.panTo(currentLatLng);
       }
 
       fetchAccurateAltitude(lat, lng, position.coords.altitude);
@@ -342,7 +417,6 @@
       lastLatLng = currentLatLng;
     }
 
-    // Freccia Blu
     function updateArrowMarker(latLng, heading) {
       const svgArrow = `
         <div class="arrow-icon" style="transform: rotate(${heading}deg);">
@@ -380,12 +454,8 @@
       return (brng + 360) % 360;
     }
 
-    // Sosta Manuale
     function addManualStop() {
-      if (!lastLatLng) {
-        alert("In attesa del segnale GPS...");
-        return;
-      }
+      if (!lastLatLng) return alert("In attesa del segnale GPS...");
       stopCount++;
       const stopIcon = L.divIcon({
         className: 'stop-marker-icon',
@@ -396,16 +466,12 @@
 
       L.marker(lastLatLng, { icon: stopIcon })
         .addTo(map)
-        .bindPopup(`<b>Sosta #${stopCount}</b><br>Registrata alle ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`)
+        .bindPopup(`<b>Sosta #${stopCount}</b><br>Ore: ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`)
         .openPopup();
     }
 
-    // Segnalazione Bivio
     function addBivioMarker() {
-      if (!lastLatLng) {
-        alert("In attesa del segnale GPS...");
-        return;
-      }
+      if (!lastLatLng) return alert("In attesa del segnale GPS...");
       bivioCount++;
       const bivioIcon = L.divIcon({
         className: 'bivio-marker-icon',
@@ -416,22 +482,14 @@
 
       L.marker(lastLatLng, { icon: bivioIcon })
         .addTo(map)
-        .bindPopup(`<b>Bivio/Deviazione #${bivioCount}</b><br>Punto critico registrato per il ritorno!`)
+        .bindPopup(`<b>Bivio #${bivioCount}</b><br>Punto critico registrato!`)
         .openPopup();
 
-      bivioLocations.push({
-        id: bivioCount,
-        latLng: lastLatLng,
-        notified: false
-      });
+      bivioLocations.push({ id: bivioCount, latLng: lastLatLng, notified: false });
     }
 
-    // Gestione Scatto Foto
     function triggerPhotoCapture() {
-      if (!lastLatLng) {
-        alert("In attesa del segnale GPS...");
-        return;
-      }
+      if (!lastLatLng) return alert("In attesa del segnale GPS...");
       document.getElementById('photo-input').click();
     }
 
@@ -439,10 +497,20 @@
       const file = event.target.files[0];
       if (!file) return;
 
+      photoCount++;
+      const now = new Date();
+      const timestamp = now.getHours().toString().padStart(2, '0') + now.getMinutes().toString().padStart(2, '0') + now.getSeconds().toString().padStart(2, '0');
+      const cleanTrailName = trailName.replace(/[^a-zA-Z0-9]/g, "_");
+      const autoFileName = `${cleanTrailName}_Foto${photoCount}_${timestamp}.jpg`;
+
+      const downloadLink = document.createElement('a');
+      downloadLink.href = URL.createObjectURL(file);
+      downloadLink.download = autoFileName;
+      downloadLink.click();
+
       const reader = new FileReader();
       reader.onload = function(e) {
         const photoUrl = e.target.result;
-        photoCount++;
 
         const photoIcon = L.divIcon({
           className: 'photo-marker-icon',
@@ -451,30 +519,36 @@
           iconAnchor: [15, 15]
         });
 
-        const timeStr = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const timeStr = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
-        L.marker(lastLatLng, { icon: photoIcon })
-          .addTo(map)
-          .bindPopup(`
-            <div style="text-align: center;">
-              <b>Foto #${photoCount}</b><br>
-              <small>${timeStr}</small><br>
-              <img src="${photoUrl}" class="photo-popup-img" alt="Foto Sosta" />
-            </div>
-          `)
-          .openPopup();
+        const marker = L.marker(lastLatLng, { icon: photoIcon }).addTo(map);
+        marker.bindPopup(`
+          <div style="text-align: center;">
+            <b>Foto #${photoCount}</b><br><small>${timeStr}</small><br>
+            <img src="${photoUrl}" class="photo-popup-img" onclick="openPhotoModal('${photoUrl}')" alt="Foto">
+            <br><small style="color:#aaa">Clicca la foto per ingrandirla</small>
+          </div>
+        `).openPopup();
       };
 
       reader.readAsDataURL(file);
     }
 
-    // Avviso Bivio
+    function openPhotoModal(url) {
+      document.getElementById('modalImg').src = url;
+      document.getElementById('photoModal').style.display = 'flex';
+    }
+
+    function closePhotoModal() {
+      document.getElementById('photoModal').style.display = 'none';
+    }
+
     function checkProximityToBivi(currentLatLng) {
       bivioLocations.forEach(bivio => {
         const dist = map.distance(currentLatLng, bivio.latLng);
         if (dist < 25 && !bivio.notified) {
           bivio.notified = true;
-          alert(`⚠️ ATTENZIONE BIVIO #${bivio.id} NELLE VICINANZE!\nControlla la mappa per la direzione di ritorno.`);
+          alert(`⚠️ ATTENZIONE BIVIO #${bivio.id} NELLE VICINANZE!\nControlla la mappa per la direzione.`);
         } else if (dist > 50) {
           bivio.notified = false;
         }
@@ -486,23 +560,17 @@
       if (error.code === 1) msg = "Permesso GPS negato";
       else if (error.code === 2) msg = "Segnale non disponibile";
       else if (error.code === 3) msg = "Timeout ricerca GPS";
-      
       updateGPSStatus(false, msg);
     }
 
     function updateGPSStatus(active, message) {
       const dot = document.getElementById('gps-dot');
       const text = document.getElementById('gps-text');
-      
-      if (active) {
-        dot.classList.add('active');
-      } else {
-        dot.classList.remove('active');
-      }
+      if (active) dot.classList.add('active');
+      else dot.classList.remove('active');
       text.innerText = message;
     }
 
-    // Altitudine via API Open-Meteo
     async function fetchAccurateAltitude(lat, lng, fallbackAlt) {
       const now = Date.now();
       if (now - lastAltFetchTime < 10000) return;
@@ -517,37 +585,97 @@
             return;
           }
         }
-      } catch (e) {
-        console.warn("API altitudine offline, uso il dato GPS:", e);
-      }
+      } catch (e) { console.warn("API altitudine offline:", e); }
 
       if (fallbackAlt !== null && !isNaN(fallbackAlt)) {
         document.getElementById('val-alt').innerText = `${Math.round(fallbackAlt)} m`;
       }
     }
 
+    // Gestione Avvio / Arresto Registrazione con Marcatori INIZIO e FINE
     function toggleTracking() {
       const btn = document.getElementById('btn-toggle');
       tracking = !tracking;
 
       if (tracking) {
+        if (!lastLatLng) {
+          alert("Attendi il segnale GPS prima di avviare la registrazione!");
+          tracking = false;
+          return;
+        }
+
+        const inputName = prompt("Inserisci il nome del sentiero:", "SentieroVivo");
+        if (inputName && inputName.trim() !== "") trailName = inputName.trim();
+
+        // MARCATORE INIZIO (🟢 Verde)
+        const startIcon = L.divIcon({
+          className: 'start-marker-icon',
+          html: `🟢`,
+          iconSize: [28, 28],
+          iconAnchor: [14, 14]
+        });
+
+        const startTimeStr = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+        if (startMarker) map.removeLayer(startMarker);
+        if (endMarker) map.removeLayer(endMarker);
+
+        startMarker = L.marker(lastLatLng, { icon: startIcon }).addTo(map);
+        startMarker.bindPopup(`<b>INIZIO SENTIERO</b><br>${trailName}<br>Ora inizio: ${startTimeStr}`).openPopup();
+
         btn.innerText = "Ferma Registrazione";
         btn.className = "btn btn-stop";
       } else {
+        // MARCATORE FINE (🔴 Rosso)
+        if (lastLatLng) {
+          const endIcon = L.divIcon({
+            className: 'end-marker-icon',
+            html: `🔴`,
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
+          });
+
+          const endTimeStr = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+          endMarker = L.marker(lastLatLng, { icon: endIcon }).addTo(map);
+          endMarker.bindPopup(`
+            <b>FINE REGISTRAZIONE</b><br>
+            ${trailName}<br>
+            Ora arrivo: ${endTimeStr}<br>
+            <b>Distanza:</b> ${totalDistance.toFixed(2)} km<br>
+            <small>Soste: ${stopCount} | Bivi: ${bivioCount} | Foto: ${photoCount}</small>
+          `).openPopup();
+        }
+
         btn.innerText = "Avvia Registrazione";
         btn.className = "btn btn-start";
       }
     }
 
     function reverseTrack() {
-      if (trackPoints.length < 2) {
-        alert("Nessuna traccia sufficiente da invertire!");
-        return;
-      }
+      if (trackPoints.length < 2) return alert("Nessuna traccia sufficiente da invertire!");
       trackPoints.reverse();
-      trackPolyline.setStyle({ color: '#ff9f1c' }); // Cambia in Arancione
+      trackPolyline.setStyle({ color: '#ff9f1c' });
       trackPolyline.setLatLngs(trackPoints);
-      alert("Traccia invertita! Ora la vedi in arancione per guidarti nel percorso di ritorno.");
+      alert("Traccia invertita! Ora guidati dal percorso in arancione per tornare al punto di partenza.");
+    }
+
+    function saveTrack() {
+      if (trackPoints.length === 0) return alert("Nessun percorso registrato da salvare!");
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
+        sentiero: trailName,
+        distanza: totalDistance.toFixed(2),
+        punti: trackPoints,
+        bivi: bivioLocations
+      }, null, 2));
+
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `${trailName.replace(/[^a-zA-Z0-9]/g, "_")}_traccia.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
     }
 
     window.onload = initMap;
