@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Sentierovivo - Trekking GPS</title>
+  <title>SentieroVivo - Trekking GPS</title>
   
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -30,7 +30,7 @@
       z-index: 1;
     }
 
-    /* Dashboard informativa in alto */
+    /* Dashboard informativa */
     .dashboard {
       position: absolute;
       top: 12px;
@@ -97,11 +97,11 @@
       transition: all 0.2s ease;
     }
 
-    .btn-start { background-color: #2ec4b6; color: #011627; }
-    .btn-stop { background-color: #e71d36; color: #ffffff; }
+    .btn-start { background-color: #28a745; color: #ffffff; }
+    .btn-stop { background-color: #dc3545; color: #ffffff; }
     .btn-reverse { background-color: #ff9f1c; color: #011627; }
 
-    /* Indicatori stato GPS */
+    /* Indicatore Stato GPS */
     .gps-status {
       position: absolute;
       top: 90px;
@@ -124,8 +124,36 @@
     }
 
     .dot.active {
-      background-color: #2ec4b6;
-      box-shadow: 0 0 8px #2ec4b6;
+      background-color: #28a745;
+      box-shadow: 0 0 8px #28a745;
+    }
+
+    /* Stile della Freccina Blu direzionale */
+    .arrow-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.3s ease;
+    }
+
+    .arrow-icon svg {
+      width: 32px;
+      height: 32px;
+      filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.5));
+    }
+
+    /* Stile Marcatori Sosta */
+    .stop-marker-icon {
+      background-color: #007bff;
+      color: #ffffff;
+      border: 2px solid #ffffff;
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
     }
   </style>
 </head>
@@ -162,29 +190,46 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
-    let map, userMarker, trackPolyline;
+    let map;
+    let userMarker = null;
+    let arrowMarker = null;
+    let trackPolyline;
     let tracking = false;
     let trackPoints = [];
-    let totalDistance = 0; // in km
+    let totalDistance = 0; // km
     let watchId = null;
     let lastAltFetchTime = 0;
 
-    // Inizializzazione Mappa
+    // Gestione Direzione e Freccina Blu
+    let lastLatLng = null;
+    let currentHeading = 0;
+
+    // Gestione Rilevamento Soste
+    let stopStartTime = null;
+    let stopStartLatLng = null;
+    let stopMarkers = [];
+    const STOP_RADIUS_METERS = 15; // Soglia spostamento per sosta
+    const STOP_TIME_THRESHOLD_MS = 2 * 60 * 1000; // 2 minuti minimo per considerare una sosta
+
     function initMap() {
-      map = L.map('map', { zoomControl: false }).setView([43.548, 10.310], 13);
+      map = L.map('map', { zoomControl: false }).setView([43.548, 10.310], 15);
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '© OpenStreetMap'
       }).addTo(map);
 
-      trackPolyline = L.polyline([], { color: '#ff9f1c', weight: 4 }).addTo(map);
+      // Traccia VERDE per il percorso registrato
+      trackPolyline = L.polyline([], {
+        color: '#28a745',
+        weight: 5,
+        opacity: 0.95,
+        lineCap: 'round'
+      }).addTo(map);
 
-      // Inizia monitoraggio posizione GPS
       startGPS();
     }
 
-    // Monitoraggio GPS con gestione errori corretta
     function startGPS() {
       if (!navigator.geolocation) {
         updateGPSStatus(false, "GPS non supportato");
@@ -197,7 +242,7 @@
         {
           enableHighAccuracy: true,
           timeout: 15000,
-          maximumAge: 3000
+          maximumAge: 2000
         }
       );
     }
@@ -205,47 +250,138 @@
     function onGPSSuccess(position) {
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
-      const speed = position.coords.speed ? (position.coords.speed * 3.6).toFixed(1) : "0.0";
+      const speedKm = position.coords.speed && position.coords.speed > 0 ? (position.coords.speed * 3.6) : 0;
       
       updateGPSStatus(true, "GPS Attivo");
-      document.getElementById('val-speed').innerText = `${speed} km/h`;
+      document.getElementById('val-speed').innerText = `${speedKm.toFixed(1)} km/h`;
 
       const currentLatLng = [lat, lng];
 
-      // Aggiorna o crea il marker utente
-      if (!userMarker) {
-        userMarker = L.circleMarker(currentLatLng, {
-          radius: 8,
-          fillColor: '#2ec4b6',
-          color: '#ffffff',
-          weight: 2,
-          fillOpacity: 1
-        }).addTo(map);
-        map.setView(currentLatLng, 16);
-      } else {
-        userMarker.setLatLng(currentLatLng);
+      // Calcolo direzione (heading) per la freccina blu
+      if (position.coords.heading !== null && !isNaN(position.coords.heading)) {
+        currentHeading = position.coords.heading;
+      } else if (lastLatLng) {
+        const calculatedHeading = calculateBearing(lastLatLng[0], lastLatLng[1], lat, lng);
+        if (calculatedHeading !== null) currentHeading = calculatedHeading;
       }
 
-      // Recupera altitudine accurata via API (con throttling di 10 secondi)
+      // Aggiorna o crea il marker con la FRECCINA BLU
+      updateArrowMarker(currentLatLng, currentHeading);
+
+      // Centra la mappa sulla posizione attuale se in movimento o primo punto
+      if (!lastLatLng) {
+        map.setView(currentLatLng, 16);
+      } else {
+        map.panTo(currentLatLng);
+      }
+
+      // Recupero Altitudine accurata via API
       fetchAccurateAltitude(lat, lng, position.coords.altitude);
 
-      // Se il tracciamento è attivo, registra il punto
+      // Se la registrazione è attiva
       if (tracking) {
-        if (trackPoints.length > 0) {
-          const lastPoint = trackPoints[trackPoints.length - 1];
-          const distInc = map.distance(lastPoint, currentLatLng) / 1000; // in km
+        if (lastLatLng) {
+          const distInc = map.distance(lastLatLng, currentLatLng) / 1000;
           totalDistance += distInc;
           document.getElementById('val-dist').innerText = `${totalDistance.toFixed(2)} km`;
         }
+
         trackPoints.push(currentLatLng);
         trackPolyline.setLatLngs(trackPoints);
+
+        // Controllo automatico delle soste
+        checkStopDetection(currentLatLng, speedKm);
       }
+
+      lastLatLng = currentLatLng;
+    }
+
+    // Creazione e rotazione della FRECCINA BLU
+    function updateArrowMarker(latLng, heading) {
+      const svgArrow = `
+        <div class="arrow-icon" style="transform: rotate(${heading}deg);">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L2 22L12 18L22 22L12 2Z" fill="#007bff" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      `;
+
+      const customIcon = L.divIcon({
+        html: svgArrow,
+        className: 'custom-arrow-container',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      });
+
+      if (!arrowMarker) {
+        arrowMarker = L.marker(latLng, { icon: customIcon }).addTo(map);
+      } else {
+        arrowMarker.setLatLng(latLng);
+        arrowMarker.setIcon(customIcon);
+      }
+    }
+
+    // Calcolo angolo/direzione tra due coordinate GPS
+    function calculateBearing(lat1, lon1, lat2, lon2) {
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const lat1Rad = lat1 * Math.PI / 180;
+      const lat2Rad = lat2 * Math.PI / 180;
+
+      if (Math.abs(lat2 - lat1) < 0.00001 && Math.abs(lon2 - lon1) < 0.00001) {
+        return null; // Nessun movimento significativo
+      }
+
+      const y = Math.sin(dLon) * Math.cos(lat2Rad);
+      const x = Math.cos(lat1Rad) * Math.sin(lat2Rad) - Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLon);
+      let brng = Math.atan2(y, x) * 180 / Math.PI;
+      return (brng + 360) % 360;
+    }
+
+    // Rilevamento automatico SOSTE
+    function checkStopDetection(currentLatLng, speedKm) {
+      const now = Date.now();
+
+      if (!stopStartLatLng) {
+        stopStartLatLng = currentLatLng;
+        stopStartTime = now;
+        return;
+      }
+
+      const distFromStopStart = map.distance(stopStartLatLng, currentLatLng);
+
+      if (distFromStopStart < STOP_RADIUS_METERS && speedKm < 1.5) {
+        const duration = now - stopStartTime;
+        if (duration >= STOP_TIME_THRESHOLD_MS && !stopStartLatLng.hasMarker) {
+          addStopMarker(stopStartLatLng, Math.round(duration / 60000));
+          stopStartLatLng.hasMarker = true;
+        }
+      } else {
+        // L'utente ha ripreso a camminare: resetta il punto di sosta
+        stopStartLatLng = currentLatLng;
+        stopStartTime = now;
+      }
+    }
+
+    // Aggiunge un punto di sosta visibile sulla mappa
+    function addStopMarker(latLng, minutes) {
+      const stopIcon = L.divIcon({
+        className: 'stop-marker-icon',
+        html: `⏸ ${minutes}m`,
+        iconSize: [36, 24],
+        iconAnchor: [18, 12]
+      });
+
+      const marker = L.marker(latLng, { icon: stopIcon })
+        .addTo(map)
+        .bindPopup(`<b>Sosta di ${minutes} minuti</b>`);
+
+      stopMarkers.push(marker);
     }
 
     function onGPSError(error) {
       let msg = "Errore GPS";
       if (error.code === 1) msg = "Permesso GPS negato";
-      else if (error.code === 2) msg = "Segnale GPS non disponibile";
+      else if (error.code === 2) msg = "Segnale non disponibile";
       else if (error.code === 3) msg = "Timeout ricerca GPS";
       
       updateGPSStatus(false, msg);
@@ -263,10 +399,10 @@
       text.innerText = message;
     }
 
-    // Recupero altitudine esatta tramite API Open-Meteo Elevation
+    // Recupero altitudine accurata via API Open-Meteo
     async function fetchAccurateAltitude(lat, lng, fallbackAlt) {
       const now = Date.now();
-      if (now - lastAltFetchTime < 10000) return; // limita le richieste a 1 ogni 10 sec
+      if (now - lastAltFetchTime < 10000) return;
       lastAltFetchTime = now;
 
       try {
@@ -279,16 +415,15 @@
           }
         }
       } catch (e) {
-        console.warn("Impossibile recuperare altitudine via API, uso il dato GPS:", e);
+        console.warn("API altitudine offline, uso il GPS locale:", e);
       }
 
-      // Fallback su dato GPS nativo se presente
       if (fallbackAlt !== null && !isNaN(fallbackAlt)) {
         document.getElementById('val-alt').innerText = `${Math.round(fallbackAlt)} m`;
       }
     }
 
-    // Gestione Avvio / Arresto Registrazione
+    // Avvio / Arresto Registrazione
     function toggleTracking() {
       const btn = document.getElementById('btn-toggle');
       tracking = !tracking;
@@ -298,19 +433,20 @@
         btn.className = "btn btn-stop";
       } else {
         btn.innerText = "Avvia Registrazione";
-        btn.className = "btn btn-start";    
+        btn.className = "btn btn-start";
       }
     }
 
-    // Inversione Traccia registrata
+    // Inversione della Traccia
     function reverseTrack() {
       if (trackPoints.length < 2) {
         alert("Nessuna traccia sufficiente da invertire!");
         return;
       }
       trackPoints.reverse();
+      trackPolyline.setStyle({ color: '#ff9f1c' }); // Cambia in arancione per indicare il ritorno/inversione
       trackPolyline.setLatLngs(trackPoints);
-      alert("Traccia invertita! Ora puoi seguirla a ritroso.");
+      alert("Traccia invertita! Ora la vedi evidenziata per il percorso di ritorno.");
     }
 
     window.onload = initMap;
