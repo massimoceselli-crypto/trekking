@@ -10,36 +10,37 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body, html { margin: 0; padding: 0; height: 100%; background: #111; font-family: sans-serif; color: white; overflow: hidden; }
         
-        /* Mappa leggermente più bassa per lasciare spazio a tutti i pulsanti */
-        #map { height: 68vh; width: 100%; background: #222; }
+        /* Mappa più ampia per dare massimo spazio al tracciato */
+        #map { height: 78vh; width: 100%; background: #222; }
         
-        /* Pannello Controlli Basso - Spazio sufficiente per 3 righe di tasti */
+        /* Pannello Controlli molto compatto in altezza */
         .controls { 
-            height: 32vh; 
+            height: 22vh; 
             display: grid; 
             grid-template-columns: repeat(3, 1fr); 
             grid-template-rows: repeat(3, 1fr);
-            gap: 4px; 
-            padding: 6px; 
+            gap: 3px; 
+            padding: 4px; 
             background: #1f2937; 
         }
         
-        /* Pulsanti con scritte ben visibili e riquadri compatti */
+        /* Pulsanti con riquadro basso e testo ben visibile */
         button, label.btn-file { 
             border: none; 
-            border-radius: 6px; 
+            border-radius: 5px; 
             color: white; 
-            font-weight: bold; 
-            font-size: 13px; 
+            font-weight: 900; 
+            font-size: 14px; 
             text-transform: uppercase; 
             cursor: pointer;
             display: flex; 
             align-items: center; 
             justify-content: center; 
             text-align: center;
-            padding: 2px;
+            padding: 0px 2px;
             margin: 0;
-            line-height: 1.1;
+            line-height: 1;
+            letter-spacing: 0.3px;
         }
         button:active, label.btn-file:active { opacity: 0.8; }
         
@@ -60,20 +61,20 @@
             left: 10px; 
             z-index: 1000; 
             background: rgba(0,0,0,0.85); 
-            padding: 6px 12px; 
-            border-radius: 12px; 
+            padding: 5px 10px; 
+            border-radius: 10px; 
             font-size: 11px; 
             border: 1px solid #10b981; 
             font-weight: bold; 
         }
         
-        /* Spostiamo i tasti ZOOM + e - in alto a destra per non coprire lo stato GPS */
+        /* Spostamento controlli zoom in alto a destra */
         .leaflet-top.leaflet-left {
             left: auto !important;
             right: 10px !important;
         }
 
-        /* Freccia pulita senza sfondi */
+        /* Freccia senza sfondi */
         .clean-arrow-marker {
             background: none !important;
             border: none !important;
@@ -169,7 +170,6 @@
             const lng = position.coords.longitude;
             currentPos = [lat, lng];
 
-            // Posiziona e centra la mappa subito sulla posizione trovata
             userMarker.setLatLng(currentPos);
             
             // Orientamento freccia
@@ -347,7 +347,7 @@
             if (confirm("Reset completo del percorso?")) location.reload();
         };
 
-        // Attiva subito la localizzazione per centrare la freccia all'avvio
+        // Attiva subito la localizzazione
         navigator.geolocation.getCurrentPosition(function(p) {
             updatePos(p);
             map.setView([p.coords.latitude, p.coords.longitude], 16);
