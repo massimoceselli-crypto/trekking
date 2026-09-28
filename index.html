@@ -10,22 +10,38 @@
         * { box-sizing: border-box; touch-action: manipulation; }
         body, html { margin: 0; padding: 0; height: 100%; background: #121212; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: white; overflow: hidden; }
         
-        /* Area Mappa - Occupazione massima per visibilità */
-        #map { height: 72vh; width: 100%; background: #1e1e1e; }
+        /* Area Mappa - Occupazione ottimizzata */
+        #map { height: 75vh; width: 100%; background: #1e1e1e; }
         
-        /* Pannello Controlli Basso */
-        .controls { height: 28vh; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 8px; background: #1f2937; }
-        
-        /* Pulsanti compatti con testo grande */
-        button, label.btn-file { 
-            border: none; border-radius: 8px; color: white; font-weight: 800; 
-            font-size: 14px; text-transform: uppercase; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; text-align: center;
-            box-shadow: 0 3px 0 #0f172a; padding: 4px; line-height: 1.1;
+        /* Pannello Controlli Basso - Compatto per rientrare perfettamente nello schermo */
+        .controls { 
+            height: 25vh; 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 4px; 
+            padding: 6px; 
+            background: #1f2937; 
         }
-        button:active, label.btn-file:active { transform: translateY(2px); box-shadow: 0 1px 0 #0f172a; }
         
-        .btn-start { background: #10b981; grid-column: span 3; font-size: 17px; }
+        /* Pulsanti compatti: altezza ridotta, scritte grandi */
+        button, label.btn-file { 
+            border: none; 
+            border-radius: 6px; 
+            color: white; 
+            font-weight: 800; 
+            font-size: 13px; 
+            text-transform: uppercase; 
+            cursor: pointer;
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            text-align: center;
+            padding: 2px 4px; 
+            line-height: 1.1;
+        }
+        button:active, label.btn-file:active { transform: translateY(1px); }
+        
+        .btn-start { background: #10b981; grid-column: span 3; font-size: 16px; font-weight: 900; }
         .btn-photo { background: #f97316; }
         .btn-pause { background: #ea580c; }
         .btn-reverse { background: #2563eb; }
@@ -36,10 +52,23 @@
         .recording { background: #dc2626 !important; animation: blink 1.5s infinite; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
         
-        #status { position: absolute; top: 10px; left: 10px; z-index: 1000; background: rgba(0,0,0,0.85); padding: 6px 14px; border-radius: 20px; font-size: 11px; border: 1px solid #10b981; font-weight: bold; }
+        #status { position: absolute; top: 10px; left: 10px; z-index: 1000; background: rgba(0,0,0,0.85); padding: 5px 12px; border-radius: 20px; font-size: 11px; border: 1px solid #10b981; font-weight: bold; }
         
-        .arrow-marker { display: flex; align-items: center; justify-content: center; }
-        #arrowImg { font-size: 32px; transition: transform 0.2s ease-out; display: inline-block; }
+        /* FRECCIA PULITA SENZA RIQUADRO/SCONTO/BORDI */
+        .leaflet-div-icon.clean-arrow-icon {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+        #arrowImg { 
+            font-size: 34px; 
+            transition: transform 0.2s ease-out; 
+            display: block; 
+            width: 34px; 
+            height: 34px; 
+            line-height: 34px; 
+            text-align: center; 
+        }
     </style>
 </head>
 <body>
@@ -74,17 +103,19 @@
         let photoBaseName = "";
         let currentPos = null;
 
-        // 1. Inizializzazione Mappa
+        // Inizializzazione Mappa
         map = L.map('map', { zoomControl: true, tap: false }).setView([43.6, 11.3], 14);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap'
         }).addTo(map);
 
-        // Icona Freccia
+        // Icona Freccia Senza Riquadro
         const arrowIcon = L.divIcon({
             html: `<div id="arrowImg">⬆️</div>`,
-            className: 'arrow-marker', iconSize: [32, 32], iconAnchor: [16, 16]
+            className: 'clean-arrow-icon', 
+            iconSize: [34, 34], 
+            iconAnchor: [17, 17]
         });
 
         userMarker = L.marker([0,0], {icon: arrowIcon}).addTo(map);
@@ -121,13 +152,13 @@
             return minD;
         }
 
-        // Aggiornamento Posizione GPS e Freccia
+        // Aggiornamento Posizione GPS e Orientamento Freccia
         function updatePos(position) {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
             currentPos = [lat, lng];
 
-            // Calcolo orientamento freccia basato sul movimento
+            // Calcolo rotazione freccia
             if (coords.length > 0) {
                 const last = coords[coords.length - 1];
                 let angle = Math.atan2(lng - last[1], lat - last[0]) * 180 / Math.PI;
@@ -186,13 +217,13 @@
 
             const fileName = `${photoBaseName}_${photoCounter}.jpg`;
 
-            // Salvataggio sul dispositivo
+            // Salvataggio dispositivo
             const downloadLink = document.createElement('a');
             downloadLink.href = URL.createObjectURL(file);
             downloadLink.download = fileName;
             downloadLink.click();
 
-            // Marker con anteprima foto sulla mappa
+            // Marker foto sulla mappa
             const photoUrl = URL.createObjectURL(file);
             const photoMarker = L.marker([currentPos[0], currentPos[1]], {
                 icon: L.divIcon({html: '📸', iconSize: [28, 28], className: 'photo-pin'})
@@ -257,7 +288,7 @@
             }
         };
 
-        // SALVATAGGIO IN FORMATO GPX
+        // SALVATAGGIO GPX
         function saveGPX() {
             if (coords.length < 2) return;
             let gpx = `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="SENTIEROVIVO" xmlns="http://www.topografix.com/GPX/1/1">\n  <trk><name>SENTIEROVIVO</name><trkseg>\n`;
@@ -277,7 +308,7 @@
         }
         document.getElementById('saveBtn').onclick = saveGPX;
 
-        // CARICAMENTO ED ELABORAZIONE GRAFICA GPX / JSON
+        // CARICAMENTO GPX / JSON
         document.getElementById('loadFile').onchange = function(e) {
             const file = e.target.files[0];
             if (!file) return;
