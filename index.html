@@ -3,23 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TREKKING GPS V8 - GUIDA VOCALE & GPX</title>
+    <title>SENTIEROVIVO - GPS</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         body, html { margin: 0; padding: 0; height: 100%; background: #1a1a1a; font-family: sans-serif; color: white; }
-        #map { height: 65vh; width: 100%; background: #222; }
-        .controls { height: 35vh; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; background: #2c3e50; }
-        button { border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 13px; text-transform: uppercase; cursor: pointer; }
-        .btn-start { background: #27ae60; grid-column: span 2; font-size: 16px; height: 60px; }
-        .btn-pause { background: #e67e22; }
+        /* Mappa più grande */
+        #map { height: 72vh; width: 100%; background: #222; }
+        
+        /* Griglia dei pulsanti più compatta */
+        .controls { height: 28vh; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; padding: 8px; background: #2c3e50; box-sizing: border-box; }
+        
+        /* Stile pulsanti: riquadri piccoli, testo grande */
+        button, label.btn-file { 
+            border: none; border-radius: 8px; color: white; font-weight: bold; 
+            font-size: 15px; text-transform: uppercase; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; text-align: center;
+            box-shadow: 0 3px #1a252f; padding: 2px;
+        }
+        button:active, label.btn-file:active { transform: translateY(2px); box-shadow: 0 1px #1a252f; }
+        
+        .btn-start { background: #27ae60; grid-column: span 3; font-size: 18px; }
+        .btn-photo { background: #e67e22; }
+        .btn-pause { background: #d35400; }
         .btn-reverse { background: #2980b9; }
-        .btn-file { background: #8e44ad; color: white; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: bold; font-size: 13px; }
+        .btn-file { background: #8e44ad; }
         .btn-save { background: #f1c40f; color: black; }
-        .btn-reset { background: #7f8c8d; grid-column: span 2; }
+        .btn-reset { background: #7f8c8d; }
+        
         .recording { background: #c0392b !important; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+        
         #status { position: absolute; top: 10px; left: 10px; z-index: 1000; background: rgba(0,0,0,0.8); padding: 5px 12px; border-radius: 20px; font-size: 11px; border: 1px solid #27ae60; }
+        
+        /* Stile freccia di marcia */
+        .arrow-icon { display: flex; align-items: center; justify-content: center; }
+        #arrowImg { font-size: 32px; transition: transform 0.3s ease; }
     </style>
 </head>
 <body>
@@ -27,31 +46,40 @@
     <div id="status">In attesa di segnale GPS...</div>
     <div id="map"></div>
 
+    <!-- Pannello Controlli -->
     <div class="controls">
         <button id="startBtn" class="btn-start">▶ Inizia Percorso</button>
-        <button id="pauseBtn" class="btn-pause">🚩 Sosta/Riparti</button>
+        
+        <button id="photoBtn" class="btn-photo">📷 Foto</button>
+        <button id="pauseBtn" class="btn-pause">🚩 Sosta</button>
         <button id="reverseBtn" class="btn-reverse">🔄 A Ritroso</button>
         
         <label class="btn-file">
-            📂 Carica GPX
+            📂 Carica
             <input type="file" id="loadFile" hidden accept=".gpx,.json">
         </label>
-        
-        <button id="saveBtn" class="btn-save">💾 Salva GPX</button>
-        <button id="resetBtn" class="btn-reset">🗑️ Reset Totale</button>
+        <button id="saveBtn" class="btn-save">💾 Salva</button>
+        <button id="resetBtn" class="btn-reset">🗑️ Reset</button>
+
+        <!-- Input file nascosto per scattare foto -->
+        <input type="file" id="cameraInput" accept="image/*" capture="camera" hidden>
     </div>
 
     <script>
         let map, pathLine, userArrow, coords = [], watchId = null;
         let isPaused = false, isReversed = false;
-        let lastVoiceWarning = 0; // Per evitare che la voce parli continuamente
+        let lastVoiceWarning = 0;
+        let photoCounter = 1;
+        let photoBaseName = "";
 
+        // Inizializzazione Mappa
         map = L.map('map', { zoomControl: true }).setView([45, 9], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
+        // Icona Freccia Posizione
         const arrowIcon = L.divIcon({
-            html: `<div id="arrowImg" style="transform: rotate(0deg); font-size: 30px; transition: transform 0.3s;">⬆️</div>`,
-            className: 'arrow-icon', iconSize: [30, 30], iconAnchor: [15, 15]
+            html: `<div id="arrowImg">⬆️</div>`,
+            className: 'arrow-icon', iconSize: [32, 32], iconAnchor: [16, 16]
         });
 
         userArrow = L.marker([0,0], {icon: arrowIcon}).addTo(map);
@@ -60,14 +88,14 @@
         // Sintesi Vocale
         function speak(text) {
             if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel(); // Interrompe frasi precedenti
+                window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'it-IT';
                 window.speechSynthesis.speak(utterance);
             }
         }
 
-        // Calcolo distanza in metri tra due coordinate Lat/Lng
+        // Calcolo Distanza
         function getDistanceMeters(lat1, lon1, lat2, lon2) {
             const R = 6371000;
             const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -75,11 +103,9 @@
             const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
                       Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
                       Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
-        // Trova la minima distanza tra la posizione attuale e qualsiasi punto della traccia
         function getMinDistanceToTrack(currentPos) {
             if (coords.length === 0) return 0;
             let minDistance = Infinity;
@@ -90,40 +116,41 @@
             return minDistance;
         }
 
+        // Aggiornamento Posizione e Orientamento Freccia
         function updatePos(position) {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
             const pos = [lat, lng];
             
+            // Calcolo rotazione freccia
             if (coords.length > 0) {
                 const last = coords[coords.length-1];
                 let angle = Math.atan2(lng - last[1], lat - last[0]) * 180 / Math.PI;
                 if (isReversed) angle += 180;
-                document.getElementById('arrowImg').style.transform = `rotate(${angle}deg)`;
+                const arrowEl = document.getElementById('arrowImg');
+                if (arrowEl) arrowEl.style.transform = `rotate(${angle}deg)`;
             }
 
             userArrow.setLatLng(pos);
             document.getElementById('status').innerText = `🟢 GPS OK | Punti: ${coords.length}`;
 
-            // Registrazione attiva in andata
+            // Registrazione
             if (watchId !== null && !isPaused && !isReversed) {
                 coords.push(pos);
                 pathLine.setLatLngs(coords);
                 map.panTo(pos);
             }
 
-            // CONTROLLO VOCALE IN MODALITÀ A RITROSO
+            // Controllo Vocale Fuori Traccia
             if (isReversed && coords.length > 1) {
                 const minDistance = getMinDistanceToTrack(pos);
                 const now = Date.now();
 
-                // Avviso Fuori Traccia (> 25 metri) ogni 15 secondi
                 if (minDistance > 25 && (now - lastVoiceWarning > 15000)) {
                     speak(`Attenzione! Sei fuori percorso di ${Math.round(minDistance)} metri.`);
                     lastVoiceWarning = now;
                 }
 
-                // Avviso Arrivo alla partenza originale (< 15 metri dal punto 0)
                 const startPos = coords[0];
                 const distToStart = getDistanceMeters(lat, lng, startPos[0], startPos[1]);
                 if (distToStart < 15 && (now - lastVoiceWarning > 30000)) {
@@ -133,13 +160,56 @@
             }
         }
 
+        // --- GESTIONE FOTO ---
+        document.getElementById('photoBtn').onclick = function() {
+            if (photoBaseName === "") {
+                let name = prompt("Inserisci il nome base per le foto del percorso (es. Escursione):", "Foto_Trekking");
+                if (!name) return;
+                photoBaseName = name.replace(/[^a-zA-Z0-9_-]/g, "_");
+            }
+            document.getElementById('cameraInput').click();
+        };
+
+        document.getElementById('cameraInput').onchange = function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const currentPos = userArrow.getLatLng();
+            const fileName = `${photoBaseName}_${photoCounter}.jpg`;
+
+            // Scarica la foto nel telefono con il nome numerato
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(file);
+            a.download = fileName;
+            a.click();
+
+            // Aggiunge la foto come Marker sulla mappa
+            const photoUrl = URL.createObjectURL(file);
+            const photoMarker = L.marker([currentPos.lat, currentPos.lng], {
+                icon: L.divIcon({html: '📸', iconSize: [28, 28], className: 'photo-pin'})
+            }).addTo(map);
+
+            photoMarker.bindPopup(`
+                <div style="text-align:center">
+                    <b>${fileName}</b><br>
+                    <img src="${photoUrl}" style="width:150px; height:auto; border-radius:5px; margin-top:5px;"><br>
+                    <small>Punto foto salvato sul percorso</small>
+                </div>
+            `);
+
+            speak(`Foto ${photoCounter} salvata.`);
+            photoCounter++;
+        };
+
+        // --- PULSANTI DI NAVIGAZIONE ---
         document.getElementById('startBtn').onclick = function() {
             if (watchId === null) {
                 coords = []; pathLine.setLatLngs([]);
+                photoCounter = 1; photoBaseName = "";
                 watchId = navigator.geolocation.watchPosition(updatePos, (err) => console.log(err), {enableHighAccuracy: true});
                 this.innerText = "⏹ Concludi";
                 this.classList.add('recording');
-                speak("Registrazione percorso avviata.");
+                speak("SENTIEROVIVO: Registrazione avviata.");
             } else {
                 navigator.geolocation.clearWatch(watchId);
                 watchId = null;
@@ -152,7 +222,7 @@
 
         document.getElementById('pauseBtn').onclick = function() {
             isPaused = !isPaused;
-            this.style.background = isPaused ? "#7f8c8d" : "#e67e22";
+            this.style.background = isPaused ? "#7f8c8d" : "#d35400";
             if(isPaused) {
                 L.marker(userArrow.getLatLng(), {icon: L.divIcon({html:'🚩', iconSize:[25,25]})}).addTo(map);
                 speak("Sosta attivata.");
@@ -166,7 +236,7 @@
             isReversed = !isReversed;
             this.style.background = isReversed ? "#c0392b" : "#2980b9";
             if (isReversed) {
-                speak("Modalità a ritroso attivata. Segui il percorso all'indietro. Ti avviserò se esci dalla traccia.");
+                speak("Modalità a ritroso attivata. Segui la freccia al contrario.");
             } else {
                 speak("Modalità normale ripristinata.");
             }
@@ -176,8 +246,8 @@
         function saveGPX() {
             if (coords.length < 2) return;
             let gpxContent = `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="TrekkingApp" xmlns="http://www.topografix.com/GPX/1/1">
-  <trk><name>Percorso Trekking</name><trkseg>`;
+<gpx version="1.1" creator="SENTIEROVIVO" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk><name>Percorso SENTIEROVIVO</name><trkseg>`;
             
             coords.forEach(p => {
                 gpxContent += `<trkpt lat="${p[0]}" lon="${p[1]}"></trkpt>`;
@@ -189,7 +259,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `trekking_${new Date().getTime()}.gpx`;
+            a.download = `SENTIEROVIVO_${new Date().getTime()}.gpx`;
             a.click();
         }
         document.getElementById('saveBtn').onclick = saveGPX;
