@@ -2,32 +2,49 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Viewport ottimizzato per dispositivi mobili moderni (evita sbalzi con la tastiera o la barra indirizzi) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>SENTIEROVIVO - GPS</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body, html { margin: 0; padding: 0; height: 100%; background: #111; font-family: sans-serif; color: white; overflow: hidden; }
         
-        /* Mappa più ampia per dare massimo spazio al tracciato */
-        #map { height: 78vh; width: 100%; background: #222; }
+        /* Struttura Flex: l'intero corpo della pagina è una colonna flessibile che occupa sempre il 100% esatto dello schermo visibile */
+        body, html { 
+            margin: 0; 
+            padding: 0; 
+            height: 100dvh; /* dvh garantisce l'altezza reale al netto delle barre del browser */
+            background: #111; 
+            font-family: sans-serif; 
+            color: white; 
+            overflow: hidden; 
+            display: flex;
+            flex-direction: column;
+        }
         
-        /* Pannello Controlli molto compatto in altezza */
+        /* La mappa si espande per occupare tutto lo spazio rimanente */
+        #map { 
+            flex-grow: 1; 
+            width: 100%; 
+            background: #222; 
+            position: relative;
+        }
+        
+        /* Il pannello controlli si adatta al proprio contenuto e si aggancia sul fondo */
         .controls { 
-            height: 22vh; 
+            flex-shrink: 0;
             display: grid; 
             grid-template-columns: repeat(3, 1fr); 
-            grid-template-rows: repeat(3, 1fr);
-            gap: 3px; 
-            padding: 4px; 
+            gap: 6px; 
+            padding: 8px 8px 12px 8px; /* Leggermente più padding sotto per le gesture Android */
             background: #1f2937; 
         }
         
-        /* Pulsanti con riquadro basso e testo ben visibile */
+        /* Pulsanti visibili, ma di altezza contenuta */
         button, label.btn-file { 
             border: none; 
-            border-radius: 5px; 
+            border-radius: 6px; 
             color: white; 
             font-weight: 900; 
             font-size: 14px; 
@@ -37,14 +54,14 @@
             align-items: center; 
             justify-content: center; 
             text-align: center;
-            padding: 0px 2px;
+            padding: 10px 4px; /* Altezza definita dal padding per renderli "cliccabili" comodamente */
             margin: 0;
-            line-height: 1;
-            letter-spacing: 0.3px;
+            line-height: 1.2;
+            letter-spacing: 0.5px;
         }
-        button:active, label.btn-file:active { opacity: 0.8; }
+        button:active, label.btn-file:active { opacity: 0.7; }
         
-        .btn-start { background: #10b981; grid-column: span 3; font-size: 16px; font-weight: 900; }
+        .btn-start { background: #10b981; grid-column: span 3; font-size: 16px; padding: 14px; }
         .btn-photo { background: #f97316; }
         .btn-pause { background: #ea580c; }
         .btn-reverse { background: #2563eb; }
@@ -54,37 +71,38 @@
         
         .recording { background: #dc2626 !important; }
         
-        /* Barra di stato del GPS in alto a sinistra */
+        /* Barra di stato del GPS */
         #status { 
             position: absolute; 
             top: 10px; 
             left: 10px; 
             z-index: 1000; 
             background: rgba(0,0,0,0.85); 
-            padding: 5px 10px; 
+            padding: 6px 12px; 
             border-radius: 10px; 
-            font-size: 11px; 
+            font-size: 12px; 
             border: 1px solid #10b981; 
             font-weight: bold; 
         }
         
-        /* Spostamento controlli zoom in alto a destra */
+        /* Controlli zoom riposizionati */
         .leaflet-top.leaflet-left {
             left: auto !important;
             right: 10px !important;
         }
 
-        /* Freccia senza sfondi */
+        /* Freccia pulita */
         .clean-arrow-marker {
             background: none !important;
             border: none !important;
         }
         #arrowIcon { 
-            font-size: 34px; 
-            line-height: 34px;
+            font-size: 36px; 
+            line-height: 36px;
             text-align: center;
             display: block;
             transition: transform 0.2s ease;
+            filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.5)); /* Una leggera ombra fa risaltare la freccia sulla mappa chiara */
         }
     </style>
 </head>
@@ -94,7 +112,7 @@
     <div id="map"></div>
 
     <div class="controls">
-        <!-- Riga 1 -->
+        <!-- Riga 1 (Spanna su 3 colonne) -->
         <button id="startBtn" class="btn-start">▶ Inizia Percorso</button>
         
         <!-- Riga 2 -->
@@ -129,8 +147,8 @@
         const arrowIcon = L.divIcon({
             html: `<div id="arrowIcon">⬆️</div>`,
             className: 'clean-arrow-marker',
-            iconSize: [34, 34],
-            iconAnchor: [17, 17]
+            iconSize: [36, 36],
+            iconAnchor: [18, 18]
         });
 
         userMarker = L.marker([0,0], {icon: arrowIcon}).addTo(map);
