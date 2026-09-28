@@ -10,20 +10,21 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body, html { margin: 0; padding: 0; height: 100%; background: #111; font-family: sans-serif; color: white; overflow: hidden; }
         
-        /* Area Mappa - 78% dell'altezza schermo */
-        #map { height: 78vh; width: 100%; background: #222; }
+        /* Mappa leggermente più bassa per lasciare spazio a tutti i pulsanti */
+        #map { height: 68vh; width: 100%; background: #222; }
         
-        /* Pannello Controlli - 22% dell'altezza per evitare lo scroll */
+        /* Pannello Controlli Basso - Spazio sufficiente per 3 righe di tasti */
         .controls { 
-            height: 22vh; 
+            height: 32vh; 
             display: grid; 
             grid-template-columns: repeat(3, 1fr); 
+            grid-template-rows: repeat(3, 1fr);
             gap: 4px; 
-            padding: 4px; 
+            padding: 6px; 
             background: #1f2937; 
         }
         
-        /* Pulsanti super-compatti per restare dentro lo schermo */
+        /* Pulsanti con scritte ben visibili e riquadri compatti */
         button, label.btn-file { 
             border: none; 
             border-radius: 6px; 
@@ -38,11 +39,11 @@
             text-align: center;
             padding: 2px;
             margin: 0;
-            line-height: 1;
+            line-height: 1.1;
         }
         button:active, label.btn-file:active { opacity: 0.8; }
         
-        .btn-start { background: #10b981; grid-column: span 3; font-size: 15px; font-weight: 900; }
+        .btn-start { background: #10b981; grid-column: span 3; font-size: 16px; font-weight: 900; }
         .btn-photo { background: #f97316; }
         .btn-pause { background: #ea580c; }
         .btn-reverse { background: #2563eb; }
@@ -52,27 +53,34 @@
         
         .recording { background: #dc2626 !important; }
         
+        /* Barra di stato del GPS in alto a sinistra */
         #status { 
             position: absolute; 
-            top: 8px; 
-            left: 8px; 
+            top: 10px; 
+            left: 10px; 
             z-index: 1000; 
             background: rgba(0,0,0,0.85); 
-            padding: 4px 10px; 
+            padding: 6px 12px; 
             border-radius: 12px; 
             font-size: 11px; 
             border: 1px solid #10b981; 
             font-weight: bold; 
         }
         
-        /* FRECCIA PULITA SENZA SFONDO E SENZA RIQUADRO */
+        /* Spostiamo i tasti ZOOM + e - in alto a destra per non coprire lo stato GPS */
+        .leaflet-top.leaflet-left {
+            left: auto !important;
+            right: 10px !important;
+        }
+
+        /* Freccia pulita senza sfondi */
         .clean-arrow-marker {
             background: none !important;
             border: none !important;
         }
         #arrowIcon { 
-            font-size: 32px; 
-            line-height: 32px;
+            font-size: 34px; 
+            line-height: 34px;
             text-align: center;
             display: block;
             transition: transform 0.2s ease;
@@ -85,12 +93,15 @@
     <div id="map"></div>
 
     <div class="controls">
+        <!-- Riga 1 -->
         <button id="startBtn" class="btn-start">▶ Inizia Percorso</button>
         
+        <!-- Riga 2 -->
         <button id="photoBtn" class="btn-photo">📷 Foto</button>
         <button id="pauseBtn" class="btn-pause">🚩 Sosta</button>
         <button id="reverseBtn" class="btn-reverse">🔄 A Ritroso</button>
         
+        <!-- Riga 3 -->
         <label class="btn-file">
             📂 Carica
             <input type="file" id="loadFile" hidden accept=".gpx,.json">
@@ -117,8 +128,8 @@
         const arrowIcon = L.divIcon({
             html: `<div id="arrowIcon">⬆️</div>`,
             className: 'clean-arrow-marker',
-            iconSize: [32, 32],
-            iconAnchor: [16, 16]
+            iconSize: [34, 34],
+            iconAnchor: [17, 17]
         });
 
         userMarker = L.marker([0,0], {icon: arrowIcon}).addTo(map);
@@ -158,7 +169,10 @@
             const lng = position.coords.longitude;
             currentPos = [lat, lng];
 
-            // Calcolo orientamento freccia
+            // Posiziona e centra la mappa subito sulla posizione trovata
+            userMarker.setLatLng(currentPos);
+            
+            // Orientamento freccia
             if (coords.length > 0) {
                 const last = coords[coords.length - 1];
                 let angle = Math.atan2(lng - last[1], lat - last[0]) * 180 / Math.PI;
@@ -167,7 +181,6 @@
                 if (el) el.style.transform = `rotate(${angle}deg)`;
             }
 
-            userMarker.setLatLng(currentPos);
             document.getElementById('status').innerText = `🟢 GPS OK | Punti: ${coords.length}`;
 
             if (watchId !== null && !isPaused && !isReversed) {
@@ -194,12 +207,12 @@
         }
 
         function handleGpsError(err) {
-            document.getElementById('status').innerText = "🔴 Attiva il GPS sul telefono";
+            document.getElementById('status').innerText = "🔴 Attiva il GPS del telefono";
         }
 
         // FOTO
         document.getElementById('photoBtn').onclick = function() {
-            if (!currentPos) return alert("Attendi la posizione GPS.");
+            if (!currentPos) return alert("Attendi il segnale GPS.");
             if (photoBaseName === "") {
                 let name = prompt("Nome base per le foto dell'escursione:", "Trekking");
                 if (!name) return;
@@ -334,7 +347,11 @@
             if (confirm("Reset completo del percorso?")) location.reload();
         };
 
-        navigator.geolocation.getCurrentPosition(updatePos, handleGpsError, { enableHighAccuracy: true });
+        // Attiva subito la localizzazione per centrare la freccia all'avvio
+        navigator.geolocation.getCurrentPosition(function(p) {
+            updatePos(p);
+            map.setView([p.coords.latitude, p.coords.longitude], 16);
+        }, handleGpsError, { enableHighAccuracy: true });
     </script>
 </body>
 </html>
