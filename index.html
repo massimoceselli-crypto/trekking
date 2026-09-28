@@ -68,7 +68,7 @@
       margin-top: 2px;
     }
 
-    /* Pulsanti di Controllo in Basso Grid a 2 Righe */
+    /* Pulsanti di Controllo in Basso Grid */
     .controls {
       position: absolute;
       bottom: 20px;
@@ -90,10 +90,10 @@
 
     .btn {
       flex: 1;
-      padding: 12px 8px;
+      padding: 12px 6px;
       border: none;
       border-radius: 12px;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
       display: flex;
@@ -109,6 +109,7 @@
     .btn-stop { background-color: #dc3545; color: #ffffff; }
     .btn-pause { background-color: #17a2b8; color: #ffffff; }
     .btn-bivio { background-color: #ffc107; color: #000000; }
+    .btn-photo { background-color: #6f42c1; color: #ffffff; }
     .btn-reverse { background-color: #ff9f1c; color: #011627; }
 
     /* Indicatore Stato GPS */
@@ -171,12 +172,33 @@
       color: #000000;
       border: 2px solid #000000;
       border-radius: 50%;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: bold;
       display: flex;
       align-items: center;
       justify-content: center;
       box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+
+    .photo-marker-icon {
+      background-color: #6f42c1;
+      color: #ffffff;
+      border: 2px solid #ffffff;
+      border-radius: 50%;
+      font-size: 13px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+
+    .photo-popup-img {
+      width: 100%;
+      max-width: 200px;
+      height: auto;
+      border-radius: 8px;
+      margin-top: 6px;
     }
   </style>
 </head>
@@ -204,10 +226,14 @@
 
   <div id="map"></div>
 
+  <!-- Input nascosto per scattare la foto da fotocamera smartphone -->
+  <input type="file" id="photo-input" accept="image/*" capture="environment" style="display: none;" onchange="handlePhotoCaptured(event)">
+
   <div class="controls">
     <div class="btn-row">
-      <button class="btn btn-pause" onclick="addManualStop()">⏸ Aggiungi Sosta</button>
-      <button class="btn btn-bivio" onclick="addBivioMarker()">🔀 Segnala Bivio</button>
+      <button class="btn btn-pause" onclick="addManualStop()">⏸ Sosta</button>
+      <button class="btn btn-bivio" onclick="addBivioMarker()">🔀 Bivio</button>
+      <button class="btn btn-photo" onclick="triggerPhotoCapture()">📷 Foto</button>
     </div>
     <div class="btn-row">
       <button class="btn btn-start" id="btn-toggle" onclick="toggleTracking()">Avvia Registrazione</button>
@@ -233,6 +259,7 @@
 
     let stopCount = 0;
     let bivioCount = 0;
+    let photoCount = 0;
     let bivioLocations = [];
 
     function initMap() {
@@ -309,7 +336,6 @@
         trackPoints.push(currentLatLng);
         trackPolyline.setLatLngs(trackPoints);
 
-        // Controllo vicinanza bivi durante il ritorno
         checkProximityToBivi(currentLatLng);
       }
 
@@ -354,7 +380,7 @@
       return (brng + 360) % 360;
     }
 
-    // Aggiunta Sosta Manuale
+    // Sosta Manuale
     function addManualStop() {
       if (!lastLatLng) {
         alert("In attesa del segnale GPS...");
@@ -374,7 +400,7 @@
         .openPopup();
     }
 
-    // Segnalazione Bivio/Deviazione
+    // Segnalazione Bivio
     function addBivioMarker() {
       if (!lastLatLng) {
         alert("In attesa del segnale GPS...");
@@ -388,7 +414,7 @@
         iconAnchor: [16, 16]
       });
 
-      const marker = L.marker(lastLatLng, { icon: bivioIcon })
+      L.marker(lastLatLng, { icon: bivioIcon })
         .addTo(map)
         .bindPopup(`<b>Bivio/Deviazione #${bivioCount}</b><br>Punto critico registrato per il ritorno!`)
         .openPopup();
@@ -400,15 +426,57 @@
       });
     }
 
-    // Avviso Prossimità Bivio al Ritorno
+    // Gestione Scatto Foto
+    function triggerPhotoCapture() {
+      if (!lastLatLng) {
+        alert("In attesa del segnale GPS...");
+        return;
+      }
+      document.getElementById('photo-input').click();
+    }
+
+    function handlePhotoCaptured(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const photoUrl = e.target.result;
+        photoCount++;
+
+        const photoIcon = L.divIcon({
+          className: 'photo-marker-icon',
+          html: `📷`,
+          iconSize: [30, 30],
+          iconAnchor: [15, 15]
+        });
+
+        const timeStr = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+        L.marker(lastLatLng, { icon: photoIcon })
+          .addTo(map)
+          .bindPopup(`
+            <div style="text-align: center;">
+              <b>Foto #${photoCount}</b><br>
+              <small>${timeStr}</small><br>
+              <img src="${photoUrl}" class="photo-popup-img" alt="Foto Sosta" />
+            </div>
+          `)
+          .openPopup();
+      };
+
+      reader.readAsDataURL(file);
+    }
+
+    // Avviso Bivio
     function checkProximityToBivi(currentLatLng) {
       bivioLocations.forEach(bivio => {
         const dist = map.distance(currentLatLng, bivio.latLng);
-        if (dist < 25 && !bivio.notified) { // Entro 25 metri
+        if (dist < 25 && !bivio.notified) {
           bivio.notified = true;
           alert(`⚠️ ATTENZIONE BIVIO #${bivio.id} NELLE VICINANZE!\nControlla la mappa per la direzione di ritorno.`);
         } else if (dist > 50) {
-          bivio.notified = false; // Reset quando ti allontani per eventuali passaggi successivi
+          bivio.notified = false;
         }
       });
     }
