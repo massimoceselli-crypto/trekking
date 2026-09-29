@@ -26,21 +26,39 @@
       z-index: 1;
     }
 
-    /* BARRA 3 RIQUADRI IN ALTO */
-    .dashboard-bar {
+    /* BARRA 3 RIQUADRI IN ALTO + INDICATORE GPS */
+    .dashboard-container {
       position: absolute;
       top: 10px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 1000;
+      width: 94%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .gps-status {
+      align-self: center;
+      background: rgba(0, 0, 0, 0.75);
+      color: #00ffcc;
+      padding: 3px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    .dashboard-bar {
       display: flex;
       gap: 8px;
-      width: 92%;
-      max-width: 420px;
+      width: 100%;
     }
     .dash-box {
       flex: 1;
-      background: rgba(255, 255, 255, 0.92);
+      background: rgba(255, 255, 255, 0.94);
       backdrop-filter: blur(6px);
       border-radius: 10px;
       padding: 6px 2px;
@@ -49,19 +67,19 @@
       border: 1px solid rgba(0,0,0,0.08);
     }
     .dash-label {
-      font-size: 11px; /* Ingrandito */
+      font-size: 11px;
       text-transform: uppercase;
       font-weight: 800;
-      color: #444;
+      color: #555;
       margin-bottom: 2px;
     }
     .dash-value {
-      font-size: 17px; /* Ingrandito */
+      font-size: 18px;
       font-weight: 800;
       color: #1b4332;
     }
 
-    /* PANNELLO 6 PULSANTI IN BASSO */
+    /* PANNELLO 6 PULSANTI IN BASSO (SENZA ICONE E TESTI INGRANDITI) */
     .controls-panel {
       position: absolute;
       bottom: 15px;
@@ -83,38 +101,20 @@
       background: #2d6a4f;
       color: white;
       border: none;
-      padding: 8px 2px;
-      border-radius: 8px;
-      font-weight: 700;
-      font-size: 13px; /* Ingrandito */
+      padding: 12px 2px;
+      border-radius: 10px;
+      font-weight: 800;
+      font-size: 13px; /* Testo ingrandito */
+      line-height: 1.2;
       cursor: pointer;
       text-align: center;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 2px;
-    }
-    .btn span {
-      font-size: 16px; /* Ingrandite icone */
     }
     .btn-danger { background: #d90429; }
     .btn-secondary { background: #4a5568; }
     .btn-warn { background: #e07a5f; }
-    
-    /* Icona Marker Pausa Personalizzata */
-    .pause-marker {
-      background: #e07a5f;
-      color: white;
-      border-radius: 50%;
-      border: 2px solid white;
-      font-size: 12px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    }
 
     /* Freccia GPS Ruotabile */
     .arrow-icon {
@@ -126,34 +126,37 @@
 </head>
 <body>
 
-  <!-- TRE RIQUADRI INFORMATIVI IN ALTO -->
-  <div class="dashboard-bar">
-    <div class="dash-box">
-      <div class="dash-label">Altitudine</div>
-      <div class="dash-value" id="dash-alt">0 m</div>
-    </div>
-    <div class="dash-box">
-      <div class="dash-label">Distanza</div>
-      <div class="dash-value" id="dash-dist">0 m</div>
-    </div>
-    <div class="dash-box">
-      <div class="dash-label">Tempo</div>
-      <div class="dash-value" id="dash-time">00:00</div>
+  <!-- INDICATORE GPS E TRE RIQUADRI IN ALTO -->
+  <div class="dashboard-container">
+    <div id="gps-status" class="gps-status">GPS: Inattivo</div>
+    <div class="dashboard-bar">
+      <div class="dash-box">
+        <div class="dash-label">Altitudine</div>
+        <div class="dash-value" id="dash-alt">0 m</div>
+      </div>
+      <div class="dash-box">
+        <div class="dash-label">Distanza</div>
+        <div class="dash-value" id="dash-dist">0 m</div>
+      </div>
+      <div class="dash-box">
+        <div class="dash-label">Tempo</div>
+        <div class="dash-value" id="dash-time">00:00</div>
+      </div>
     </div>
   </div>
 
   <!-- MAPPA -->
   <div id="map"></div>
 
-  <!-- I 6 PULSANTI IN BASSO -->
+  <!-- I 6 PULSANTI IN BASSO (Pausa al posto di Inverti, Nessuna Icona) -->
   <div class="controls-panel">
-    <button id="btn-track" class="btn"><span>▶</span> Avvia</button>
-    <button id="btn-pause" class="btn btn-warn"><span>⏸</span> Pausa</button>
-    <button id="btn-save" class="btn btn-secondary"><span>💾</span> Salva GPX</button>
+    <button id="btn-track" class="btn">Avvia</button>
+    <button id="btn-pause" class="btn btn-warn">Pausa</button>
+    <button id="btn-save" class="btn btn-secondary">Salva GPX</button>
     
-    <button id="btn-load" class="btn btn-secondary"><span>📂</span> Carica GPX</button>
-    <button id="btn-reverse" class="btn btn-secondary"><span>🔄</span> Inverti</button>
-    <button id="btn-voice" class="btn btn-secondary"><span>🔊</span> Vocale: ON</button>
+    <button id="btn-load" class="btn btn-secondary">Carica GPX</button>
+    <button id="btn-reverse" class="btn btn-secondary">Percorso a ritroso</button>
+    <button id="btn-voice" class="btn btn-secondary">Vocale: ON</button>
   </div>
 
   <input type="file" id="file-input" accept=".gpx" />
@@ -174,26 +177,28 @@
     let paused = false;
     let watchId = null;
     let pathCoordinates = [];
+    let referenceRoute = []; // Percorso di riferimento (GPX o registrazione corrente)
     let trackName = "Sentiero_Trekking";
     
-    // Polilinee (Blu per andata, Arancione per ritorno)
-    let polyline = L.polyline([], { color: '#0066ff', weight: 6 }).addTo(map); // Blu di default
+    // Polilinee (Blu per andata, Arancione per ritorno/caricato)
+    let polyline = L.polyline([], { color: '#0066ff', weight: 6 }).addTo(map);
     let isReversed = false;
     let loadedPolyline = null;
     
-    // Marker Freccia e Pause
+    // Marker Freccia
     let arrowMarker = null;
-    let pauseMarkers = [];
     let currentHeading = 0;
 
-    // Variabili Calcolo Dati
+    // Variabili Calcolo e Avvisi
     let totalDistance = 0;
     let startTime = null;
     let elapsedTime = 0;
     let timerInterval = null;
     let voiceEnabled = true;
+    let lastOffTrackWarning = 0; // Evita messaggi di errore ripetuti continuamente
 
     // Elementi DOM
+    const gpsStatus = document.getElementById('gps-status');
     const dashAlt = document.getElementById('dash-alt');
     const dashDist = document.getElementById('dash-dist');
     const dashTime = document.getElementById('dash-time');
@@ -206,11 +211,12 @@
     const btnVoice = document.getElementById('btn-voice');
     const fileInput = document.getElementById('file-input');
 
-    // Creazione Icona Freccia Direzionale SVG
+    // Freccia Direzionale SVG
     function createArrowIcon(angle) {
+      const color = isReversed ? "#ff7700" : "#0066ff";
       const svgArrow = `
         <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" style="transform: rotate(${angle}deg);">
-          <path fill="#0066ff" stroke="#ffffff" stroke-width="2" d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
+          <path fill="${color}" stroke="#ffffff" stroke-width="2" d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
         </svg>`;
       return L.divIcon({
         html: svgArrow,
@@ -220,7 +226,7 @@
       });
     }
 
-    // Formula Haversine per Distanza
+    // Calcolo Distanza (Haversine)
     function calculateDistance(lat1, lon1, lat2, lon2) {
       const R = 6371000;
       const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -231,13 +237,33 @@
       return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
     }
 
-    // Calcolo Azimuth/Heading per orientare la freccia
+    // Calcolo Azimuth/Heading
     function calculateHeading(lat1, lon1, lat2, lon2) {
       const dLon = (lon2 - lon1) * Math.PI / 180;
       const y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180);
       const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
                 Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLon);
       return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+    }
+
+    // Controllo Fuori Percorso (Off-Track Check)
+    function checkOffTrack(currentPoint) {
+      if (referenceRoute.length === 0 || !voiceEnabled) return;
+
+      let minDistance = Infinity;
+      for (let i = 0; i < referenceRoute.length; i++) {
+        const d = calculateDistance(currentPoint[0], currentPoint[1], referenceRoute[i][0], referenceRoute[i][1]);
+        if (d < minDistance) minDistance = d;
+      }
+
+      // Se ci si allontana per più di 25 metri dalla traccia
+      if (minDistance > 25) {
+        const now = Date.now();
+        if (now - lastOffTrackWarning > 12000) { // Avviso ogni 12 secondi
+          speak("Attenzione, sei fuori percorso!");
+          lastOffTrackWarning = now;
+        }
+      }
     }
 
     // Sintesi Vocale
@@ -262,8 +288,11 @@
         (seconds < 10 ? '0' : '') + seconds;
     }
 
-    // Aggiornamento Posizione GPS
+    // Aggiornamento Posizione GPS in Tempo Reale
     function onPositionUpdate(position) {
+      gpsStatus.textContent = "GPS: Attivo";
+      gpsStatus.style.color = "#00ffcc";
+
       if (paused) return;
 
       const lat = position.coords.latitude;
@@ -271,25 +300,23 @@
       let alt = position.coords.altitude;
       const currentPoint = [lat, lng];
 
-      // (A) Correzione Altitudine sul livello del mare (Compensazione Geoidica WGS84 per l'Italia)
+      // Altitudine corretta
       if (alt !== null && !isNaN(alt)) {
-        const correctedAlt = Math.max(0, Math.round(alt - 48)); // Stacca l'offset costante ellissoidico
+        const correctedAlt = Math.max(0, Math.round(alt - 48));
         dashAlt.textContent = correctedAlt + ' m';
       } else {
         dashAlt.textContent = '0 m';
       }
 
+      // Tracciamento avanzamento
       if (pathCoordinates.length > 0) {
         const lastPoint = pathCoordinates[pathCoordinates.length - 1];
         const distStep = calculateDistance(lastPoint[0], lastPoint[1], lat, lng);
         
-        if (distStep > 3) { // Filtra micro-spostamenti GPS
+        if (distStep > 3) {
           totalDistance += distStep;
-          
-          // Calcola direzione freccia
           currentHeading = calculateHeading(lastPoint[0], lastPoint[1], lat, lng);
-          if (isReversed) currentHeading = (currentHeading + 180) % 360;
-
+          
           pathCoordinates.push(currentPoint);
           polyline.setLatLngs(pathCoordinates);
           
@@ -301,7 +328,10 @@
         pathCoordinates.push(currentPoint);
       }
 
-      // (B) Puntatore Freccia Orientabile
+      // Verifica eventuale deviazione dal percorso
+      checkOffTrack(currentPoint);
+
+      // Aggiornamento Freccia Posizione
       if (!arrowMarker) {
         arrowMarker = L.marker(currentPoint, { icon: createArrowIcon(currentHeading) }).addTo(map);
       } else {
@@ -311,7 +341,7 @@
       map.setView(currentPoint);
     }
 
-    // 1. (E) TASTO AVVIA con richiesta Nome File
+    // 1. TASTO AVVIA / FERMA
     btnTrack.addEventListener('click', () => {
       if (!tracking) {
         const inputName = prompt("Inserisci il nome per questo percorso:", trackName);
@@ -322,15 +352,12 @@
         tracking = true;
         paused = false;
         isReversed = false;
-        polyline.setStyle({ color: '#0066ff' }); // Blu Andata
+        polyline.setStyle({ color: '#0066ff' });
         
-        btnTrack.innerHTML = '<span>⏹</span> Ferma';
+        btnTrack.textContent = 'Ferma';
         btnTrack.classList.add('btn-danger');
 
-        // Reset Dati e Marcatori Pausa
         pathCoordinates = [];
-        pauseMarkers.forEach(m => map.removeLayer(m));
-        pauseMarkers = [];
         totalDistance = 0;
         elapsedTime = 0;
         dashDist.textContent = '0 m';
@@ -340,18 +367,21 @@
         startTime = Date.now();
         timerInterval = setInterval(updateTimer, 1000);
 
+        gpsStatus.textContent = "GPS: Ricerca...";
         if ('geolocation' in navigator) {
           watchId = navigator.geolocation.watchPosition(onPositionUpdate, (err) => {
-            alert('Errore GPS: ' + err.message);
+            gpsStatus.textContent = "GPS: Errore";
+            gpsStatus.style.color = "#ff4444";
           }, { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 });
         }
-        speak('Tracciamento avviato per ' + trackName);
+        speak('Tracciamento avviato');
       } else {
         tracking = false;
         paused = false;
-        btnTrack.innerHTML = '<span>▶</span> Avvia';
+        btnTrack.textContent = 'Avvia';
         btnTrack.classList.remove('btn-danger');
-        btnPause.innerHTML = '<span>⏸</span> Pausa';
+        btnPause.textContent = 'Pausa';
+        gpsStatus.textContent = "GPS: Inattivo";
 
         if (watchId !== null) navigator.geolocation.clearWatch(watchId);
         clearInterval(timerInterval);
@@ -363,44 +393,30 @@
       }
     });
 
-    // 2. (D) TASTO PAUSA con Marcatore Sosta sulla Mappa
+    // 2. TASTO PAUSA
     btnPause.addEventListener('click', () => {
       if (!tracking) return;
       if (!paused) {
         paused = true;
         elapsedTime += Date.now() - startTime;
-        btnPause.innerHTML = '<span>▶</span> Riprendi';
-        
-        // Aggiungi Segnale Sosta in Mappa
-        if (pathCoordinates.length > 0) {
-          const lastPt = pathCoordinates[pathCoordinates.length - 1];
-          const pMarker = L.marker(lastPt, {
-            icon: L.divIcon({
-              className: 'pause-marker',
-              html: '⏸',
-              iconSize: [24, 24]
-            })
-          }).addTo(map);
-          pauseMarkers.push(pMarker);
-        }
-
-        speak('Pausa registrata');
+        btnPause.textContent = 'Riprendi';
+        speak('Pausa attivata');
       } else {
         paused = false;
         startTime = Date.now();
-        btnPause.innerHTML = '<span>⏸</span> Pausa';
+        btnPause.textContent = 'Pausa';
         speak('Tracciamento ripreso');
       }
     });
 
-    // 3. (F) TASTO SALVA GPX con Conferma e Cambio Nome
+    // 3. TASTO SALVA GPX
     btnSave.addEventListener('click', () => {
       if (pathCoordinates.length === 0) {
         alert('Nessun tracciato da salvare!');
         return;
       }
 
-      const saveName = prompt("Conferma o modifica il nome del file da salvare:", trackName);
+      const saveName = prompt("Conferma o modifica il nome del file:", trackName);
       if (!saveName) return; 
 
       const finalFileName = saveName.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
@@ -418,10 +434,10 @@
       a.download = `${finalFileName}.gpx`;
       a.click();
       URL.revokeObjectURL(url);
-      speak('File scaricato con nome ' + finalFileName);
+      speak('File salvato');
     });
 
-    // 4. (G) TASTO CARICA GPX (Selezione Cartella e File)
+    // 4. (D) TASTO CARICA GPX (Con Tracciamento Posizione Attivo)
     btnLoad.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
@@ -442,39 +458,51 @@
           if (loadedPolyline) map.removeLayer(loadedPolyline);
           loadedPolyline = L.polyline(loadedCoords, { color: '#e07a5f', weight: 5, dashArray: '6, 10' }).addTo(map);
           map.fitBounds(loadedPolyline.getBounds());
+          
+          referenceRoute = loadedCoords; // Imposta come rotta di riferimento per il fuori percorso
+
+          // Avvia il GPS per far seguire la freccia sulla mappa
+          if ('geolocation' in navigator && !watchId) {
+            gpsStatus.textContent = "GPS: Ricerca...";
+            watchId = navigator.geolocation.watchPosition(onPositionUpdate, (err) => {
+              gpsStatus.textContent = "GPS: Errore";
+            }, { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 });
+          }
+
           speak('Percorso ' + file.name + ' caricato');
         }
       };
       reader.readAsText(file);
     });
 
-    // 5. (C) TASTO INVERTI ROTTA (Colore Arancione e Freccia Invertita)
+    // 5. (B & F) TASTO PERCORSO A RITROSO (Inverte rotta e orienta freccia)
     btnReverse.addEventListener('click', () => {
       isReversed = !isReversed;
+
       if (pathCoordinates.length > 0) {
         pathCoordinates.reverse();
         polyline.setLatLngs(pathCoordinates);
-        
-        // Cambia colore: Arancione Ritorno / Blu Andata
         polyline.setStyle({ color: isReversed ? '#ff7700' : '#0066ff' });
+        referenceRoute = [...pathCoordinates]; // Aggiorna riferimento per avviso vocale
         
         currentHeading = (currentHeading + 180) % 360;
         if (arrowMarker) arrowMarker.setIcon(createArrowIcon(currentHeading));
 
-        speak(isReversed ? 'Rotta invertita. Percorso impostato a ritroso' : 'Rotta ripristinata in avanti');
+        speak(isReversed ? 'Percorso a ritroso attivato' : 'Percorso in avanti ripristinato');
       } else if (loadedPolyline) {
         const coords = loadedPolyline.getLatLngs().reverse();
         loadedPolyline.setLatLngs(coords);
+        referenceRoute = coords;
         speak('Percorso caricato invertito');
       } else {
-        alert('Nessun percorso da invertire!');
+        alert('Nessun percorso da percorrere a ritroso!');
       }
     });
 
     // 6. TASTO VOCALE ON/OFF
     btnVoice.addEventListener('click', () => {
       voiceEnabled = !voiceEnabled;
-      btnVoice.innerHTML = voiceEnabled ? '<span>🔊</span> Vocale: ON' : '<span>🔇</span> Vocale: OFF';
+      btnVoice.textContent = voiceEnabled ? 'Vocale: ON' : 'Vocale: OFF';
     });
   </script>
 </body>
