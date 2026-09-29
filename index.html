@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SentieroVivo - GPS Complete</title>
+  <title>SentieroVivo - GPS & Vocale</title>
   
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -43,20 +43,20 @@
       background: rgba(255, 255, 255, 0.92);
       backdrop-filter: blur(6px);
       border-radius: 10px;
-      padding: 8px 4px;
+      padding: 6px 2px;
       text-align: center;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       border: 1px solid rgba(0,0,0,0.08);
     }
     .dash-label {
-      font-size: 10px;
+      font-size: 11px; /* Ingrandito */
       text-transform: uppercase;
-      font-weight: 700;
-      color: #666;
+      font-weight: 800;
+      color: #444;
       margin-bottom: 2px;
     }
     .dash-value {
-      font-size: 15px;
+      font-size: 17px; /* Ingrandito */
       font-weight: 800;
       color: #1b4332;
     }
@@ -83,23 +83,44 @@
       background: #2d6a4f;
       color: white;
       border: none;
-      padding: 10px 4px;
+      padding: 8px 2px;
       border-radius: 8px;
-      font-weight: 600;
-      font-size: 12px;
+      font-weight: 700;
+      font-size: 13px; /* Ingrandito */
       cursor: pointer;
       text-align: center;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 3px;
+      gap: 2px;
+    }
+    .btn span {
+      font-size: 16px; /* Ingrandite icone */
     }
     .btn-danger { background: #d90429; }
     .btn-secondary { background: #4a5568; }
     .btn-warn { background: #e07a5f; }
     
-    /* Input file nascosto */
+    /* Icona Marker Pausa Personalizzata */
+    .pause-marker {
+      background: #e07a5f;
+      color: white;
+      border-radius: 50%;
+      border: 2px solid white;
+      font-size: 12px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    /* Freccia GPS Ruotabile */
+    .arrow-icon {
+      transition: transform 0.2s ease-in-out;
+    }
+
     #file-input { display: none; }
   </style>
 </head>
@@ -109,7 +130,7 @@
   <div class="dashboard-bar">
     <div class="dash-box">
       <div class="dash-label">Altitudine</div>
-      <div class="dash-value" id="dash-alt">-- m</div>
+      <div class="dash-value" id="dash-alt">0 m</div>
     </div>
     <div class="dash-box">
       <div class="dash-label">Distanza</div>
@@ -124,7 +145,7 @@
   <!-- MAPPA -->
   <div id="map"></div>
 
-  <!-- I 6 RIQUADRI / PULSANTI IN BASSO -->
+  <!-- I 6 PULSANTI IN BASSO -->
   <div class="controls-panel">
     <button id="btn-track" class="btn"><span>▶</span> Avvia</button>
     <button id="btn-pause" class="btn btn-warn"><span>⏸</span> Pausa</button>
@@ -153,11 +174,19 @@
     let paused = false;
     let watchId = null;
     let pathCoordinates = [];
-    let polyline = L.polyline([], { color: '#2d6a4f', weight: 5 }).addTo(map);
+    let trackName = "Sentiero_Trekking";
+    
+    // Polilinee (Blu per andata, Arancione per ritorno)
+    let polyline = L.polyline([], { color: '#0066ff', weight: 6 }).addTo(map); // Blu di default
+    let isReversed = false;
     let loadedPolyline = null;
-    let markerPos = null;
+    
+    // Marker Freccia e Pause
+    let arrowMarker = null;
+    let pauseMarkers = [];
+    let currentHeading = 0;
 
-    // Variabili Calcoli
+    // Variabili Calcolo Dati
     let totalDistance = 0;
     let startTime = null;
     let elapsedTime = 0;
@@ -177,7 +206,21 @@
     const btnVoice = document.getElementById('btn-voice');
     const fileInput = document.getElementById('file-input');
 
-    // Haversine
+    // Creazione Icona Freccia Direzionale SVG
+    function createArrowIcon(angle) {
+      const svgArrow = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" style="transform: rotate(${angle}deg);">
+          <path fill="#0066ff" stroke="#ffffff" stroke-width="2" d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
+        </svg>`;
+      return L.divIcon({
+        html: svgArrow,
+        className: 'arrow-icon',
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
+      });
+    }
+
+    // Formula Haversine per Distanza
     function calculateDistance(lat1, lon1, lat2, lon2) {
       const R = 6371000;
       const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -186,6 +229,15 @@
                 Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
                 Math.sin(dLon/2) * Math.sin(dLon/2);
       return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+    }
+
+    // Calcolo Azimuth/Heading per orientare la freccia
+    function calculateHeading(lat1, lon1, lat2, lon2) {
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180);
+      const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
+                Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLon);
+      return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
     }
 
     // Sintesi Vocale
@@ -210,25 +262,34 @@
         (seconds < 10 ? '0' : '') + seconds;
     }
 
-    // Aggiornamento Posizione
+    // Aggiornamento Posizione GPS
     function onPositionUpdate(position) {
       if (paused) return;
 
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
-      const alt = position.coords.altitude;
+      let alt = position.coords.altitude;
       const currentPoint = [lat, lng];
 
+      // (A) Correzione Altitudine sul livello del mare (Compensazione Geoidica WGS84 per l'Italia)
       if (alt !== null && !isNaN(alt)) {
-        dashAlt.textContent = Math.round(alt) + ' m';
+        const correctedAlt = Math.max(0, Math.round(alt - 48)); // Stacca l'offset costante ellissoidico
+        dashAlt.textContent = correctedAlt + ' m';
+      } else {
+        dashAlt.textContent = '0 m';
       }
 
       if (pathCoordinates.length > 0) {
         const lastPoint = pathCoordinates[pathCoordinates.length - 1];
         const distStep = calculateDistance(lastPoint[0], lastPoint[1], lat, lng);
         
-        if (distStep > 3) {
+        if (distStep > 3) { // Filtra micro-spostamenti GPS
           totalDistance += distStep;
+          
+          // Calcola direzione freccia
+          currentHeading = calculateHeading(lastPoint[0], lastPoint[1], lat, lng);
+          if (isReversed) currentHeading = (currentHeading + 180) % 360;
+
           pathCoordinates.push(currentPoint);
           polyline.setLatLngs(pathCoordinates);
           
@@ -240,27 +301,40 @@
         pathCoordinates.push(currentPoint);
       }
 
-      if (!markerPos) {
-        markerPos = L.marker(currentPoint).addTo(map);
+      // (B) Puntatore Freccia Orientabile
+      if (!arrowMarker) {
+        arrowMarker = L.marker(currentPoint, { icon: createArrowIcon(currentHeading) }).addTo(map);
       } else {
-        markerPos.setLatLng(currentPoint);
+        arrowMarker.setLatLng(currentPoint);
+        arrowMarker.setIcon(createArrowIcon(currentHeading));
       }
       map.setView(currentPoint);
     }
 
-    // 1. TASTO AVVIA / FERMA
+    // 1. (E) TASTO AVVIA con richiesta Nome File
     btnTrack.addEventListener('click', () => {
       if (!tracking) {
+        const inputName = prompt("Inserisci il nome per questo percorso:", trackName);
+        if (inputName && inputName.trim() !== "") {
+          trackName = inputName.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
+        }
+
         tracking = true;
         paused = false;
+        isReversed = false;
+        polyline.setStyle({ color: '#0066ff' }); // Blu Andata
+        
         btnTrack.innerHTML = '<span>⏹</span> Ferma';
         btnTrack.classList.add('btn-danger');
 
+        // Reset Dati e Marcatori Pausa
         pathCoordinates = [];
+        pauseMarkers.forEach(m => map.removeLayer(m));
+        pauseMarkers = [];
         totalDistance = 0;
         elapsedTime = 0;
         dashDist.textContent = '0 m';
-        dashAlt.textContent = '-- m';
+        dashAlt.textContent = '0 m';
         polyline.setLatLngs([]);
 
         startTime = Date.now();
@@ -271,7 +345,7 @@
             alert('Errore GPS: ' + err.message);
           }, { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 });
         }
-        speak('Tracciamento avviato');
+        speak('Tracciamento avviato per ' + trackName);
       } else {
         tracking = false;
         paused = false;
@@ -289,14 +363,28 @@
       }
     });
 
-    // 2. TASTO PAUSA
+    // 2. (D) TASTO PAUSA con Marcatore Sosta sulla Mappa
     btnPause.addEventListener('click', () => {
       if (!tracking) return;
       if (!paused) {
         paused = true;
         elapsedTime += Date.now() - startTime;
         btnPause.innerHTML = '<span>▶</span> Riprendi';
-        speak('Pausa attivata');
+        
+        // Aggiungi Segnale Sosta in Mappa
+        if (pathCoordinates.length > 0) {
+          const lastPt = pathCoordinates[pathCoordinates.length - 1];
+          const pMarker = L.marker(lastPt, {
+            icon: L.divIcon({
+              className: 'pause-marker',
+              html: '⏸',
+              iconSize: [24, 24]
+            })
+          }).addTo(map);
+          pauseMarkers.push(pMarker);
+        }
+
+        speak('Pausa registrata');
       } else {
         paused = false;
         startTime = Date.now();
@@ -305,13 +393,19 @@
       }
     });
 
-    // 3. TASTO SALVA GPX
+    // 3. (F) TASTO SALVA GPX con Conferma e Cambio Nome
     btnSave.addEventListener('click', () => {
       if (pathCoordinates.length === 0) {
         alert('Nessun tracciato da salvare!');
         return;
       }
-      let gpxData = `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="SentieroVivo">\n<trk><name>SentieroVivo Track</name><trkseg>\n`;
+
+      const saveName = prompt("Conferma o modifica il nome del file da salvare:", trackName);
+      if (!saveName) return; 
+
+      const finalFileName = saveName.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
+
+      let gpxData = `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="SentieroVivo">\n<trk><name>${finalFileName}</name><trkseg>\n`;
       pathCoordinates.forEach(pt => {
         gpxData += `<trkpt lat="${pt[0]}" lon="${pt[1]}"></trkpt>\n`;
       });
@@ -321,13 +415,13 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `percorso_${new Date().toISOString().slice(0,10)}.gpx`;
+      a.download = `${finalFileName}.gpx`;
       a.click();
       URL.revokeObjectURL(url);
-      speak('File GPX scaricato');
+      speak('File scaricato con nome ' + finalFileName);
     });
 
-    // 4. TASTO CARICA GPX
+    // 4. (G) TASTO CARICA GPX (Selezione Cartella e File)
     btnLoad.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
@@ -346,24 +440,32 @@
         }
         if (loadedCoords.length > 0) {
           if (loadedPolyline) map.removeLayer(loadedPolyline);
-          loadedPolyline = L.polyline(loadedCoords, { color: '#e07a5f', weight: 4, dashArray: '5, 10' }).addTo(map);
+          loadedPolyline = L.polyline(loadedCoords, { color: '#e07a5f', weight: 5, dashArray: '6, 10' }).addTo(map);
           map.fitBounds(loadedPolyline.getBounds());
-          speak('Percorso caricato sulla mappa');
+          speak('Percorso ' + file.name + ' caricato');
         }
       };
       reader.readAsText(file);
     });
 
-    // 5. TASTO INVERTI ROTTA
+    // 5. (C) TASTO INVERTI ROTTA (Colore Arancione e Freccia Invertita)
     btnReverse.addEventListener('click', () => {
-      if (loadedPolyline) {
-        const coords = loadedPolyline.getLatLngs().reverse();
-        loadedPolyline.setLatLngs(coords);
-        speak('Rotta caricata invertita');
-      } else if (pathCoordinates.length > 0) {
+      isReversed = !isReversed;
+      if (pathCoordinates.length > 0) {
         pathCoordinates.reverse();
         polyline.setLatLngs(pathCoordinates);
-        speak('Tracciato corrente invertito');
+        
+        // Cambia colore: Arancione Ritorno / Blu Andata
+        polyline.setStyle({ color: isReversed ? '#ff7700' : '#0066ff' });
+        
+        currentHeading = (currentHeading + 180) % 360;
+        if (arrowMarker) arrowMarker.setIcon(createArrowIcon(currentHeading));
+
+        speak(isReversed ? 'Rotta invertita. Percorso impostato a ritroso' : 'Rotta ripristinata in avanti');
+      } else if (loadedPolyline) {
+        const coords = loadedPolyline.getLatLngs().reverse();
+        loadedPolyline.setLatLngs(coords);
+        speak('Percorso caricato invertito');
       } else {
         alert('Nessun percorso da invertire!');
       }
