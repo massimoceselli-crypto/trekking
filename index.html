@@ -257,7 +257,7 @@
       }
 
       // Se ci si allontana per più di 25 metri dalla traccia
-      if (minDistance > 25) {
+      if (minDistance > 15) {
         const now = Date.now();
         if (now - lastOffTrackWarning > 12000) { // Avviso ogni 12 secondi
           speak("Attenzione, sei fuori percorso!");
