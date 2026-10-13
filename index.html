@@ -79,7 +79,7 @@
       color: #1b4332;
     }
 
-    /* PANNELLO 6 PULSANTI IN BASSO (SENZA ICONE E TESTI INGRANDITI) */
+    /* PANNELLO 6 PULSANTI IN BASSO */
     .controls-panel {
       position: absolute;
       bottom: 15px;
@@ -104,7 +104,7 @@
       padding: 12px 2px;
       border-radius: 10px;
       font-weight: 800;
-      font-size: 13px; /* Testo ingrandito */
+      font-size: 13px;
       line-height: 1.2;
       cursor: pointer;
       text-align: center;
@@ -148,7 +148,7 @@
   <!-- MAPPA -->
   <div id="map"></div>
 
-  <!-- I 6 PULSANTI IN BASSO (Pausa al posto di Inverti, Nessuna Icona) -->
+  <!-- I 6 PULSANTI IN BASSO -->
   <div class="controls-panel">
     <button id="btn-track" class="btn">Avvia</button>
     <button id="btn-pause" class="btn btn-warn">Pausa</button>
@@ -177,10 +177,10 @@
     let paused = false;
     let watchId = null;
     let pathCoordinates = [];
-    let referenceRoute = []; // Percorso di riferimento (GPX o registrazione corrente)
+    let referenceRoute = []; // Percorso di riferimento
     let trackName = "Sentiero_Trekking";
     
-    // Polilinee (Blu per andata, Arancione per ritorno/caricato)
+    // Polilinee
     let polyline = L.polyline([], { color: '#0066ff', weight: 6 }).addTo(map);
     let isReversed = false;
     let loadedPolyline = null;
@@ -195,7 +195,8 @@
     let elapsedTime = 0;
     let timerInterval = null;
     let voiceEnabled = true;
-    let lastOffTrackWarning = 0; // Evita messaggi di errore ripetuti continuamente
+    let lastOffTrackWarning = 0;
+    let isCurrentlyOffTrack = false; // Stato tracciamento deviazione
 
     // Elementi DOM
     const gpsStatus = document.getElementById('gps-status');
@@ -211,12 +212,12 @@
     const btnVoice = document.getElementById('btn-voice');
     const fileInput = document.getElementById('file-input');
 
-    // Freccia Direzionale SVG
+    // Freccia Direzionale SVG (Punta verso l'alto di base: M12 2L2 22l10-4 10 4z)
     function createArrowIcon(angle) {
       const color = isReversed ? "#ff7700" : "#0066ff";
       const svgArrow = `
         <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" style="transform: rotate(${angle}deg);">
-          <path fill="${color}" stroke="#ffffff" stroke-width="2" d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
+          <path fill="${color}" stroke="#ffffff" stroke-width="2" d="M12 2L2 22l10-4 10 4z"/>
         </svg>`;
       return L.divIcon({
         html: svgArrow,
@@ -246,7 +247,7 @@
       return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
     }
 
-    // Controllo Fuori Percorso (Off-Track Check)
+    // Controllo Fuori Percorso e Rientro in Rotta
     function checkOffTrack(currentPoint) {
       if (referenceRoute.length === 0 || !voiceEnabled) return;
 
@@ -256,12 +257,19 @@
         if (d < minDistance) minDistance = d;
       }
 
-      // Se ci si allontana per più di 25 metri dalla traccia
+      // Se ci si allontana per più di 15 metri dalla traccia
       if (minDistance > 15) {
         const now = Date.now();
-        if (now - lastOffTrackWarning > 12000) { // Avviso ogni 12 secondi
+        if (!isCurrentlyOffTrack || now - lastOffTrackWarning > 12000) {
           speak("Attenzione, sei fuori percorso!");
           lastOffTrackWarning = now;
+          isCurrentlyOffTrack = true;
+        }
+      } else {
+        // Se si era fuori percorso e ora si è rientrati entro 15 metri
+        if (isCurrentlyOffTrack) {
+          speak("Rientrato sul percorso");
+          isCurrentlyOffTrack = false;
         }
       }
     }
@@ -328,7 +336,7 @@
         pathCoordinates.push(currentPoint);
       }
 
-      // Verifica eventuale deviazione dal percorso
+      // Verifica deviazione o rientro sul percorso
       checkOffTrack(currentPoint);
 
       // Aggiornamento Freccia Posizione
@@ -352,6 +360,7 @@
         tracking = true;
         paused = false;
         isReversed = false;
+        isCurrentlyOffTrack = false;
         polyline.setStyle({ color: '#0066ff' });
         
         btnTrack.textContent = 'Ferma';
@@ -437,7 +446,7 @@
       speak('File salvato');
     });
 
-    // 4. (D) TASTO CARICA GPX (Con Tracciamento Posizione Attivo)
+    // 4. TASTO CARICA GPX
     btnLoad.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
@@ -459,9 +468,9 @@
           loadedPolyline = L.polyline(loadedCoords, { color: '#e07a5f', weight: 5, dashArray: '6, 10' }).addTo(map);
           map.fitBounds(loadedPolyline.getBounds());
           
-          referenceRoute = loadedCoords; // Imposta come rotta di riferimento per il fuori percorso
+          referenceRoute = loadedCoords;
+          isCurrentlyOffTrack = false;
 
-          // Avvia il GPS per far seguire la freccia sulla mappa
           if ('geolocation' in navigator && !watchId) {
             gpsStatus.textContent = "GPS: Ricerca...";
             watchId = navigator.geolocation.watchPosition(onPositionUpdate, (err) => {
@@ -475,15 +484,16 @@
       reader.readAsText(file);
     });
 
-    // 5. (B & F) TASTO PERCORSO A RITROSO (Inverte rotta e orienta freccia)
+    // 5. TASTO PERCORSO A RITROSO
     btnReverse.addEventListener('click', () => {
       isReversed = !isReversed;
+      isCurrentlyOffTrack = false;
 
       if (pathCoordinates.length > 0) {
         pathCoordinates.reverse();
         polyline.setLatLngs(pathCoordinates);
         polyline.setStyle({ color: isReversed ? '#ff7700' : '#0066ff' });
-        referenceRoute = [...pathCoordinates]; // Aggiorna riferimento per avviso vocale
+        referenceRoute = [...pathCoordinates];
         
         currentHeading = (currentHeading + 180) % 360;
         if (arrowMarker) arrowMarker.setIcon(createArrowIcon(currentHeading));
