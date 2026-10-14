@@ -79,7 +79,7 @@
       color: #1b4332;
     }
 
-    /* PANNELLO 6 PULSANTI IN BASSO */
+    /* PANNELLO PULSANTI IN BASSO (ADATTATO PER IL TASTO FOTO) */
     .controls-panel {
       position: absolute;
       bottom: 15px;
@@ -101,10 +101,10 @@
       background: #2d6a4f;
       color: white;
       border: none;
-      padding: 12px 2px;
+      padding: 10px 2px;
       border-radius: 10px;
       font-weight: 800;
-      font-size: 13px;
+      font-size: 12px;
       line-height: 1.2;
       cursor: pointer;
       text-align: center;
@@ -115,13 +115,40 @@
     .btn-danger { background: #d90429; }
     .btn-secondary { background: #4a5568; }
     .btn-warn { background: #e07a5f; }
+    .btn-photo { background: #118ab2; }
 
-    /* Freccia GPS Ruotabile */
+    /* Freccia GPS e Segnalini */
     .arrow-icon {
       transition: transform 0.2s ease-in-out;
     }
+    .pause-marker-icon {
+      background: #d90429;
+      color: white;
+      border: 2px solid white;
+      border-radius: 50%;
+      font-weight: bold;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+    .pause-marker-return {
+      background: #ff9f1c;
+    }
+    .photo-marker-icon {
+      background: #118ab2;
+      color: white;
+      border: 2px solid white;
+      border-radius: 50%;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
 
-    #file-input { display: none; }
+    #file-input, #photo-input { display: none; }
   </style>
 </head>
 <body>
@@ -148,18 +175,19 @@
   <!-- MAPPA -->
   <div id="map"></div>
 
-  <!-- I 6 PULSANTI IN BASSO -->
+  <!-- PANNELLO PULSANTI IN BASSO -->
   <div class="controls-panel">
     <button id="btn-track" class="btn">Avvia</button>
     <button id="btn-pause" class="btn btn-warn">Pausa</button>
-    <button id="btn-save" class="btn btn-secondary">Salva GPX</button>
+    <button id="btn-photo" class="btn btn-photo">Foto</button>
     
+    <button id="btn-save" class="btn btn-secondary">Salva GPX</button>
     <button id="btn-load" class="btn btn-secondary">Carica GPX</button>
-    <button id="btn-reverse" class="btn btn-secondary">Percorso a ritroso</button>
-    <button id="btn-voice" class="btn btn-secondary">Vocale: ON</button>
+    <button id="btn-reverse" class="btn btn-secondary">A Ritroso</button>
   </div>
 
   <input type="file" id="file-input" accept=".gpx" />
+  <input type="file" id="photo-input" accept="image/*" capture="environment" />
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -177,17 +205,23 @@
     let paused = false;
     let watchId = null;
     let pathCoordinates = [];
-    let referenceRoute = []; // Percorso di riferimento
+    let referenceRoute = [];
     let trackName = "Sentiero_Trekking";
+    
+    let pauseMarkers = [];
+    let photoWaypoints = [];
+    let pauseCountOutbound = 0;
+    let pauseCountReturn = 0;
     
     // Polilinee
     let polyline = L.polyline([], { color: '#0066ff', weight: 6 }).addTo(map);
     let isReversed = false;
     let loadedPolyline = null;
     
-    // Marker Freccia
+    // Marker Freccia e Posizione
     let arrowMarker = null;
     let currentHeading = 0;
+    let lastKnownPosition = null;
 
     // Variabili Calcolo e Avvisi
     let totalDistance = 0;
@@ -196,7 +230,7 @@
     let timerInterval = null;
     let voiceEnabled = true;
     let lastOffTrackWarning = 0;
-    let isCurrentlyOffTrack = false; // Stato tracciamento deviazione
+    let isCurrentlyOffTrack = false;
 
     // Elementi DOM
     const gpsStatus = document.getElementById('gps-status');
@@ -206,13 +240,15 @@
     
     const btnTrack = document.getElementById('btn-track');
     const btnPause = document.getElementById('btn-pause');
+    const btnPhoto = document.getElementById('btn-photo');
     const btnSave = document.getElementById('btn-save');
     const btnLoad = document.getElementById('btn-load');
     const btnReverse = document.getElementById('btn-reverse');
-    const btnVoice = document.getElementById('btn-voice');
+    
     const fileInput = document.getElementById('file-input');
+    const photoInput = document.getElementById('photo-input');
 
-    // Freccia Direzionale SVG (Punta verso l'alto di base: M12 2L2 22l10-4 10 4z)
+    // Freccia Direzionale SVG
     function createArrowIcon(angle) {
       const color = isReversed ? "#ff7700" : "#0066ff";
       const svgArrow = `
@@ -247,7 +283,7 @@
       return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
     }
 
-    // Controllo Fuori Percorso e Rientro in Rotta
+    // Controllo Fuori Percorso
     function checkOffTrack(currentPoint) {
       if (referenceRoute.length === 0 || !voiceEnabled) return;
 
@@ -257,7 +293,6 @@
         if (d < minDistance) minDistance = d;
       }
 
-      // Se ci si allontana per più di 15 metri dalla traccia
       if (minDistance > 15) {
         const now = Date.now();
         if (!isCurrentlyOffTrack || now - lastOffTrackWarning > 12000) {
@@ -266,7 +301,6 @@
           isCurrentlyOffTrack = true;
         }
       } else {
-        // Se si era fuori percorso e ora si è rientrati entro 15 metri
         if (isCurrentlyOffTrack) {
           speak("Rientrato sul percorso");
           isCurrentlyOffTrack = false;
@@ -296,19 +330,19 @@
         (seconds < 10 ? '0' : '') + seconds;
     }
 
-    // Aggiornamento Posizione GPS in Tempo Reale
+    // Aggiornamento Posizione GPS
     function onPositionUpdate(position) {
       gpsStatus.textContent = "GPS: Attivo";
       gpsStatus.style.color = "#00ffcc";
-
-      if (paused) return;
 
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
       let alt = position.coords.altitude;
       const currentPoint = [lat, lng];
+      lastKnownPosition = currentPoint;
 
-      // Altitudine corretta
+      if (paused) return;
+
       if (alt !== null && !isNaN(alt)) {
         const correctedAlt = Math.max(0, Math.round(alt - 48));
         dashAlt.textContent = correctedAlt + ' m';
@@ -316,7 +350,6 @@
         dashAlt.textContent = '0 m';
       }
 
-      // Tracciamento avanzamento
       if (pathCoordinates.length > 0) {
         const lastPoint = pathCoordinates[pathCoordinates.length - 1];
         const distStep = calculateDistance(lastPoint[0], lastPoint[1], lat, lng);
@@ -336,10 +369,8 @@
         pathCoordinates.push(currentPoint);
       }
 
-      // Verifica deviazione o rientro sul percorso
       checkOffTrack(currentPoint);
 
-      // Aggiornamento Freccia Posizione
       if (!arrowMarker) {
         arrowMarker = L.marker(currentPoint, { icon: createArrowIcon(currentHeading) }).addTo(map);
       } else {
@@ -347,6 +378,16 @@
         arrowMarker.setIcon(createArrowIcon(currentHeading));
       }
       map.setView(currentPoint);
+    }
+
+    // Pulizia Marcatori
+    function clearMarkers() {
+      pauseMarkers.forEach(m => map.removeLayer(m));
+      photoWaypoints.forEach(p => map.removeLayer(p.marker));
+      pauseMarkers = [];
+      photoWaypoints = [];
+      pauseCountOutbound = 0;
+      pauseCountReturn = 0;
     }
 
     // 1. TASTO AVVIA / FERMA
@@ -372,6 +413,7 @@
         dashDist.textContent = '0 m';
         dashAlt.textContent = '0 m';
         polyline.setLatLngs([]);
+        clearMarkers();
 
         startTime = Date.now();
         timerInterval = setInterval(updateTimer, 1000);
@@ -409,7 +451,33 @@
         paused = true;
         elapsedTime += Date.now() - startTime;
         btnPause.textContent = 'Riprendi';
-        speak('Pausa attivata');
+        
+        if (lastKnownPosition) {
+          let labelText = "";
+          let extraClass = "";
+
+          if (!isReversed) {
+            pauseCountOutbound++;
+            labelText = `${pauseCountOutbound}`;
+            speak(`Pausa ${pauseCountOutbound} attivata`);
+          } else {
+            pauseCountReturn++;
+            labelText = `R${pauseCountReturn}`;
+            extraClass = " pause-marker-return";
+            speak(`Pausa ritorno ${pauseCountReturn} attivata`);
+          }
+
+          const pauseIcon = L.divIcon({
+            html: `<span>${labelText}</span>`,
+            className: `pause-marker-icon${extraClass}`,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+          });
+
+          const marker = L.marker(lastKnownPosition, { icon: pauseIcon }).addTo(map);
+          marker.bindPopup(`Pausa ${labelText}`);
+          pauseMarkers.push(marker);
+        }
       } else {
         paused = false;
         startTime = Date.now();
@@ -418,7 +486,46 @@
       }
     });
 
-    // 3. TASTO SALVA GPX
+    // 3. TASTO FOTO (Scatta o carica immagine)
+    btnPhoto.addEventListener('click', () => {
+      if (!lastKnownPosition) {
+        alert("In attesa del segnale GPS per posizionare la foto!");
+        return;
+      }
+      photoInput.click();
+    });
+
+    photoInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64Img = event.target.result;
+        
+        const photoIcon = L.divIcon({
+          html: `📷`,
+          className: 'photo-marker-icon',
+          iconSize: [28, 28],
+          iconAnchor: [14, 14]
+        });
+
+        const marker = L.marker(lastKnownPosition, { icon: photoIcon }).addTo(map);
+        marker.bindPopup(`<div style="text-align:center;"><img src="${base64Img}" style="width:180px;height:auto;border-radius:8px;"/><br><b>Foto Percorso</b></div>`);
+        
+        photoWaypoints.push({
+          lat: lastKnownPosition[0],
+          lon: lastKnownPosition[1],
+          imgData: base64Img,
+          marker: marker
+        });
+
+        speak('Foto salvata sul percorso');
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // 4. TASTO SALVA GPX (Include foto e pause nei Waypoints)
     btnSave.addEventListener('click', () => {
       if (pathCoordinates.length === 0) {
         alert('Nessun tracciato da salvare!');
@@ -430,7 +537,14 @@
 
       const finalFileName = saveName.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
 
-      let gpxData = `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="SentieroVivo">\n<trk><name>${finalFileName}</name><trkseg>\n`;
+      let gpxData = `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="SentieroVivo">\n`;
+      
+      // Salvataggio Foto come Waypoints GPX
+      photoWaypoints.forEach((p, index) => {
+        gpxData += `<wpt lat="${p.lat}" lon="${p.lon}"><name>Foto_${index+1}</name><desc>${p.imgData}</desc></wpt>\n`;
+      });
+
+      gpxData += `<trk><name>${finalFileName}</name><trkseg>\n`;
       pathCoordinates.forEach(pt => {
         gpxData += `<trkpt lat="${pt[0]}" lon="${pt[1]}"></trkpt>\n`;
       });
@@ -443,10 +557,10 @@
       a.download = `${finalFileName}.gpx`;
       a.click();
       URL.revokeObjectURL(url);
-      speak('File salvato');
+      speak('File salvato con foto');
     });
 
-    // 4. TASTO CARICA GPX
+    // 5. TASTO CARICA GPX (Ripristina foto e percorso)
     btnLoad.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
@@ -455,6 +569,29 @@
       reader.onload = (event) => {
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(event.target.result, "text/xml");
+        
+        // Carica foto dal file GPX
+        const wpts = xmlDoc.getElementsByTagName("wpt");
+        clearMarkers();
+        for (let i = 0; i < wpts.length; i++) {
+          const wLat = parseFloat(wpts[i].getAttribute("lat"));
+          const wLon = parseFloat(wpts[i].getAttribute("lon"));
+          const descEl = wpts[i].getElementsByTagName("desc")[0];
+          if (descEl && descEl.textContent.startsWith("data:image")) {
+            const imgData = descEl.textContent;
+            const photoIcon = L.divIcon({
+              html: `📷`,
+              className: 'photo-marker-icon',
+              iconSize: [28, 28],
+              iconAnchor: [14, 14]
+            });
+            const marker = L.marker([wLat, wLon], { icon: photoIcon }).addTo(map);
+            marker.bindPopup(`<div style="text-align:center;"><img src="${imgData}" style="width:180px;height:auto;border-radius:8px;"/><br><b>Foto Allegata</b></div>`);
+            photoWaypoints.push({ lat: wLat, lon: wLon, imgData: imgData, marker: marker });
+          }
+        }
+
+        // Carica Tracciato
         const pts = xmlDoc.getElementsByTagName("trkpt");
         let loadedCoords = [];
         for (let i = 0; i < pts.length; i++) {
@@ -463,6 +600,7 @@
             parseFloat(pts[i].getAttribute("lon"))
           ]);
         }
+
         if (loadedCoords.length > 0) {
           if (loadedPolyline) map.removeLayer(loadedPolyline);
           loadedPolyline = L.polyline(loadedCoords, { color: '#e07a5f', weight: 5, dashArray: '6, 10' }).addTo(map);
@@ -478,13 +616,13 @@
             }, { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 });
           }
 
-          speak('Percorso ' + file.name + ' caricato');
+          speak('Percorso con foto caricato');
         }
       };
       reader.readAsText(file);
     });
 
-    // 5. TASTO PERCORSO A RITROSO
+    // 6. TASTO PERCORSO A RITROSO
     btnReverse.addEventListener('click', () => {
       isReversed = !isReversed;
       isCurrentlyOffTrack = false;
@@ -500,19 +638,13 @@
 
         speak(isReversed ? 'Percorso a ritroso attivato' : 'Percorso in avanti ripristinato');
       } else if (loadedPolyline) {
-        const coords = loadedPolyline.getLatLngs().reverse();
+        const coords = [...loadedPolyline.getLatLngs()].reverse();
         loadedPolyline.setLatLngs(coords);
         referenceRoute = coords;
-        speak('Percorso caricato invertito');
+        speak(isReversed ? 'Percorso caricato a ritroso attivato' : 'Percorso caricato ripristinato');
       } else {
         alert('Nessun percorso da percorrere a ritroso!');
       }
-    });
-
-    // 6. TASTO VOCALE ON/OFF
-    btnVoice.addEventListener('click', () => {
-      voiceEnabled = !voiceEnabled;
-      btnVoice.textContent = voiceEnabled ? 'Vocale: ON' : 'Vocale: OFF';
     });
   </script>
 </body>
