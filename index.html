@@ -1,9 +1,9 @@
-OCTYPE html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SentieroVivo - GPS & Rientro Sicuro</title>
+  <title>SentieroVivo - GPS & Rientro Sicuro con Avviso Vocale</title>
 
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -291,6 +291,9 @@ OCTYPE html>
       <button class="btn btn-rec" id="btn-rec" onclick="toggleTracking()">
         <i class="fa-solid fa-play" id="rec-icon"></i> <span id="rec-text">AVVIA TRACCIA</span>
       </button>
+      <button class="btn" id="btn-voice-toggle" onclick="toggleVoiceAlerts()">
+        <i class="fa-solid fa-volume-high" id="voice-icon" style="color:#00e676;"></i> Voce
+      </button>
       <button class="btn" onclick="recordAudio()">
         <i class="fa-solid fa-microphone" style="color:#e91e63;"></i> Audio
       </button>
@@ -312,7 +315,7 @@ OCTYPE html>
   <div class="modal-overlay" id="intro-modal">
     <div class="modal-card">
       <h2>Benvenuto su SentieroVivo! 🥾</h2>
-      <p>Applicazione web per l'escursionismo con navigazione GPS, mappe offline, registrazione di note vocali, foto, video e doppia modalità di <b>Rientro Sicuro</b>.</p>
+      <p>Applicazione web per l'escursionismo con navigazione GPS, mappe offline, assistente vocale, registrazione di note vocali, foto, video e doppia modalità di <b>Rientro Sicuro</b>.</p>
       
       <p style="background: rgba(255, 152, 0, 0.15); border: 1px solid #ff9800; padding: 10px; border-radius: 10px;">
         ℹ️ <b>INFORMAZIONE DI UTILIZZO:</b><br>
@@ -348,7 +351,33 @@ OCTYPE html>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
-    // --- 1. GESTIONE LICENZE ---
+    // --- 1. SINTESI VOCALE (MESSAGGI PARLATI IN ITALIANO) ---
+    let voiceEnabled = true;
+    let lastOffTrackAlertTime = 0;
+
+    function speak(text) {
+      if (!voiceEnabled || !('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel(); // Interrompe frasi precedenti
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'it-IT';
+      utterance.rate = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function toggleVoiceAlerts() {
+      voiceEnabled = !voiceEnabled;
+      const icon = document.getElementById('voice-icon');
+      if (voiceEnabled) {
+        icon.className = "fa-solid fa-volume-high";
+        icon.style.color = "#00e676";
+        speak("Assistente vocale attivato");
+      } else {
+        icon.className = "fa-solid fa-volume-xmark";
+        icon.style.color = "#ff5252";
+      }
+    }
+
+    // --- 2. GESTIONE LICENZE ---
     const MASTER_KEY = "MASSIMO-MASTER-2026";
     const GIFT_KEY = "REGALO-SENTIERO-2026";
 
@@ -378,6 +407,7 @@ OCTYPE html>
     function startTrial() {
       localStorage.setItem('sv_seen_intro', 'true');
       document.getElementById('intro-modal').style.display = 'none';
+      speak("Benvenuto su SentieroVivo. Prova di ventiquattro ore avviata.");
       initTrialTimer();
     }
 
@@ -398,11 +428,13 @@ OCTYPE html>
         localStorage.setItem('sv_licensed_' + deviceId, 'true');
         if (input === MASTER_KEY) localStorage.setItem('sv_master_unlocked', 'true');
         isLicensed = true;
+        speak("Applicazione attivata con successo.");
         alert("Attivazione completata con successo!");
         document.getElementById('intro-modal').style.display = 'none';
         document.getElementById('pay-modal').style.display = 'none';
         document.getElementById('trial-timer').style.display = 'none';
       } else {
+        speak("Codice non valido.");
         alert("Codice non valido.");
       }
     }
@@ -420,7 +452,7 @@ OCTYPE html>
       window.open(`https://paypal.me/massimoceselli?amount=5&note=${msg}`, '_blank');
     }
 
-    // --- 2. TIMER PROVA 24 ORE ---
+    // --- 3. TIMER PROVA 24 ORE ---
     let trialSeconds = parseInt(localStorage.getItem('sv_trial_remaining')) || (24 * 3600);
     let trialInterval = null;
 
@@ -439,6 +471,7 @@ OCTYPE html>
 
           if (trialSeconds <= 0) {
             clearInterval(trialInterval);
+            speak("Periodo di prova terminato. Effettua l'attivazione per proseguire.");
             document.getElementById('pay-modal').style.display = 'flex';
           }
         }, 1000);
@@ -449,7 +482,7 @@ OCTYPE html>
       initTrialTimer();
     }
 
-    // --- 3. MAPPA & TRACCIAMENTO DEI 3 COLORI ---
+    // --- 4. MAPPA & TRACCIAMENTO DEI 3 COLORI ---
     const map = L.map('map', { zoomControl: false }).setView([43.5485, 10.3106], 15);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -466,7 +499,7 @@ OCTYPE html>
     // COLORE 2: Ritorno sui tuoi passi (ARANCIONE)
     let returnBackPolyline = L.polyline([], { color: '#ff9800', weight: 5, dashArray: '6, 6' }).addTo(map);
 
-    // COLORE 3: Nuovo Percorso Alternativo di Rientro (VERDE NEON / CIANO)
+    // COLORE 3: Nuovo Percorso Alternativo di Rientro (VERDE NEON)
     let returnAltPolyline = L.polyline([], { color: '#00e676', weight: 5, dashArray: '10, 10' }).addTo(map);
 
     let startPoint = null;
@@ -527,12 +560,15 @@ OCTYPE html>
             trackPoints.push(currentLatLng);
 
             if (isReturnBackActive) {
-              // Ritorno sui propri passi in ARANCIONE
               returnBackPolyline.setLatLngs(trackPoints);
             } else {
-              // Tracciato normale d'Andata in BLU
               trackPolyline.setLatLngs(trackPoints);
             }
+          }
+
+          // CONTROLLO DISTANZA FUORI PERCORSO (> 15 METRI)
+          if ((isReturnBackActive || isReturnAltActive) && trackPoints.length > 0) {
+            checkOffTrackDistance(currentLatLng);
           }
 
           if (isReturnAltActive && startPoint) {
@@ -542,6 +578,22 @@ OCTYPE html>
         (err) => console.warn("Errore GPS:", err),
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
+    }
+
+    // ALGORITMO AVVISO VOCALE FUORI PERCORSO (> 15 Metri)
+    function checkOffTrackDistance(currentPos) {
+      let minDistance = Infinity;
+
+      trackPoints.forEach(pt => {
+        const d = currentPos.distanceTo(pt);
+        if (d < minDistance) minDistance = d;
+      });
+
+      // Se ti allontani oltre 15m dal tracciato registrato (con avviso ogni 20 secondi)
+      if (minDistance > 15 && (Date.now() - lastOffTrackAlertTime > 20000)) {
+        lastOffTrackAlertTime = Date.now();
+        speak("Attenzione! Sei fuori percorso. Ti sei allontanato dal sentiero.");
+      }
     }
 
     function toggleTracking() {
@@ -555,6 +607,7 @@ OCTYPE html>
         btn.classList.add('recording');
         icon.className = "fa-solid fa-pause";
         text.innerText = "PAUSA";
+        speak("Registrazione percorso avviata");
         if (!startTime) {
           startTime = Date.now();
           timerInterval = setInterval(updateTimer, 1000);
@@ -570,6 +623,7 @@ OCTYPE html>
         btn.classList.remove('recording');
         icon.className = "fa-solid fa-play";
         text.innerText = "RIPRENDI";
+        speak("Registrazione in pausa");
 
         L.marker(currentPos, {
           icon: L.divIcon({
@@ -587,7 +641,6 @@ OCTYPE html>
       document.getElementById('stat-time').innerText = `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
     }
 
-    // GESTIONE PERCORSO 2: Ritorno sui tuoi passi (ARANCIONE)
     function toggleReturnBack() {
       isReturnBackActive = !isReturnBackActive;
       isReturnAltActive = false;
@@ -595,15 +648,15 @@ OCTYPE html>
       document.getElementById('return-hud').style.display = 'none';
 
       if (isReturnBackActive) {
-        alert("Modalità Ritorno sui Tuoi Passi attivata (Tracciato Arancione).");
+        speak("Modalità ritorno sui tuoi passi attivata.");
       } else {
-        alert("Modalità Ritorno sui Tuoi Passi disattivata.");
+        speak("Modalità ritorno disattivata.");
       }
     }
 
-    // GESTIONE PERCORSO 3: Nuovo Percorso Alternativo di Rientro (VERDE NEON)
     function toggleReturnAlt() {
       if (!startPoint) {
+        speak("Nessun punto di partenza registrato.");
         alert("Nessun punto di partenza registrato. Avvia prima il tracciamento!");
         return;
       }
@@ -614,10 +667,12 @@ OCTYPE html>
       hud.style.display = isReturnAltActive ? 'flex' : 'none';
       document.getElementById('return-mode-title').innerText = "Nuovo Rientro";
 
-      if (!isReturnAltActive) {
+      if (isReturnAltActive) {
+        speak("Modalità nuovo percorso di rientro attivata.");
+        if (userMarker) updateSafeReturnAlt(userMarker.getLatLng());
+      } else {
         returnAltPolyline.setLatLngs([]);
-      } else if (userMarker) {
-        updateSafeReturnAlt(userMarker.getLatLng());
+        speak("Modalità rientro disattivata.");
       }
     }
 
@@ -637,7 +692,7 @@ OCTYPE html>
       document.getElementById('return-bearing').innerText = Math.round(bearing) + '°';
     }
 
-    // --- 4. ESPORTAZIONE FILE GPX ---
+    // --- 5. ESPORTAZIONE FILE GPX ---
     function exportGPX() {
       if (trackPoints.length === 0) {
         alert("Nessuna traccia registrata da esportare.");
@@ -668,9 +723,10 @@ OCTYPE html>
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+      speak("File GPX scaricato.");
     }
 
-    // --- 5. REGISTRAZIONE MEDIA ---
+    // --- 6. REGISTRAZIONE MEDIA ---
     let mediaRecorder = null;
     let audioChunks = [];
     let isRecordingAudio = false;
@@ -685,13 +741,14 @@ OCTYPE html>
           mediaRecorder.onstop = saveAudioNote;
           mediaRecorder.start();
           isRecordingAudio = true;
-          alert("Registrazione audio avviata... Premi di nuovo 'Audio' per salvare.");
+          speak("Registrazione audio avviata");
         } catch (err) {
           alert("Impossibile accedere al microfono.");
         }
       } else {
         mediaRecorder.stop();
         isRecordingAudio = false;
+        speak("Audio registrato e salvato sulla mappa");
       }
     }
 
@@ -746,6 +803,8 @@ OCTYPE html>
           ${mediaTag}
         </div>
       `).openPopup();
+
+      speak(isVideo ? "Video salvato" : "Foto salvata");
     }
   </script>
 </body>
