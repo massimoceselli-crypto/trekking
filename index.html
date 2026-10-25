@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+OCTYPE html>
 <html lang="it">
 <head>
   <meta charset="UTF-8">
@@ -31,7 +31,7 @@
       z-index: 1;
     }
 
-    /* Barra In Alto */
+    /* Barra Statistiche in Alto */
     .top-bar {
       position: absolute;
       top: 12px;
@@ -44,7 +44,7 @@
       pointer-events: none;
     }
     .hud-card {
-      background: rgba(18, 18, 18, 0.85);
+      background: rgba(18, 18, 18, 0.88);
       backdrop-filter: blur(10px);
       border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 14px;
@@ -71,7 +71,7 @@
       color: #ffffff;
     }
 
-    /* Timer Badge 24 Ore */
+    /* Badge Timer 24h */
     .timer-badge {
       background: #ff9800;
       color: #000;
@@ -90,23 +90,24 @@
       z-index: 1000;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
       pointer-events: none;
     }
     .action-row {
       display: flex;
       justify-content: center;
-      gap: 8px;
+      gap: 6px;
       pointer-events: auto;
+      flex-wrap: wrap;
     }
     .btn {
-      background: rgba(30, 30, 30, 0.9);
+      background: rgba(30, 30, 30, 0.92);
       backdrop-filter: blur(8px);
       border: 1px solid rgba(255,255,255,0.2);
       color: white;
-      padding: 12px 14px;
-      border-radius: 12px;
-      font-size: 13px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 12px;
       font-weight: 600;
       display: flex;
       align-items: center;
@@ -119,32 +120,42 @@
       transform: scale(0.95);
     }
     .btn-rec {
-      background: #e53935;
-      border-color: #ff5252;
+      background: #1e88e5;
+      border-color: #42a5f5;
     }
     .btn-rec.recording {
+      background: #e53935;
+      border-color: #ff5252;
       animation: pulse 1.5s infinite;
     }
-    .btn-return {
-      background: #00bcd4;
+    .btn-return-back {
+      background: #ff9800;
       color: #000;
       font-weight: 700;
       border: none;
-      width: 100%;
+      flex: 1;
+      justify-content: center;
+    }
+    .btn-return-alt {
+      background: #00e676;
+      color: #000;
+      font-weight: 700;
+      border: none;
+      flex: 1;
       justify-content: center;
     }
 
     @keyframes pulse {
       0% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.7); }
-      70% { box-shadow: 0 0 0 12px rgba(229, 57, 53, 0); }
+      70% { box-shadow: 0 0 0 10px rgba(229, 57, 53, 0); }
       100% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0); }
     }
 
-    /* Modale Blocco e Pagamento Licenza */
+    /* Finestre Modali */
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.9);
+      background: rgba(0,0,0,0.92);
       backdrop-filter: blur(12px);
       z-index: 9999;
       display: none;
@@ -171,7 +182,7 @@
       color: #ccc;
       font-size: 13px;
       margin-bottom: 16px;
-      line-height: 1.4;
+      line-height: 1.5;
     }
     .device-box {
       background: #111;
@@ -245,7 +256,7 @@
   <div class="top-bar">
     <div class="hud-card">
       <div class="hud-stat">
-        <span class="hud-label">Distanza</span>
+        <span class="hud-label" onclick="promptMasterUnlock()" style="cursor:pointer;">SentieroVivo 🔑</span>
         <span class="hud-value" id="stat-dist">0.00 km</span>
       </div>
       <div class="hud-stat">
@@ -256,26 +267,29 @@
     </div>
     <div class="hud-card" id="return-hud" style="display: none;">
       <div class="hud-stat">
-        <span class="hud-label">Rientro d'Aria</span>
-        <span class="hud-value" id="return-dist" style="color: #00bcd4;">0 m</span>
+        <span class="hud-label" id="return-mode-title">Rientro d'Aria</span>
+        <span class="hud-value" id="return-dist" style="color: #00e676;">0 m</span>
       </div>
       <div class="hud-stat">
         <span class="hud-label">Direzione</span>
-        <span class="hud-value" id="return-bearing" style="color: #00bcd4;">0°</span>
+        <span class="hud-value" id="return-bearing" style="color: #00e676;">0°</span>
       </div>
     </div>
   </div>
 
-  <!-- Barra di Controllo In Basso -->
+  <!-- Barra Controlli In Basso -->
   <div class="bottom-bar">
     <div class="action-row">
-      <button class="btn btn-return" id="btn-safe-return" onclick="toggleSafeReturn()">
-        <i class="fa-solid fa-compass"></i> RITORNO SICURO AL PUNTO DI PARTENZA
+      <button class="btn btn-return-back" onclick="toggleReturnBack()">
+        <i class="fa-solid fa-rotate-left"></i> RITORNO SUI TUOI PASSI
+      </button>
+      <button class="btn btn-return-alt" onclick="toggleReturnAlt()">
+        <i class="fa-solid fa-compass"></i> NUOVO PERCORSO RIENTRO
       </button>
     </div>
     <div class="action-row">
       <button class="btn btn-rec" id="btn-rec" onclick="toggleTracking()">
-        <i class="fa-solid fa-play" id="rec-icon"></i> <span id="rec-text">AVVIA</span>
+        <i class="fa-solid fa-play" id="rec-icon"></i> <span id="rec-text">AVVIA TRACCIA</span>
       </button>
       <button class="btn" onclick="recordAudio()">
         <i class="fa-solid fa-microphone" style="color:#e91e63;"></i> Audio
@@ -286,24 +300,46 @@
       <button class="btn" onclick="captureMedia('video/*')">
         <i class="fa-solid fa-video" style="color:#ff9800;"></i> Video
       </button>
+      <button class="btn" onclick="exportGPX()">
+        <i class="fa-solid fa-file-export" style="color:#4caf50;"></i> GPX
+      </button>
     </div>
   </div>
 
   <input type="file" id="media-capture" style="display: none;" onchange="handleMediaCaptured(event)">
 
-  <!-- Modale Blocco 24 Ore / Pagamento Licenza -->
+  <!-- MODALE 1: INFORMATIVA INIZIALE -->
+  <div class="modal-overlay" id="intro-modal">
+    <div class="modal-card">
+      <h2>Benvenuto su SentieroVivo! 🥾</h2>
+      <p>Applicazione web per l'escursionismo con navigazione GPS, mappe offline, registrazione di note vocali, foto, video e doppia modalità di <b>Rientro Sicuro</b>.</p>
+      
+      <p style="background: rgba(255, 152, 0, 0.15); border: 1px solid #ff9800; padding: 10px; border-radius: 10px;">
+        ℹ️ <b>INFORMAZIONE DI UTILIZZO:</b><br>
+        Puoi provare liberamente l'applicazione per <b>24 ore gratuite</b>.<br>
+        Al termine della prova, per continuare ad usarla su questo dispositivo, sarà richiesto un contributo unico di <b>5,00 €</b>.
+      </p>
+
+      <button class="pay-btn" onclick="startTrial()">INIZIA PROVA GRATUITA (24h)</button>
+
+      <p style="font-size: 11px; color: #888; margin-top: 10px; cursor: pointer;" onclick="promptMasterUnlock()">
+        Hai già un codice di sblocco o regalo? <b style="color:#00bcd4;">Clicca qui</b>
+      </p>
+    </div>
+  </div>
+
+  <!-- MODALE 2: BLOCCO LICENZA -->
   <div class="modal-overlay" id="pay-modal">
     <div class="modal-card">
       <h2>Periodo di Prova Terminato</h2>
-      <p>Le 24 ore di prova gratuita sono scadute. Per continuare ad usare <b>SentieroVivo</b> su questo dispositivo, versa la quota d'attivazione di <b>5,00 €</b>.</p>
+      <p>Le 24 ore di prova sono trascorse. Per attivare <b>SentieroVivo</b> su questo dispositivo, versa la quota di <b>5,00 €</b> oppure inserisci un Codice Regalo/Master.</p>
 
       <div class="hud-label" style="margin-bottom:4px;">ID Dispositivo Unico:</div>
       <div class="device-box" id="device-id-display">--------</div>
 
       <button class="pay-btn" onclick="payNow()">Paga 5,00 € (PayPal / Carta / Satispay)</button>
 
-      <p style="font-size:11px; color:#aaa; margin-bottom:8px;">Dopo il pagamento, inserisci il Codice di Sblocco fornito dallo sviluppatore:</p>
-      <input type="text" id="activation-code" class="input-code" placeholder="Inserisci Codice Sblocco">
+      <input type="text" id="activation-code" class="input-code" placeholder="Inserisci Codice Sblocco o Regalo">
       <button class="btn-activate" onclick="validateActivation()">ATTIVA DISPOSITIVO</button>
     </div>
   </div>
@@ -312,7 +348,10 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
-    // --- 1. GESTIONE LICENZA & DISPOSITIVO UNICO ---
+    // --- 1. GESTIONE LICENZE ---
+    const MASTER_KEY = "MASSIMO-MASTER-2026";
+    const GIFT_KEY = "REGALO-SENTIERO-2026";
+
     function getDeviceId() {
       let id = localStorage.getItem('sv_device_id');
       if (!id) {
@@ -325,9 +364,23 @@
     const deviceId = getDeviceId();
     document.getElementById('device-id-display').innerText = deviceId;
 
-    let isLicensed = localStorage.getItem('sv_licensed_' + deviceId) === 'true';
+    let isLicensed = localStorage.getItem('sv_licensed_' + deviceId) === 'true' || localStorage.getItem('sv_master_unlocked') === 'true';
+    let hasSeenIntro = localStorage.getItem('sv_seen_intro') === 'true';
 
-    // Algoritmo di Generazione Codice Personalizzato per il Dispositivo (Algoritmo Massimo)
+    window.addEventListener('load', () => {
+      if (isLicensed) {
+        document.getElementById('trial-timer').style.display = 'none';
+      } else if (!hasSeenIntro) {
+        document.getElementById('intro-modal').style.display = 'flex';
+      }
+    });
+
+    function startTrial() {
+      localStorage.setItem('sv_seen_intro', 'true');
+      document.getElementById('intro-modal').style.display = 'none';
+      initTrialTimer();
+    }
+
     function generateValidCode(id) {
       let hash = 0;
       for (let i = 0; i < id.length; i++) {
@@ -341,48 +394,62 @@
       const input = document.getElementById('activation-code').value.trim().toUpperCase();
       const expected = generateValidCode(deviceId);
 
-      if (input === expected) {
+      if (input === MASTER_KEY || input === GIFT_KEY || input === expected) {
         localStorage.setItem('sv_licensed_' + deviceId, 'true');
+        if (input === MASTER_KEY) localStorage.setItem('sv_master_unlocked', 'true');
         isLicensed = true;
-        alert("Attivazione completata con successo per questo dispositivo!");
+        alert("Attivazione completata con successo!");
+        document.getElementById('intro-modal').style.display = 'none';
         document.getElementById('pay-modal').style.display = 'none';
         document.getElementById('trial-timer').style.display = 'none';
       } else {
-        alert("Codice non valido per questo dispositivo. Verifica con lo sviluppatore.");
+        alert("Codice non valido.");
+      }
+    }
+
+    function promptMasterUnlock() {
+      const code = prompt("Inserisci la Master Key o la Chiave Regalo:");
+      if (code) {
+        document.getElementById('activation-code').value = code;
+        validateActivation();
       }
     }
 
     function payNow() {
-      // Reindirizza al tuo link PayPal / Satispay / Istruzioni Bonifico
       const msg = encodeURIComponent(`Richiesta Sblocco SentieroVivo per Dispositivo ID: ${deviceId}`);
       window.open(`https://paypal.me/massimoceselli?amount=5&note=${msg}`, '_blank');
     }
 
-    // --- 2. TIMER DI PROVA (24 ORE = 86400 SECONDI) ---
+    // --- 2. TIMER PROVA 24 ORE ---
     let trialSeconds = parseInt(localStorage.getItem('sv_trial_remaining')) || (24 * 3600);
+    let trialInterval = null;
 
-    if (!isLicensed) {
-      let trialInterval = setInterval(() => {
-        trialSeconds--;
-        localStorage.setItem('sv_trial_remaining', trialSeconds);
+    function initTrialTimer() {
+      if (!isLicensed && !trialInterval) {
+        trialInterval = setInterval(() => {
+          trialSeconds--;
+          localStorage.setItem('sv_trial_remaining', trialSeconds);
 
-        let h = Math.floor(trialSeconds / 3600);
-        let m = Math.floor((trialSeconds % 3600) / 60);
-        let s = trialSeconds % 60;
+          let h = Math.floor(trialSeconds / 3600);
+          let m = Math.floor((trialSeconds % 3600) / 60);
+          let s = trialSeconds % 60;
 
-        document.getElementById('trial-timer').innerText = 
-          `Prova: ${h < 10 ? '0' : ''}${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+          document.getElementById('trial-timer').innerText = 
+            `Prova: ${h < 10 ? '0' : ''}${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
 
-        if (trialSeconds <= 0) {
-          clearInterval(trialInterval);
-          document.getElementById('pay-modal').style.display = 'flex';
-        }
-      }, 1000);
-    } else {
-      document.getElementById('trial-timer').style.display = 'none';
+          if (trialSeconds <= 0) {
+            clearInterval(trialInterval);
+            document.getElementById('pay-modal').style.display = 'flex';
+          }
+        }, 1000);
+      }
     }
 
-    // --- 3. MAPPA LEAFLET & TRACCIAMENTO ---
+    if (hasSeenIntro && !isLicensed) {
+      initTrialTimer();
+    }
+
+    // --- 3. MAPPA & TRACCIAMENTO DEI 3 COLORI ---
     const map = L.map('map', { zoomControl: false }).setView([43.5485, 10.3106], 15);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -392,22 +459,31 @@
 
     let isTracking = false;
     let trackPoints = [];
-    let trackPolyline = L.polyline([], { color: '#e53935', weight: 5 }).addTo(map);
+
+    // COLORE 1: Andata (BLU)
+    let trackPolyline = L.polyline([], { color: '#1e88e5', weight: 5 }).addTo(map);
+
+    // COLORE 2: Ritorno sui tuoi passi (ARANCIONE)
+    let returnBackPolyline = L.polyline([], { color: '#ff9800', weight: 5, dashArray: '6, 6' }).addTo(map);
+
+    // COLORE 3: Nuovo Percorso Alternativo di Rientro (VERDE NEON / CIANO)
+    let returnAltPolyline = L.polyline([], { color: '#00e676', weight: 5, dashArray: '10, 10' }).addTo(map);
+
     let startPoint = null;
     let startMarker = null;
 
     const arrowIcon = L.divIcon({
       className: 'gps-arrow-icon',
       html: `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L4.5 20.29C4.21 21 4.96 21.6 5.61 21.27L12 18L18.39 21.27C19.04 21.6 19.79 21 19.5 20.29L12 2Z" fill="#2196F3" stroke="#FFFFFF" stroke-width="2"/>
+              <path d="M12 2L4.5 20.29C4.21 21 4.96 21.6 5.61 21.27L12 18L18.39 21.27C19.04 21.6 19.79 21 19.5 20.29L12 2Z" fill="#1e88e5" stroke="#FFFFFF" stroke-width="2"/>
              </svg>`,
       iconSize: [32, 32],
       iconAnchor: [16, 16]
     });
     let userMarker = null;
 
-    let isReturnActive = false;
-    let returnPolyline = L.polyline([], { color: '#00bcd4', weight: 4, dashArray: '8, 8' }).addTo(map);
+    let isReturnBackActive = false;
+    let isReturnAltActive = false;
 
     let totalDistance = 0;
     let startTime = null;
@@ -449,14 +525,21 @@
               }
             }
             trackPoints.push(currentLatLng);
-            trackPolyline.setLatLngs(trackPoints);
+
+            if (isReturnBackActive) {
+              // Ritorno sui propri passi in ARANCIONE
+              returnBackPolyline.setLatLngs(trackPoints);
+            } else {
+              // Tracciato normale d'Andata in BLU
+              trackPolyline.setLatLngs(trackPoints);
+            }
           }
 
-          if (isReturnActive && startPoint) {
-            updateSafeReturn(currentLatLng);
+          if (isReturnAltActive && startPoint) {
+            updateSafeReturnAlt(currentLatLng);
           }
         },
-        (err) => console.warn("GPS Warning:", err),
+        (err) => console.warn("Errore GPS:", err),
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     }
@@ -466,6 +549,7 @@
       const btn = document.getElementById('btn-rec');
       const icon = document.getElementById('rec-icon');
       const text = document.getElementById('rec-text');
+      const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
 
       if (isTracking) {
         btn.classList.add('recording');
@@ -474,11 +558,25 @@
         if (!startTime) {
           startTime = Date.now();
           timerInterval = setInterval(updateTimer, 1000);
+        } else {
+          L.marker(currentPos, {
+            icon: L.divIcon({
+              html: '<i class="fa-solid fa-circle-play" style="color:#4caf50; font-size:20px;"></i>',
+              iconSize: [20, 20]
+            })
+          }).addTo(map).bindPopup("Ripartenza Cammino");
         }
       } else {
         btn.classList.remove('recording');
         icon.className = "fa-solid fa-play";
         text.innerText = "RIPRENDI";
+
+        L.marker(currentPos, {
+          icon: L.divIcon({
+            html: '<i class="fa-solid fa-circle-pause" style="color:#ff9800; font-size:20px;"></i>',
+            iconSize: [20, 20]
+          })
+        }).addTo(map).bindPopup("Punto di Sosta / Pausa");
       }
     }
 
@@ -489,23 +587,42 @@
       document.getElementById('stat-time').innerText = `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
     }
 
-    function toggleSafeReturn() {
+    // GESTIONE PERCORSO 2: Ritorno sui tuoi passi (ARANCIONE)
+    function toggleReturnBack() {
+      isReturnBackActive = !isReturnBackActive;
+      isReturnAltActive = false;
+      returnAltPolyline.setLatLngs([]);
+      document.getElementById('return-hud').style.display = 'none';
+
+      if (isReturnBackActive) {
+        alert("Modalità Ritorno sui Tuoi Passi attivata (Tracciato Arancione).");
+      } else {
+        alert("Modalità Ritorno sui Tuoi Passi disattivata.");
+      }
+    }
+
+    // GESTIONE PERCORSO 3: Nuovo Percorso Alternativo di Rientro (VERDE NEON)
+    function toggleReturnAlt() {
       if (!startPoint) {
         alert("Nessun punto di partenza registrato. Avvia prima il tracciamento!");
         return;
       }
-      isReturnActive = !isReturnActive;
-      document.getElementById('return-hud').style.display = isReturnActive ? 'flex' : 'none';
+      isReturnAltActive = !isReturnAltActive;
+      isReturnBackActive = false;
 
-      if (!isReturnActive) {
-        returnPolyline.setLatLngs([]);
+      const hud = document.getElementById('return-hud');
+      hud.style.display = isReturnAltActive ? 'flex' : 'none';
+      document.getElementById('return-mode-title').innerText = "Nuovo Rientro";
+
+      if (!isReturnAltActive) {
+        returnAltPolyline.setLatLngs([]);
       } else if (userMarker) {
-        updateSafeReturn(userMarker.getLatLng());
+        updateSafeReturnAlt(userMarker.getLatLng());
       }
     }
 
-    function updateSafeReturn(currentPos) {
-      returnPolyline.setLatLngs([currentPos, startPoint]);
+    function updateSafeReturnAlt(currentPos) {
+      returnAltPolyline.setLatLngs([currentPos, startPoint]);
       const dist = currentPos.distanceTo(startPoint);
       document.getElementById('return-dist').innerText = dist > 1000 ? (dist / 1000).toFixed(2) + ' km' : Math.round(dist) + ' m';
 
@@ -520,7 +637,40 @@
       document.getElementById('return-bearing').innerText = Math.round(bearing) + '°';
     }
 
-    // --- 4. MEDIA RECORDING ---
+    // --- 4. ESPORTAZIONE FILE GPX ---
+    function exportGPX() {
+      if (trackPoints.length === 0) {
+        alert("Nessuna traccia registrata da esportare.");
+        return;
+      }
+
+      let gpxContent = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="SentieroVivo" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>Percorso SentieroVivo</name>
+    <trkseg>`;
+
+      trackPoints.forEach(pt => {
+        gpxContent += `
+      <trkpt lat="${pt.lat}" lon="${pt.lng}"></trkpt>`;
+      });
+
+      gpxContent += `
+    </trkseg>
+  </trk>
+</gpx>`;
+
+      const blob = new Blob([gpxContent], { type: 'application/gpx+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `SentieroVivo_${new Date().toISOString().slice(0,10)}.gpx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    // --- 5. REGISTRAZIONE MEDIA ---
     let mediaRecorder = null;
     let audioChunks = [];
     let isRecordingAudio = false;
