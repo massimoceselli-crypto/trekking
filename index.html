@@ -172,11 +172,11 @@
       100% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0); }
     }
 
-    /* Finestre Modali (Forzate in primo piano) */
+    /* Finestre Modali */
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.92);
+      background: rgba(0,0,0,0.95);
       backdrop-filter: blur(12px);
       z-index: 99999;
       display: flex;
@@ -192,7 +192,7 @@
       max-width: 380px;
       width: 100%;
       text-align: center;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.9);
     }
     .modal-card h2 {
       color: #ff9800;
@@ -335,16 +335,16 @@
 
   <input type="file" id="media-capture" style="display: none;" onchange="handleMediaCaptured(event)">
 
-  <!-- MODALE 1: INFORMATIVA INIZIALE OBBLIGATORIA ALL'AVVIO -->
+  <!-- MODALE 1: INFORMATIVA INIZIALE -->
   <div class="modal-overlay" id="intro-modal">
     <div class="modal-card">
       <h2>Benvenuto su SentieroVivo! 🥾</h2>
-      <p>Applicazione web per l'escursionismo con navigazione GPS, mappe offline, assistente vocale, registrazione di note vocali, foto, video e doppia modalità di <b>Rientro Sicuro</b>.</p>
+      <p>Applicazione web per l'escursionismo con navigazione GPS, mappe offline, assistente vocale, registrazione di note vocali, foto, video e modalità di <b>Rientro Sicuro</b>.</p>
       
       <p style="background: rgba(255, 152, 0, 0.15); border: 1px solid #ff9800; padding: 12px; border-radius: 10px; color: #fff; font-size: 13px; text-align: left;">
-        ℹ️ <b>INFORMAZIONE SULL'USO:</b><br>
-        • Hai a disposizione <b>24 ORE DI PROVA GRATUITA</b> per testare tutte le funzionalità.<br><br>
-        • Al termine della prova, per continuare ad utilizzarla su questo dispositivo, sarà richiesto il contributo unico di <b>5,00 €</b> con sblocco immediato.
+        ℹ️ <b>INFORMAZIONE SULL'USO:</b><br><br>
+        • Hai a disposizione <b>24 ORE DI PROVA GRATUITA</b> per testare tutte le funzionalità dell'applicazione.<br><br>
+        • Al termine delle 24 ore, per continuare ad utilizzarla su questo dispositivo, sarà richiesto un contributo unico di <b>5,00 €</b>.
       </p>
 
       <button class="pay-btn" onclick="startTrial()" style="margin-top: 10px;">INIZIA PROVA GRATUITA (24h)</button>
@@ -355,7 +355,7 @@
     </div>
   </div>
 
-  <!-- MODALE 2: BLOCCO SCADENZA PROVA -->
+  <!-- MODALE 2: BLOCCO LICENZA -->
   <div class="modal-overlay" id="pay-modal" style="display: none;">
     <div class="modal-card">
       <h2>Periodo di Prova Terminato</h2>
@@ -420,11 +420,12 @@
 
     let isLicensed = localStorage.getItem('sv_licensed_' + deviceId) === 'true' || localStorage.getItem('sv_master_unlocked') === 'true';
 
-    // Gestione visualizzazione modali all'avvio
+    // Se l'app è sbloccata con la Master Key, nascondi le finestre e il timer
     if (isLicensed) {
       document.getElementById('intro-modal').style.display = 'none';
       document.getElementById('trial-timer').style.display = 'none';
     } else {
+      // Altrimenti mostra SEMPRE l'avviso iniziale
       document.getElementById('intro-modal').style.display = 'flex';
     }
 
