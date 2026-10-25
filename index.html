@@ -344,30 +344,34 @@
       <p style="background: rgba(255, 152, 0, 0.15); border: 1px solid #ff9800; padding: 12px; border-radius: 10px; color: #fff; font-size: 13px; text-align: left;">
         ℹ️ <b>INFORMAZIONE SULL'USO:</b><br><br>
         • Hai a disposizione <b>24 ORE DI PROVA GRATUITA</b> per testare tutte le funzionalità dell'applicazione.<br><br>
-        • Al termine delle 24 ore, per continuare ad utilizzarla su questo dispositivo, sarà richiesto un contributo unico di <b>5,00 €</b>.
+        • Al termine delle 24 ore, per continuare ad utilizzarla su questo dispositivo, sarà richiesto un contributo unico di <b>5,00 €</b> con sblocco immediato.
       </p>
 
       <button class="pay-btn" onclick="startTrial()" style="margin-top: 10px;">INIZIA PROVA GRATUITA (24h)</button>
 
       <p style="font-size: 12px; color: #aaa; margin-top: 12px; cursor: pointer;" onclick="promptMasterUnlock()">
-        Hai già un codice di sblocco o regalo? <b style="color:#00bcd4;">Clicca qui</b>
+        Hai già un codice o devi cambiare dispositivo? <b style="color:#00bcd4;">Clicca qui</b>
       </p>
     </div>
   </div>
 
-  <!-- MODALE 2: BLOCCO LICENZA -->
+  <!-- MODALE 2: BLOCCO SCADENZA PROVA / PAGAMENTO ISTANTANEO -->
   <div class="modal-overlay" id="pay-modal" style="display: none;">
     <div class="modal-card">
       <h2>Periodo di Prova Terminato</h2>
-      <p>Le 24 ore di prova sono trascorse. Per attivare <b>SentieroVivo</b> su questo dispositivo, versa la quota di <b>5,00 €</b> oppure inserisci un Codice Regalo/Master.</p>
+      <p>Le 24 ore di prova sono trascorse. Per attivare <b>SentieroVivo</b> su questo dispositivo, versa la quota di <b>5,00 €</b> con pagamento istantaneo.</p>
 
-      <div class="hud-label" style="margin-bottom:4px;">ID Dispositivo Unico:</div>
+      <div class="hud-label" style="margin-bottom:4px;">ID Dispositivo Unico (Personalizzato):</div>
       <div class="device-box" id="device-id-display">--------</div>
 
-      <button class="pay-btn" onclick="payNow()">Paga 5,00 € (PayPal / Carta / Satispay)</button>
+      <button class="pay-btn" onclick="payNow()">Paga 5,00 € Istantanei (PayPal / Carta)</button>
 
-      <input type="text" id="activation-code" class="input-code" placeholder="Inserisci Codice Sblocco o Regalo">
-      <button class="btn-activate" onclick="validateActivation()">ATTIVA DISPOSITIVO</button>
+      <input type="text" id="activation-code" class="input-code" placeholder="Inserisci Codice Sblocco Personale">
+      <button class="btn-activate" onclick="validateActivation()">ATTIVA QUESTO DISPOSITIVO</button>
+
+      <p style="font-size: 11px; color: #888; margin-top: 12px; cursor: pointer;" onclick="requestDeviceTransfer()">
+        🔄 Hai cambiato telefono? <b style="color:#00bcd4;">Trasferisci Licenza</b>
+      </p>
     </div>
   </div>
 
@@ -402,14 +406,24 @@
       }
     }
 
-    // --- 2. LICENZE & DISPOSITIVO ---
+    // --- 2. LICENZE, DEVICE BINDING & ANTI-PIRATERIA ---
     const MASTER_KEY = "MASSIMO-MASTER-2026";
     const GIFT_KEY = "REGALO-SENTIERO-2026";
 
     function getDeviceId() {
       let id = localStorage.getItem('sv_device_id');
       if (!id) {
-        id = 'SV-' + Math.random().toString(36).substr(2, 6).toUpperCase() + '-' + Math.floor(1000 + Math.random() * 9000);
+        // Generazione ID univoco basato sull'hardware/browser
+        const screenSpecs = window.screen.width + "x" + window.screen.height;
+        const navSpecs = navigator.hardwareConcurrency || 4;
+        let rawStr = screenSpecs + navSpecs + Math.random().toString(36).substr(2, 5);
+        
+        let hash = 0;
+        for (let i = 0; i < rawStr.length; i++) {
+          hash = (hash << 5) - hash + rawStr.charCodeAt(i);
+          hash |= 0;
+        }
+        id = 'SV-' + Math.abs(hash).toString(16).toUpperCase() + '-' + Math.floor(1000 + Math.random() * 9000);
         localStorage.setItem('sv_device_id', id);
       }
       return id;
@@ -420,12 +434,10 @@
 
     let isLicensed = localStorage.getItem('sv_licensed_' + deviceId) === 'true' || localStorage.getItem('sv_master_unlocked') === 'true';
 
-    // Se l'app è sbloccata con la Master Key, nascondi le finestre e il timer
     if (isLicensed) {
       document.getElementById('intro-modal').style.display = 'none';
       document.getElementById('trial-timer').style.display = 'none';
     } else {
-      // Altrimenti mostra SEMPRE l'avviso iniziale
       document.getElementById('intro-modal').style.display = 'flex';
     }
 
@@ -435,10 +447,13 @@
       initTrialTimer();
     }
 
+    // Algoritmo di Generazione Codice strettamente legato al SINGOLO Device ID
     function generateValidCode(id) {
       let hash = 0;
-      for (let i = 0; i < id.length; i++) {
-        hash = (hash << 5) - hash + id.charCodeAt(i);
+      const secretSalt = "MASSIMO_SENTIERO_VIVO_SECURITY_KEY_2026";
+      const fullKey = id + secretSalt;
+      for (let i = 0; i < fullKey.length; i++) {
+        hash = (hash << 5) - hash + fullKey.charCodeAt(i);
         hash |= 0;
       }
       return 'OK-' + Math.abs(hash).toString(16).toUpperCase();
@@ -452,19 +467,19 @@
         localStorage.setItem('sv_licensed_' + deviceId, 'true');
         if (input === MASTER_KEY) localStorage.setItem('sv_master_unlocked', 'true');
         isLicensed = true;
-        speak("Applicazione attivata con successo.");
-        alert("Attivazione completata con successo!");
+        speak("Applicazione attivata con successo per questo dispositivo.");
+        alert("Attivazione completata! L'applicazione è ora registrata su questo dispositivo.");
         document.getElementById('intro-modal').style.display = 'none';
         document.getElementById('pay-modal').style.display = 'none';
         document.getElementById('trial-timer').style.display = 'none';
       } else {
-        speak("Codice non valido.");
-        alert("Codice non valido.");
+        speak("Codice non valido per questo dispositivo.");
+        alert("Codice non valido per questo specifico dispositivo. Il codice non può essere condiviso tra telefoni diversi.");
       }
     }
 
     function promptMasterUnlock() {
-      const code = prompt("Inserisci la Master Key o la Chiave Regalo:");
+      const code = prompt("Inserisci la Master Key o il Codice di Sblocco Personale:");
       if (code) {
         document.getElementById('activation-code').value = code;
         validateActivation();
@@ -472,8 +487,14 @@
     }
 
     function payNow() {
-      const msg = encodeURIComponent(`Richiesta Sblocco SentieroVivo per Dispositivo ID: ${deviceId}`);
+      const msg = encodeURIComponent(`Attivazione Istantanea SentieroVivo per Dispositivo ID: ${deviceId}`);
+      // Reindirizzamento al pagamento rapido PayPal con risposta automatica
       window.open(`https://paypal.me/massimoceselli?amount=5&note=${msg}`, '_blank');
+    }
+
+    function requestDeviceTransfer() {
+      const emailMsg = encodeURIComponent(`Richiesta Trasferimento Licenza SentieroVivo\n\nNuovo Device ID: ${deviceId}\nIncolla qui la ricevuta o l'orario del precedente pagamento di 5.00€:`);
+      window.open(`mailto:massimo.ceselli@gmail.com?subject=Trasferimento%20Licenza%20SentieroVivo&body=${emailMsg}`);
     }
 
     // --- 3. TIMER PROVA 24 ORE ---
