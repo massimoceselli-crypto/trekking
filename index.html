@@ -3,931 +3,388 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SentieroVivo - GPS Escursionismo</title>
-<!-- Collegamento PWA e Icona Home -->
+  <title>SentieroVivo - GPS Trekking</title>
+  
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/854/854878.png">
-  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/854/854878.png">
-  <meta name="theme-color" content="#ff9800">
- 
-  <!-- Leaflet CSS -->
+  <meta name="theme-color" content="#2c3e50">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icon-512.png">
+
+  <!-- Leaflet CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <!-- FontAwesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- SDK Gateway Pagamenti -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Leaflet PolylineDecorator -->
+  <script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
+
+  <!-- SDK PayPal Live -->
   <script src="https://www.paypal.com/sdk/js?client-id=BAAOyfhYFNnJRmNcWct&currency=EUR"></script>
 
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      -webkit-tap-highlight-color: transparent;
-    }
-    body, html {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #121212;
-      color: #ffffff;
-    }
-    #map {
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-    }
+    * { box-sizing: border-box; touch-action: manipulation; }
+    body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; background: #121212; color: #fff; }
+    #map { height: 100vh; width: 100vw; z-index: 1; }
 
-    /* Barra Statistiche in Alto */
-    .top-bar {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      right: 12px;
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      pointer-events: none;
-    }
-    .hud-card {
-      background: rgba(18, 18, 18, 0.90);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 14px;
-      padding: 10px 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-      pointer-events: auto;
-    }
-    .hud-stat {
-      display: flex;
-      flex-direction: column;
-    }
-    .hud-label {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: #a0a0a0;
-    }
-    .hud-value {
-      font-size: 15px;
-      font-weight: 700;
-      color: #ffffff;
-    }
+    /* Panels & Overlays */
+    .overlay-panel { position: absolute; z-index: 1000; background: rgba(30, 30, 30, 0.88); backdrop-filter: blur(10px); border-radius: 16px; padding: 10px 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); }
+    .top-bar { top: 12px; left: 12px; right: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .bottom-bar { bottom: 20px; left: 12px; right: 12px; display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: 8px; }
 
-    .timer-badge {
-      background: #ff9800;
-      color: #000;
-      font-weight: 800;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 11px;
-    }
-    .gps-status-badge {
-      background: #2e7d32;
-      color: #ffffff;
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 11px;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-    .gps-status-badge.gps-lost {
-      background: #c62828;
-      animation: blink 1s infinite;
-    }
+    .btn { background: #2c3e50; color: white; border: none; padding: 10px 14px; border-radius: 12px; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .btn:active { transform: scale(0.95); }
+    .btn-primary { background: #27ae60; }
+    .btn-danger { background: #e74c3c; }
+    .btn-warning { background: #f39c12; }
+    .btn-secondary { background: #34495e; }
+    .btn-icon { padding: 10px; border-radius: 50%; width: 44px; height: 44px; justify-content: center; font-size: 16px; }
 
-    @keyframes blink {
-      0% { opacity: 1; }
-      50% { opacity: 0.4; }
-      100% { opacity: 1; }
-    }
+    .stat-box { text-align: center; }
+    .stat-value { font-size: 16px; font-weight: bold; color: #2ecc71; }
+    .stat-label { font-size: 9px; color: #aaa; text-transform: uppercase; }
 
-    /* Barra Controlli In Basso */
-    .bottom-bar {
-      position: absolute;
-      bottom: 20px;
-      left: 12px;
-      right: 12px;
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      pointer-events: none;
-    }
-    .action-row {
-      display: flex;
-      justify-content: center;
-      gap: 6px;
-      pointer-events: auto;
-      flex-wrap: wrap;
-    }
-    .btn {
-      background: rgba(30, 30, 30, 0.92);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255,255,255,0.2);
-      color: white;
-      padding: 10px 12px;
-      border-radius: 10px;
-      font-size: 12px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-      transition: all 0.2s ease;
-    }
-    .btn:active {
-      transform: scale(0.95);
-    }
-    .btn-rec {
-      background: #1e88e5;
-      border-color: #42a5f5;
-    }
-    .btn-rec.recording {
-      background: #ff9800;
-      border-color: #ffb74d;
-      color: #000;
-    }
-    .btn-stop {
-      background: #e53935;
-      border-color: #ef5350;
-    }
-    .btn-return-back {
-      background: #ff9800;
-      color: #000;
-      font-weight: 700;
-      border: none;
-      flex: 1;
-      justify-content: center;
-    }
-    .btn-return-alt {
-      background: #00e676;
-      color: #000;
-      font-weight: 700;
-      border: none;
-      flex: 1;
-      justify-content: center;
-    }
+    /* Trial Banner */
+    .banner-trial { position: absolute; top: 75px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); color: #2ecc71; padding: 5px 14px; border-radius: 20px; z-index: 1000; font-size: 11px; font-weight: 600; border: 1px solid rgba(46,204,113,0.3); }
 
-    /* Finestre Modali */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.95);
-      backdrop-filter: blur(12px);
-      z-index: 99999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    .modal-card {
-      background: #1e1e1e;
-      border: 2px solid #ff9800;
-      border-radius: 20px;
-      padding: 24px;
-      max-width: 400px;
-      width: 100%;
-      text-align: center;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.9);
-      max-height: 85vh;
-      overflow-y: auto;
-    }
-    .modal-card h2 {
-      color: #ff9800;
-      margin-bottom: 12px;
-      font-size: 20px;
-    }
-    .modal-card p {
-      color: #ccc;
-      font-size: 13px;
-      margin-bottom: 16px;
-      line-height: 1.5;
-    }
-    .device-box {
-      background: #111;
-      border: 1px dashed #555;
-      padding: 10px;
-      border-radius: 8px;
-      font-family: monospace;
-      font-size: 14px;
-      color: #00bcd4;
-      margin-bottom: 15px;
-      word-break: break-all;
-    }
-    .pay-btn {
-      background: #4caf50;
-      color: white;
-      width: 100%;
-      padding: 12px;
-      font-size: 15px;
-      border-radius: 10px;
-      border: none;
-      font-weight: 700;
-      cursor: pointer;
-      margin-bottom: 12px;
-    }
-    .input-code {
-      width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #444;
-      background: #2a2a2a;
-      color: #fff;
-      text-align: center;
-      font-size: 14px;
-      margin-bottom: 10px;
-    }
-    .btn-activate {
-      background: #2196f3;
-      color: white;
-      width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: none;
-      font-weight: 700;
-      cursor: pointer;
-    }
-    .legenda-list {
-      text-align: left;
-      font-size: 12px;
-      color: #ddd;
-      line-height: 1.6;
-    }
-    .legenda-list li {
-      margin-bottom: 8px;
-    }
+    /* Modal Pay & Gift */
+    .modal-pay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); z-index: 9999; color: white; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 24px; box-sizing: border-box; }
+    .modal-pay h2 { margin-bottom: 8px; color: #2ecc71; font-size: 24px; }
+    .modal-pay p { color: #ccc; font-size: 14px; max-width: 320px; margin: 6px 0; }
+    
+    .gift-box { margin-top: 20px; padding: 16px; background: rgba(255,255,255,0.05); border: 1px dashed #555; border-radius: 12px; width: 100%; max-width: 300px; }
+    .gift-input { padding: 12px; width: 80%; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; font-size: 14px; text-align: center; text-transform: uppercase; margin-top: 8px; }
+    .btn-gift { margin-top: 10px; background: #2980b9; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
-    .media-popup {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      width: 220px;
-    }
-    .media-popup img, .media-popup video {
-      width: 100%;
-      border-radius: 8px;
-      max-height: 180px;
-      object-fit: cover;
-    }
-    .media-popup audio {
-      width: 100%;
-      height: 36px;
-    }
-    .gps-arrow-icon {
-      transition: transform 0.2s ease-out;
-    }
+    /* Media Inputs Nascosti */
+    input[type="file"] { display: none; }
   </style>
 </head>
 <body>
 
+  <div id="trialBanner" class="banner-trial">Prova gratuita: <span id="timer">--</span></div>
   <div id="map"></div>
 
-  <!-- HUD In Alto -->
-  <div class="top-bar">
-    <div class="hud-card">
-      <div class="hud-stat">
-        <span class="hud-label" onclick="promptMasterUnlock()" style="cursor:pointer;">SentieroVivo 🔑</span>
-        <span class="hud-value" id="stat-dist">0.00 km</span>
-      </div>
-      <div class="hud-stat">
-        <span class="hud-label">Tempo</span>
-        <span class="hud-value" id="stat-time">00:00</span>
-      </div>
-      <div id="gps-status" class="gps-status-badge">
-        <i class="fa-solid fa-location-arrow"></i> <span id="gps-text">RICERCA GPS...</span>
-      </div>
-      <div class="timer-badge" id="trial-timer">Prova: 24:00:00</div>
+  <!-- Top Dashboard Controls -->
+  <div class="overlay-panel top-bar">
+    <div class="stat-box">
+      <div id="statDistance" class="stat-value">0.00 km</div>
+      <div class="stat-label">Distanza</div>
     </div>
-    <div class="hud-card" id="return-hud" style="display: none;">
-      <div class="hud-stat">
-        <span class="hud-label" id="return-mode-title">Rientro d'Aria</span>
-        <span class="hud-value" id="return-dist" style="color: #00e676;">0 m</span>
-      </div>
-      <div class="hud-stat">
-        <span class="hud-label">Direzione</span>
-        <span class="hud-value" id="return-bearing" style="color: #00e676;">0°</span>
-      </div>
+    <div class="stat-box">
+      <div id="statTime" class="stat-value">00:00</div>
+      <div class="stat-label">Tempo Cammino</div>
+    </div>
+    <div class="stat-box">
+      <div id="statPause" class="stat-value">00:00</div>
+      <div class="stat-label">Sosta</div>
+    </div>
+    <div class="stat-box">
+      <div id="statAlt" class="stat-value">-- m</div>
+      <div class="stat-label">Quota</div>
     </div>
   </div>
 
-  <!-- Barra Controlli In Basso -->
-  <div class="bottom-bar">
-    <div class="action-row">
-      <button class="btn btn-return-back" onclick="toggleReturnBack()">
-        <i class="fa-solid fa-rotate-left"></i> PERCORSO A RITROSO
-      </button>
-      <button class="btn btn-return-alt" onclick="toggleReturnAlt()">
-        <i class="fa-solid fa-compass"></i> RIENTRO BASE NUOVO PERCORSO
-      </button>
-    </div>
-    <div class="action-row">
-      <button class="btn btn-rec" id="btn-rec" onclick="toggleTracking()">
-        <i class="fa-solid fa-play" id="rec-icon"></i> <span id="rec-text">AVVIA TRACCIA</span>
-      </button>
-      <button class="btn btn-stop" id="btn-stop" onclick="promptStopAndSave()" style="display: none;">
-        <i class="fa-solid fa-square"></i> STOP
-      </button>
-      <button class="btn" id="btn-voice-toggle" onclick="toggleVoiceAlerts()">
-        <i class="fa-solid fa-volume-high" id="voice-icon" style="color:#00e676;"></i> Voce
-      </button>
-      <button class="btn" onclick="triggerCameraCapture('image/*')">
-        <i class="fa-solid fa-camera" style="color:#2196f3;"></i> Foto
-      </button>
-      <button class="btn" onclick="triggerCameraCapture('video/*')">
-        <i class="fa-solid fa-video" style="color:#ff9800;"></i> Video
-      </button>
-      <button class="btn" onclick="recordAudio()">
-        <i class="fa-solid fa-microphone" style="color:#e91e63;"></i> Audio
-      </button>
-      <button class="btn" onclick="openLegenda()">
-        <i class="fa-solid fa-book-open" style="color:#ffca28;"></i> Legenda
-      </button>
-    </div>
+  <!-- Bottom Action Controls -->
+  <div class="overlay-panel bottom-bar">
+    <button id="btnRecord" class="btn btn-primary">
+      <span>▶ Inizia</span>
+    </button>
+    <button id="btnPause" class="btn btn-warning" style="display:none;">
+      <span>⏸️ Sosta</span>
+    </button>
+    <button id="btnMedia" class="btn btn-secondary" style="display:none;">
+      <span>📷 Foto/Audio</span>
+    </button>
+    <button id="btnReverse" class="btn btn-warning" style="display:none;">
+      <span>↩ Rientro</span>
+    </button>
+    <button id="btnCenter" class="btn btn-icon">
+      🎯
+    </button>
   </div>
 
-  <!-- Input nascosti per acquisizione diretta fotocamera/video/audio -->
-  <input type="file" id="camera-capture" style="display: none;" onchange="handleMediaCaptured(event)">
+  <!-- Input foto/video/audio legati ai media -->
+  <input type="file" id="cameraInput" accept="image/*,video/*" capture="environment">
 
-  <!-- MODALE INIZIALE -->
-  <div class="modal-overlay" id="intro-modal">
-    <div class="modal-card">
-      <h2>Benvenuto su SentieroVivo! 🥾</h2>
-      <p>Applicazione web per l'escursionismo con tracciamento GPS in tempo reale, foto/video geolocalizzati, sintesi vocale e Rientro Sicuro.</p>
-      
-      <p style="background: rgba(255, 152, 0, 0.15); border: 1px solid #ff9800; padding: 12px; border-radius: 10px; color: #fff; font-size: 13px; text-align: left;">
-        ℹ️ <b>INFORMAZIONE SULL'USO:</b><br><br>
-        • Hai a disposizione <b>24 ORE DI PROVA GRATUITA</b>.<br><br>
-        • Al termine, per continuare l'uso su questo dispositivo, è richiesto un contributo di <b>5,00 €</b> con sblocco istantaneo.
-      </p>
-
-      <button class="pay-btn" onclick="startTrial()" style="margin-top: 10px;">INIZIA PROVA GRATUITA (24h)</button>
-
-      <p style="font-size: 12px; color: #aaa; margin-top: 12px; cursor: pointer;" onclick="promptMasterUnlock()">
-        Hai già un codice o devi inserire la Master Key? <b style="color:#00bcd4;">Clicca qui</b>
-      </p>
+  <!-- Modal di blocco dopo 15 giorni -->
+  <div id="payModal" class="modal-pay">
+    <h2>Prova 15 Giorni Scaduta</h2>
+    <p>La tua prova gratuita di <b>SentieroVivo</b> è terminata.</p>
+    <p>Sblocca l'accesso permanente con tutte le funzioni GPS, Foto, Note Vocali e Rientro Sicuro.</p>
+    <p style="font-size: 18px; font-weight: bold; color: #fff; margin: 12px 0;">Prezzo: 5,00 € una tantum</p>
+    
+    <div id="paypal-button-container" style="width: 100%; max-width: 300px;"></div>
+    
+    <div class="gift-box">
+      <p style="margin:0; font-size: 13px;">Hai un codice regalo?</p>
+      <input type="text" id="giftCodeInput" class="gift-input" placeholder="Inserisci codice">
+      <br>
+      <button onclick="checkGiftCode()" class="btn-gift">Sblocca con Codice</button>
     </div>
   </div>
-
-  <!-- MODALE BLOCCO LICENZA -->
-  <div class="modal-overlay" id="pay-modal" style="display: none;">
-    <div class="modal-card">
-      <h2>Periodo di Prova Terminato</h2>
-      <p>Le 24 ore di prova sono trascorse. Per attivare <b>SentieroVivo</b>, versa la quota di <b>5,00 €</b>.</p>
-      <div class="hud-label" style="margin-bottom:4px;">ID Dispositivo Unico:</div>
-      <div class="device-box" id="device-id-display">--------</div>
-      <div id="paypal-button-container"></div>
-      <input type="text" id="activation-code" class="input-code" placeholder="Inserisci Codice Sblocco">
-      <button class="btn-activate" onclick="validateActivation()">ATTIVA DISPOSITIVO</button>
-    </div>
-  </div>
-
-  <!-- MODALE STOP & SALVA TRACCIA -->
-  <div class="modal-overlay" id="save-track-modal" style="display: none;">
-    <div class="modal-card">
-      <h2>Salva Percorso 💾</h2>
-      <p>Assegna un nome al percorso registrato per scaricarlo sul tuo dispositivo.</p>
-      <input type="text" id="track-filename" class="input-code" placeholder="Es. Escursione_Monte_Serra" style="text-align: left;">
-      <button class="pay-btn" onclick="confirmSaveGPX()">SCARICA FILE GPX</button>
-      <button class="btn-activate" onclick="closeSaveModal()" style="background:#555; margin-top: 5px;">ANNULLA</button>
-    </div>
-  </div>
-
-  <!-- MODALE LEGENDA -->
-  <div class="modal-overlay" id="legenda-modal" style="display: none;">
-    <div class="modal-card">
-      <h2>Legenda & Guida 📖</h2>
-      <ul class="legenda-list">
-        <li><b>📍 Freccia Azzurra:</b> Tua posizione GPS e direzione in tempo reale.</li>
-        <li><b>🔵 Linea Blu:</b> Tracciato di andata registrato.</li>
-        <li><b>🟠 PERCORSO A RITROSO:</b> Evidenzia in arancione la strada per ripercorrere i tuoi passi.</li>
-        <li><b>🟢 RIENTRO BASE NUOVO PERCORSO:</b> Traccia in verde neon il rientro diretto verso la partenza con bussola e allarme fuori rotta (&gt;15m).</li>
-        <li><b>⏸️/▶️ Segnalini:</b> Registrano automaticamente le pause e le ripartenze.</li>
-        <li><b>📷 Foto / 📹 Video / 🎙️ Audio:</b> Scatta e salva i media facendoli comparire sulla mappa con numeratore progressivo.</li>
-      </ul>
-      <button class="pay-btn" onclick="closeLegenda()" style="margin-top: 15px;">CHIUDI LEGENDA</button>
-    </div>
-  </div>
-
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
-    // --- 1. ASSISTENTE VOCALE ---
-    let voiceEnabled = true;
-    let lastOffTrackAlertTime = 0;
-    let isGpsActive = false;
-
-    function speak(text) {
-      if (!voiceEnabled || !('speechSynthesis' in window)) return;
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'it-IT';
-      utterance.rate = 1.0;
-      window.speechSynthesis.speak(utterance);
+    // --- REGISTRAZIONE SERVICE WORKER PWA ---
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW error:', err));
+      });
     }
 
-    function toggleVoiceAlerts() {
-      voiceEnabled = !voiceEnabled;
-      const icon = document.getElementById('voice-icon');
-      if (voiceEnabled) {
-        icon.className = "fa-solid fa-volume-high";
-        icon.style.color = "#00e676";
-        speak("Assistente vocale attivato");
+    // --- LOGICA LICENZA & TIMER 15 GIORNI ---
+    const TRIAL_DURATION = 15 * 24 * 60 * 60 * 1000;
+    let isUnlocked = localStorage.getItem('sentierovivo_unlocked') === 'true';
+    let firstAccess = localStorage.getItem('sentierovivo_first_access');
+
+    if (!firstAccess) {
+      firstAccess = Date.now();
+      localStorage.setItem('sentierovivo_first_access', firstAccess);
+    }
+
+    function checkAccess() {
+      if (isUnlocked) {
+        document.getElementById('trialBanner').style.display = 'none';
+        document.getElementById('payModal').style.display = 'none';
+        return true;
+      }
+
+      const elapsed = Date.now() - parseInt(firstAccess);
+      const remaining = TRIAL_DURATION - elapsed;
+
+      if (remaining <= 0) {
+        document.getElementById('trialBanner').style.display = 'none';
+        document.getElementById('payModal').style.display = 'flex';
+        return false;
       } else {
-        icon.className = "fa-solid fa-volume-xmark";
-        icon.style.color = "#ff5252";
+        const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        document.getElementById('timer').innerText = days + "g " + hours + "h rimanenti";
+        return true;
       }
     }
 
-    // --- 2. GESTIONE LICENZE ---
-    const MASTER_KEY = "MASSIMO-MASTER-2026";
-    const GIFT_KEY = "REGALO-SENTIERO-2026";
-
-    function getDeviceId() {
-      let id = localStorage.getItem('sv_device_id');
-      if (!id) {
-        const screenSpecs = window.screen.width + "x" + window.screen.height;
-        const navSpecs = navigator.hardwareConcurrency || 4;
-        let rawStr = screenSpecs + navSpecs + Math.random().toString(36).substr(2, 5);
-        let hash = 0;
-        for (let i = 0; i < rawStr.length; i++) {
-          hash = (hash << 5) - hash + rawStr.charCodeAt(i);
-          hash |= 0;
-        }
-        id = 'SV-' + Math.abs(hash).toString(16).toUpperCase() + '-' + Math.floor(1000 + Math.random() * 9000);
-        localStorage.setItem('sv_device_id', id);
-      }
-      return id;
-    }
-
-    const deviceId = getDeviceId();
-    document.getElementById('device-id-display').innerText = deviceId;
-
-    let isLicensed = localStorage.getItem('sv_licensed_' + deviceId) === 'true' || localStorage.getItem('sv_master_unlocked') === 'true';
-
-    if (isLicensed) {
-      document.getElementById('intro-modal').style.display = 'none';
-      document.getElementById('trial-timer').style.display = 'none';
-    } else {
-      document.getElementById('intro-modal').style.display = 'flex';
-    }
-
-    function startTrial() {
-      document.getElementById('intro-modal').style.display = 'none';
-      speak("Benvenuto su SentieroVivo. Prova avviata.");
-      initTrialTimer();
-    }
-
-    function generateValidCode(id) {
-      let hash = 0;
-      const secretSalt = "MASSIMO_SENTIERO_VIVO_SECURITY_KEY_2026";
-      const fullKey = id + secretSalt;
-      for (let i = 0; i < fullKey.length; i++) {
-        hash = (hash << 5) - hash + fullKey.charCodeAt(i);
-        hash |= 0;
-      }
-      return 'OK-' + Math.abs(hash).toString(16).toUpperCase();
-    }
-
-    function validateActivation() {
-      const input = document.getElementById('activation-code').value.trim().toUpperCase();
-      const expected = generateValidCode(deviceId);
-
-      if (input === MASTER_KEY || input === GIFT_KEY || input === expected) {
-        localStorage.setItem('sv_licensed_' + deviceId, 'true');
-        if (input === MASTER_KEY) localStorage.setItem('sv_master_unlocked', 'true');
-        isLicensed = true;
-        speak("Applicazione attivata con successo.");
-        alert("Attivazione completata!");
-        document.getElementById('intro-modal').style.display = 'none';
-        document.getElementById('pay-modal').style.display = 'none';
-        document.getElementById('trial-timer').style.display = 'none';
+    function checkGiftCode() {
+      const code = document.getElementById('giftCodeInput').value.trim().toUpperCase();
+      if (code === "SENTIEROVIP2026") {
+        localStorage.setItem('sentierovivo_unlocked', 'true');
+        alert("Codice Valido! Licenza Regalo Attivata.");
+        location.reload();
       } else {
-        speak("Codice non valido.");
-        alert("Codice non valido per questo dispositivo.");
+        alert("Codice errato. Riprova.");
       }
     }
 
-    function promptMasterUnlock() {
-      const code = prompt("Inserisci la Master Key o il Codice di Sblocco:");
-      if (code) {
-        document.getElementById('activation-code').value = code;
-        validateActivation();
-      }
-    }
+    setInterval(checkAccess, 60000);
+    checkAccess();
 
-    // --- 3. MAPPA & FRECCETTA IN TEMPO REALE ---
-    const map = L.map('map', { zoomControl: false }).setView([43.5485, 10.3106], 16);
+    // --- LOGICA MAPPA, GPS & MEDIA ---
+    let map, userMarker, pathPolyline, reverseDecorator;
+    let pathCoordinates = [];
+    let isRecording = false;
+    let isPaused = false;
+    let isReverseMode = false;
+    let watchId = null;
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap'
-    }).addTo(map);
-
-    let isTracking = false;
-    let trackPoints = [];
-    let photoCount = 0;
-    let videoCount = 0;
-
-    let trackPolyline = L.polyline([], { color: '#1e88e5', weight: 5 }).addTo(map);
-    let returnBackPolyline = L.polyline([], { color: '#ff9800', weight: 5, dashArray: '6, 6' }).addTo(map);
-    let returnAltPolyline = L.polyline([], { color: '#00e676', weight: 5, dashArray: '10, 10' }).addTo(map);
-
-    let startPoint = null;
-    let startMarker = null;
-
-    // Freccia direzionale GPS ad alta definizione
-    const arrowIcon = L.divIcon({
-      className: 'gps-arrow-icon',
-      html: `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L4.5 20.29C4.21 21 4.96 21.6 5.61 21.27L12 18L18.39 21.27C19.04 21.6 19.79 21 19.5 20.29L12 2Z" fill="#00bcd4" stroke="#FFFFFF" stroke-width="2"/>
-             </svg>`,
-      iconSize: [36, 36],
-      iconAnchor: [18, 18]
-    });
-    let userMarker = null;
-
-    let isReturnBackActive = false;
-    let isReturnAltActive = false;
-
-    let totalDistance = 0;
     let startTime = null;
     let timerInterval = null;
+    let activeMovingTime = 0;
+    let totalPauseTime = 0;
+    let pauseStartTime = null;
+    let totalDistance = 0;
+    let mediaMarkers = [];
 
-    if (navigator.geolocation) {
-      navigator.geolocation.watchPosition(
-        (pos) => {
-          if (!isGpsActive) {
-            isGpsActive = true;
-            updateGpsStatusUI(true);
-            speak("Segnale GPS ripristinato.");
-          }
+    function initMap() {
+      map = L.map('map', { zoomControl: false }).setView([43.5485, 10.3106], 15);
 
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          const heading = pos.coords.heading || 0;
-          const currentLatLng = new L.LatLng(lat, lng);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap'
+      }).addTo(map);
 
-          if (!userMarker) {
-            userMarker = L.marker(currentLatLng, { icon: arrowIcon }).addTo(map);
-            map.panTo(currentLatLng);
-          } else {
-            userMarker.setLatLng(currentLatLng);
-          }
+      pathPolyline = L.polyline([], { color: '#27ae60', weight: 5, opacity: 0.8 }).addTo(map);
 
-          const arrowEl = document.querySelector('.gps-arrow-icon svg');
-          if (arrowEl) {
-            arrowEl.style.transform = `rotate(${heading}deg)`;
-          }
-
-          if (isTracking) {
-            if (trackPoints.length > 0) {
-              const lastPt = trackPoints[trackPoints.length - 1];
-              totalDistance += lastPt.distanceTo(currentLatLng);
-              document.getElementById('stat-dist').innerText = (totalDistance / 1000).toFixed(2) + ' km';
-            } else {
-              startPoint = currentLatLng;
-              if (!startMarker) {
-                startMarker = L.marker(startPoint, {
-                  icon: L.divIcon({
-                    html: '<i class="fa-solid fa-house" style="color:#4caf50; font-size:24px;"></i>',
-                    iconSize: [24, 24]
-                  })
-                }).addTo(map).bindPopup("Punto di Partenza (Casa)");
-              }
-            }
-            trackPoints.push(currentLatLng);
-
-            if (isReturnBackActive) {
-              returnBackPolyline.setLatLngs(trackPoints);
-            } else {
-              trackPolyline.setLatLngs(trackPoints);
-            }
-          }
-
-          if ((isReturnBackActive || isReturnAltActive) && trackPoints.length > 0) {
-            checkOffTrackDistance(currentLatLng);
-          }
-
-          if (isReturnAltActive && startPoint) {
-            updateSafeReturnAlt(currentLatLng);
-          }
-        },
-        (err) => {
-          if (isGpsActive || isGpsActive === false) {
-            isGpsActive = false;
-            updateGpsStatusUI(false);
-            speak("Attenzione, segnale GPS assente!");
-          }
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
+      startGPS();
     }
 
-    function updateGpsStatusUI(active) {
-      const badge = document.getElementById('gps-status');
-      const text = document.getElementById('gps-text');
-      if (active) {
-        badge.className = "gps-status-badge";
-        text.innerText = "GPS OK";
-      } else {
-        badge.className = "gps-status-badge gps-lost";
-        text.innerText = "GPS ASSENTE";
+    function startGPS() {
+      if ('geolocation' in navigator) {
+        watchId = navigator.geolocation.watchPosition(
+          onGPSPosition,
+          (err) => console.warn('Errore GPS:', err),
+          { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
+        );
       }
     }
 
-    // --- 4. GESTIONE AVVIA / PAUSA / RIPRENDI / STOP ---
-    function toggleTracking() {
-      const btnRec = document.getElementById('btn-rec');
-      const btnStop = document.getElementById('btn-stop');
-      const icon = document.getElementById('rec-icon');
-      const text = document.getElementById('rec-text');
-      const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
+    function onGPSPosition(pos) {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const alt = pos.coords.altitude;
+      const latLng = [lat, lng];
 
-      if (!isTracking) {
-        // AVVIA / RIPRENDI
-        isTracking = true;
-        btnRec.classList.add('recording');
-        btnStop.style.display = 'flex';
-        icon.className = "fa-solid fa-pause";
-        text.innerText = "PAUSA";
+      if (!userMarker) {
+        userMarker = L.circleMarker(latLng, { radius: 8, fillColor: '#2980b9', color: '#fff', weight: 3, fillOpacity: 1 }).addTo(map);
+        map.setView(latLng, 16);
+      } else {
+        userMarker.setLatLng(latLng);
+      }
 
-        if (!startTime) {
-          startTime = Date.now();
-          timerInterval = setInterval(updateTimer, 1000);
-          speak("Registrazione percorso avviata");
+      if (alt !== null && alt !== undefined) {
+        document.getElementById('statAlt').innerText = Math.round(alt) + ' m';
+      }
+
+      if (isRecording && !isPaused) {
+        if (pathCoordinates.length > 0) {
+          const prev = pathCoordinates[pathCoordinates.length - 1];
+          const dist = map.distance(prev, latLng);
+          if (dist > 3) {
+            totalDistance += dist;
+            pathCoordinates.push(latLng);
+            pathPolyline.setLatLngs(pathCoordinates);
+            document.getElementById('statDistance').innerText = (totalDistance / 1000).toFixed(2) + ' km';
+          }
         } else {
-          speak("Registrazione ripresa");
-          L.marker(currentPos, {
-            icon: L.divIcon({
-              html: '<i class="fa-solid fa-circle-play" style="color:#4caf50; font-size:20px;"></i>',
-              iconSize: [20, 20]
-            })
-          }).addTo(map).bindPopup("Ripresa Cammino");
+          pathCoordinates.push(latLng);
         }
+      }
+    }
+
+    // --- PULSANTI & AZIONI ---
+    const btnRecord = document.getElementById('btnRecord');
+    const btnPause = document.getElementById('btnPause');
+    const btnMedia = document.getElementById('btnMedia');
+    const btnReverse = document.getElementById('btnReverse');
+    const btnCenter = document.getElementById('btnCenter');
+    const cameraInput = document.getElementById('cameraInput');
+
+    btnRecord.addEventListener('click', () => {
+      if (!isRecording) {
+        // Avvio Registrazione
+        isRecording = true;
+        isPaused = false;
+        btnRecord.innerHTML = '<span>⏹ Ferma</span>';
+        btnRecord.className = 'btn btn-danger';
+        btnPause.style.display = 'inline-flex';
+        btnMedia.style.display = 'inline-flex';
+        btnReverse.style.display = 'inline-flex';
+        
+        startTime = Date.now();
+        timerInterval = setInterval(updateTimers, 1000);
       } else {
-        // PAUSA
-        isTracking = false;
-        btnRec.classList.remove('recording');
-        icon.className = "fa-solid fa-play";
-        text.innerText = "RIPRENDI";
-        speak("Registrazione in pausa");
-
-        L.marker(currentPos, {
-          icon: L.divIcon({
-            html: '<i class="fa-solid fa-circle-pause" style="color:#ff9800; font-size:20px;"></i>',
-            iconSize: [20, 20]
-          })
-        }).addTo(map).bindPopup("Punto di Sosta / Pausa");
+        // Stop Registrazione
+        isRecording = false;
+        isPaused = false;
+        btnRecord.innerHTML = '<span>▶ Inizia</span>';
+        btnRecord.className = 'btn btn-primary';
+        btnPause.style.display = 'none';
+        btnMedia.style.display = 'none';
+        clearInterval(timerInterval);
+        alert('Traccia completata! Distanza finale: ' + (totalDistance / 1000).toFixed(2) + ' km');
       }
-    }
+    });
 
-    function updateTimer() {
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      const m = Math.floor(elapsed / 60);
-      const s = elapsed % 60;
-      document.getElementById('stat-time').innerText = `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
-    }
-
-    function promptStopAndSave() {
-      if (trackPoints.length === 0) {
-        alert("Nessun percorso registrato da salvare.");
-        return;
-      }
-      isTracking = false;
-      document.getElementById('save-track-modal').style.display = 'flex';
-    }
-
-    function closeSaveModal() {
-      document.getElementById('save-track-modal').style.display = 'none';
-    }
-
-    function confirmSaveGPX() {
-      const filenameInput = document.getElementById('track-filename').value.trim();
-      const filename = filenameInput ? filenameInput.replace(/[^a-z0-9]/gi, '_') : `SentieroVivo_${new Date().toISOString().slice(0,10)}`;
-
-      let gpxContent = `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="SentieroVivo" xmlns="http://www.topografix.com/GPX/1/1">
-  <trk>
-    <name>${filename}</name>
-    <trkseg>`;
-
-      trackPoints.forEach(pt => {
-        gpxContent += `
-      <trkpt lat="${pt.lat}" lon="${pt.lng}"></trkpt>`;
-      });
-
-      gpxContent += `
-    </trkseg>
-  </trk>
-</gpx>`;
-
-      const blob = new Blob([gpxContent], { type: 'application/gpx+xml' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${filename}.gpx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
-      speak("Percorso salvato con successo.");
-      closeSaveModal();
-    }
-
-    // --- 5. PULSANTI RIENTRO & AVVISI VOCALI FUORI ROTTA ---
-    function toggleReturnBack() {
-      isReturnBackActive = !isReturnBackActive;
-      isReturnAltActive = false;
-      returnAltPolyline.setLatLngs([]);
-      document.getElementById('return-hud').style.display = 'none';
-
-      if (isReturnBackActive) {
-        speak("Modalità percorso a ritroso attivata.");
+    btnPause.addEventListener('click', () => {
+      if (!isPaused) {
+        isPaused = true;
+        pauseStartTime = Date.now();
+        btnPause.innerHTML = '<span>▶ Riprendi</span>';
+        btnPause.className = 'btn btn-primary';
       } else {
-        speak("Modalità rientro disattivata.");
+        isPaused = false;
+        totalPauseTime += Date.now() - pauseStartTime;
+        btnPause.innerHTML = '<span>⏸️ Sosta</span>';
+        btnPause.className = 'btn btn-warning';
       }
-    }
+    });
 
-    function toggleReturnAlt() {
-      if (!startPoint) {
-        speak("Nessun punto di partenza registrato.");
-        alert("Nessun punto di partenza registrato. Avvia prima la traccia!");
-        return;
-      }
-      isReturnAltActive = !isReturnAltActive;
-      isReturnBackActive = false;
+    // Scatto foto/media sulla mappa
+    btnMedia.addEventListener('click', () => {
+      cameraInput.click();
+    });
 
-      const hud = document.getElementById('return-hud');
-      hud.style.display = isReturnAltActive ? 'flex' : 'none';
-      document.getElementById('return-mode-title').innerText = "Rientro Base";
-
-      if (isReturnAltActive) {
-        speak("Modalità rientro base nuovo percorso attivata.");
-        if (userMarker) updateSafeReturnAlt(userMarker.getLatLng());
-      } else {
-        returnAltPolyline.setLatLngs([]);
-        speak("Modalità rientro disattivata.");
-      }
-    }
-
-    function updateSafeReturnAlt(currentPos) {
-      returnAltPolyline.setLatLngs([currentPos, startPoint]);
-      const dist = currentPos.distanceTo(startPoint);
-      document.getElementById('return-dist').innerText = dist > 1000 ? (dist / 1000).toFixed(2) + ' km' : Math.round(dist) + ' m';
-
-      const dLng = (startPoint.lng - currentPos.lng) * Math.PI / 180;
-      const lat1 = currentPos.lat * Math.PI / 180;
-      const lat2 = startPoint.lat * Math.PI / 180;
-      const y = Math.sin(dLng) * Math.cos(lat2);
-      const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
-      let bearing = Math.atan2(y, x) * 180 / Math.PI;
-      bearing = (bearing + 360) % 360;
-
-      document.getElementById('return-bearing').innerText = Math.round(bearing) + '°';
-    }
-
-    function checkOffTrackDistance(currentPos) {
-      let minDistance = Infinity;
-      trackPoints.forEach(pt => {
-        const d = currentPos.distanceTo(pt);
-        if (d < minDistance) minDistance = d;
-      });
-
-      if (minDistance > 15 && (Date.now() - lastOffTrackAlertTime > 20000)) {
-        lastOffTrackAlertTime = Date.now();
-        speak("Attenzione! Sei fuori percorso. Ti sei allontanato dal sentiero.");
-      }
-    }
-
-    // --- 6. FOTO, VIDEO E MEDIA NUMERATI ---
-    function triggerCameraCapture(acceptType) {
-      const input = document.getElementById('camera-capture');
-      input.accept = acceptType;
-      // Imposta fotocamera nativa
-      input.setAttribute('capture', 'environment');
-      input.click();
-    }
-
-    function handleMediaCaptured(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const fileUrl = URL.createObjectURL(file);
-      const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
-      const isVideo = file.type.startsWith('video');
-
-      let badgeLabel = "";
-      if (isVideo) {
-        videoCount++;
-        badgeLabel = `Video #${videoCount}`;
-      } else {
-        photoCount++;
-        badgeLabel = `Foto #${photoCount}`;
-      }
-
-      const mediaTag = isVideo 
-        ? `<video controls src="${fileUrl}"></video>` 
-        : `<img src="${fileUrl}" />`;
-
-      L.marker(currentPos, {
-        icon: L.divIcon({
-          html: `<div style="background:#111; border:1px solid #00bcd4; padding:2px 6px; border-radius:12px; font-size:10px; font-weight:bold; color:#fff;">
-                   <i class="fa-solid ${isVideo ? 'fa-video' : 'fa-camera'}" style="color:${isVideo ? '#ff9800' : '#2196f3'};"></i> ${badgeLabel}
-                 </div>`,
-          iconSize: [70, 24]
-        })
-      }).addTo(map).bindPopup(`
-        <div class="media-popup">
-          <b>${badgeLabel}</b>
-          ${mediaTag}
-        </div>
-      `).openPopup();
-
-      speak(isVideo ? `Video numero ${videoCount} salvato` : `Foto numero ${photoCount} salvata`);
-    }
-
-    let mediaRecorder = null;
-    let audioChunks = [];
-    let isRecordingAudio = false;
-
-    async function recordAudio() {
-      if (!isRecordingAudio) {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          mediaRecorder = new MediaRecorder(stream);
-          audioChunks = [];
-          mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-          mediaRecorder.onstop = saveAudioNote;
-          mediaRecorder.start();
-          isRecordingAudio = true;
-          speak("Registrazione audio avviata");
-        } catch (err) {
-          alert("Impossibile accedere al microfono.");
+    cameraInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file && userMarker) {
+        const fileURL = URL.createObjectURL(file);
+        const currentPos = userMarker.getLatLng();
+        
+        const mediaMarker = L.marker(currentPos).addTo(map);
+        if (file.type.startsWith('image/')) {
+          mediaMarker.bindPopup(`<img src="${fileURL}" style="max-width:200px; border-radius:8px;">`);
+        } else if (file.type.startsWith('video/')) {
+          mediaMarker.bindPopup(`<video src="${fileURL}" controls style="max-width:200px; border-radius:8px;"></video>`);
         }
+        mediaMarkers.push(mediaMarker);
+        alert('Foto/Media aggiunto al punto della mappa!');
+      }
+    });
+
+    // Rientro Sicuro
+    btnReverse.addEventListener('click', () => {
+      if (!isReverseMode && pathCoordinates.length > 1) {
+        isReverseMode = true;
+        pathPolyline.setStyle({ color: '#e67e22', weight: 6 });
+        
+        if (typeof L.polylineDecorator !== 'undefined') {
+          reverseDecorator = L.polylineDecorator(pathPolyline, {
+            patterns: [{
+              offset: '0%', repeat: 40,
+              symbol: L.Symbol.arrowHead({ pixelSize: 12, headAngle: 180, polygon: false, pathOptions: { stroke: true, color: '#d35400' } })
+            }]
+          }).addTo(map);
+        }
+        btnReverse.innerHTML = '<span>🗺️ Normale</span>';
+        alert('Modalità Rientro Sicuro: segui le frecce per ritornare alla partenza.');
       } else {
-        mediaRecorder.stop();
-        isRecordingAudio = false;
-        speak("Audio salvato");
+        isReverseMode = false;
+        pathPolyline.setStyle({ color: '#27ae60', weight: 5 });
+        if (reverseDecorator) map.removeLayer(reverseDecorator);
+        btnReverse.innerHTML = '<span>↩ Rientro</span>';
+      }
+    });
+
+    btnCenter.addEventListener('click', () => {
+      if (userMarker) map.setView(userMarker.getLatLng(), 17);
+    });
+
+    function updateTimers() {
+      if (isPaused) {
+        const currentPause = Math.floor((totalPauseTime + (Date.now() - pauseStartTime)) / 1000);
+        document.getElementById('statPause').innerText = formatSeconds(currentPause);
+      } else {
+        const currentMoving = Math.floor((Date.now() - startTime - totalPauseTime) / 1000);
+        document.getElementById('statTime').innerText = formatSeconds(currentMoving);
       }
     }
 
-    function saveAudioNote() {
-      const blob = new Blob(audioChunks, { type: 'audio/mp3' });
-      const audioUrl = URL.createObjectURL(blob);
-      const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
-
-      L.marker(currentPos, {
-        icon: L.divIcon({
-          html: '<i class="fa-solid fa-microphone" style="color:#e91e63; font-size:22px;"></i>',
-          iconSize: [22, 22]
-        })
-      }).addTo(map).bindPopup(`
-        <div class="media-popup">
-          <b>Nota Vocale</b>
-          <audio controls src="${audioUrl}"></audio>
-        </div>
-      `).openPopup();
+    function formatSeconds(sec) {
+      const m = Math.floor(sec / 60).toString().padStart(2, '0');
+      const s = (sec % 60).toString().padStart(2, '0');
+      return m + ':' + s;
     }
 
-    // --- 7. LEGENDA & TIMER PROVA ---
-    function openLegenda() {
-      document.getElementById('legenda-modal').style.display = 'flex';
-    }
-    function closeLegenda() {
-      document.getElementById('legenda-modal').style.display = 'none';
+    // --- INTEGRAZIONE PAYPAL LIVE ---
+    if (typeof paypal !== 'undefined') {
+      paypal.Buttons({
+        createOrder: function(data, actions) {
+          return actions.order.create({
+            purchase_units: [{
+              amount: { value: '5.00' },
+              description: 'Attivazione Licenza SentieroVivo'
+            }]
+          });
+        },
+        onApprove: function(data, actions) {
+          return actions.order.capture().then(function(details) {
+            localStorage.setItem('sentierovivo_unlocked', 'true');
+            alert('Pagamento completato! SentieroVivo è ora attivato.');
+            location.reload();
+          });
+        }
+      }).render('#paypal-button-container');
     }
 
-    let trialSeconds = parseInt(localStorage.getItem('sv_trial_remaining')) || (24 * 3600);
-    let trialInterval = null;
-
-    function initTrialTimer() {
-      if (!isLicensed && !trialInterval) {
-        trialInterval = setInterval(() => {
-          trialSeconds--;
-          localStorage.setItem('sv_trial_remaining', trialSeconds);
-          let h = Math.floor(trialSeconds / 3600);
-          let m = Math.floor((trialSeconds % 3600) / 60);
-          let s = trialSeconds % 60;
-          document.getElementById('trial-timer').innerText = 
-            `Prova: ${h < 10 ? '0' : ''}${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
-
-          if (trialSeconds <= 0) {
-            clearInterval(trialInterval);
-            speak("Periodo di prova terminato.");
-            document.getElementById('pay-modal').style.display = 'flex';
-          }
-        }, 1000);
-      }
-    }
+    window.onload = initMap;
   </script>
 </body>
 </html>
