@@ -401,10 +401,10 @@
   <div id="save-track-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card">
       <h2>Salva Percorso 💾</h2>
-      <p>Assegna un nome al percorso registrato per scaricarlo sul tuo dispositivo.</p>
+      <p>Assegna un nome al percorso registrato per scaricarlo nella cartella <b>Download</b> del tuo dispositivo.</p>
       <input type="text" id="track-filename" class="input-code" placeholder="Nome Percorso (es. Escursione_Monte)">
       <button class="pay-btn" onclick="confirmSaveGPX()">SCARICA FILE GPX</button>
-      <button class="btn-activate" onclick="closeSaveModal()" style="background: #555;">ANNULLA</button>
+      <button class="btn-activate" onclick="closeSaveModal()" style="background: #555;">CHIUDI E NUOVA TRACCIA</button>
     </div>
   </div>
 
@@ -456,7 +456,7 @@
     // --- 2. GESTIONE LICENZE ---
     const MASTER_KEY = "MASSIMO-MASTER-2026";
     const GIFT_KEY = "REGALO-SENTIERO-2026";
-    const NEW_GIFT_KEY = "SENTIEROVIP2026"; // Parola segreta regalo aggiunta
+    const NEW_GIFT_KEY = "SENTIEROVIP2026";
 
     function getDeviceId() {
       let id = localStorage.getItem('sv_device_id');
@@ -551,7 +551,6 @@
     let startPoint = null;
     let startMarker = null;
 
-    // Freccia direzionale GPS ad alta definizione
     const arrowIcon = L.divIcon({
       className: 'gps-arrow-icon',
       html: `
@@ -610,7 +609,7 @@
                     html: '<div style="background:#00e676; border:2px solid #fff; border-radius:50%; width:16px; height:16px;"></div>',
                     iconSize: [24, 24]
                   })
-                }).addTo(map).bindPopup("Punto di Partenza (Casa)");
+                }).addTo(map).bindPopup("Punto di Partenza");
               }
             }
             trackPoints.push(currentLatLng);
@@ -662,7 +661,7 @@
       const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
 
       if (!isTracking) {
-        // AVVIA / RIPRENDI
+        // AVVIA O RIPRENDI
         isTracking = true;
         btnRec.classList.add('recording');
         btnStop.style.display = 'flex';
@@ -683,7 +682,7 @@
           }).addTo(map).bindPopup("Ripresa Cammino");
         }
       } else {
-        // PAUSA
+        // METTI IN PAUSA
         isTracking = false;
         btnRec.classList.remove('recording');
         icon.className = "fa-solid fa-play";
@@ -715,8 +714,30 @@
       document.getElementById('save-track-modal').style.display = 'flex';
     }
 
+    function resetRecordingUI() {
+      isTracking = false;
+      startTime = null;
+      clearInterval(timerInterval);
+      trackPoints = [];
+      totalDistance = 0;
+      
+      document.getElementById('stat-dist').innerText = '0.00 km';
+      document.getElementById('stat-time').innerText = '00:00';
+
+      const btnRec = document.getElementById('btn-rec');
+      const btnStop = document.getElementById('btn-stop');
+      const icon = document.getElementById('rec-icon');
+      const text = document.getElementById('rec-text');
+
+      btnRec.classList.remove('recording');
+      btnStop.style.display = 'none';
+      icon.className = "fa-solid fa-play";
+      text.innerText = "AVVIA TRACCIA";
+    }
+
     function closeSaveModal() {
       document.getElementById('save-track-modal').style.display = 'none';
+      resetRecordingUI();
     }
 
     function confirmSaveGPX() {
@@ -748,7 +769,8 @@
       a.click();
       document.body.removeChild(a);
 
-      speak("Percorso salvato con successo.");
+      speak("Percorso scaricato nella cartella Download del tuo telefono.");
+      alert(`File "${filename}.gpx" salvato nella cartella Download del tuo telefono!`);
       closeSaveModal();
     }
 
@@ -912,7 +934,7 @@
       document.getElementById('legenda-modal').style.display = 'none';
     }
 
-    const TRIAL_15_DAYS_SEC = 15 * 24 * 3600; // 15 giorni in secondi
+    const TRIAL_15_DAYS_SEC = 15 * 24 * 3600;
     let trialSeconds = parseInt(localStorage.getItem('sv_trial_remaining')) || TRIAL_15_DAYS_SEC;
     let trialInterval = null;
 
@@ -923,7 +945,6 @@
           localStorage.setItem('sv_trial_remaining', trialSeconds);
           let days = Math.floor(trialSeconds / (24 * 3600));
           let h = Math.floor((trialSeconds % (24 * 3600)) / 3600);
-          let m = Math.floor((trialSeconds % 3600) / 60);
           
           document.getElementById('trial-timer').innerText = 
             `Prova: ${days}g ${h < 10 ? '0' : ''}${h}h`;
