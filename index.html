@@ -156,6 +156,11 @@
       border-color: #ffb74d;
       color: #000;
     }
+    .btn-audio-rec {
+      background: #e53935 !important;
+      border-color: #ff5252 !important;
+      animation: blink 1s infinite;
+    }
     .btn-stop {
       background: #e53935;
       border-color: #ef5350;
@@ -352,8 +357,8 @@
       <button class="btn" onclick="triggerCameraCapture('video/*')">
         <i class="fa-solid fa-video"></i> Video
       </button>
-      <button class="btn" onclick="recordAudio()">
-        <i class="fa-solid fa-microphone"></i> Audio
+      <button id="btn-audio" class="btn" onclick="recordAudio()">
+        <i id="audio-icon" class="fa-solid fa-microphone"></i> <span id="audio-text">Audio</span>
       </button>
       <button class="btn" onclick="openLegenda()">
         <i class="fa-solid fa-book-open"></i> Legenda
@@ -419,10 +424,11 @@
       <ul class="legenda-list">
         <li>📍 <b>Freccia Azzurra:</b> Tua posizione GPS e direzione in tempo reale.</li>
         <li>🔵 <b>Linea Blu:</b> Tracciato di andata registrato.</li>
+        <li>▶️ <b>AVVIA TRACCIA / ⏸️ PAUSA / ⏹️ STOP:</b> Durante la registrazione, il tasto si trasforma in <b>PAUSA</b> (in arancione) per mettere temporaneamente in pausa il cammino. Il tasto <b>STOP</b> (in rosso) conclude e salva l'escursione.</li>
         <li>🟠 <b>PERCORSO A RITROSO:</b> Evidenzia la strada arancione con calcolo in tempo reale dei metri mancanti al punto di partenza.</li>
         <li>🟢 <b>RIENTRO BASE NUOVO PERCORSO:</b> Calcola un nuovo sentiero reale verde verso casa con metri residui, bussola ed allarme fuori rotta (>15m).</li>
-        <li>⏸️/▶️ <b>Segnalini:</b> Registrano automaticamente le pause e le ripartenze.</li>
-        <li>📷 <b>Foto / 📹 Video / 🎙️ Audio:</b> Scatta e salva i media facendoli comparire sulla mappa con numeratore progressivo.</li>
+        <li>⏸️/▶️ <b>Segnalini sulla mappa:</b> Registrano automaticamente le pause e le ripartenze.</li>
+        <li>📷 <b>Foto / 📹 Video / 🎙️ Audio:</b> Scatta e salva i media facendoli comparire sulla mappa con numeratore progressivo (`Foto #1`, `Video #1`, `Audio #1`) e timer di registrazione vocale in tempo reale.</li>
       </ul>
       <button class="pay-btn" onclick="closeLegenda()" style="margin-top: 15px;">CHIUDI LEGENDA</button>
     </div>
@@ -535,7 +541,7 @@
       }
     }
 
-    // --- 3. MAPPA & FRECCETTA IN TEMPO REALE ---
+    // --- 3. MAPPA, ALTITUDINE SRTM & FRECCETTA GPS ---
     const map = L.map('map', { zoomControl: false }).setView([43.5485, 10.3106], 16);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -547,6 +553,8 @@
     let trackPoints = [];
     let photoCount = 0;
     let videoCount = 0;
+    let audioCount = 0; // Contatore progressivo per i messaggi audio
+    let lastAltitudeFetchTime = 0;
 
     let trackPolyline = L.polyline([], { color: '#1e88e5', weight: 5 }).addTo(map);
     let returnBackPolyline = L.polyline([], { color: '#ff9800', weight: 5, dashArray: '6, 6' }).addTo(map);
@@ -575,6 +583,21 @@
     let startTime = null;
     let timerInterval = null;
 
+    async function fetchRealElevation(lat, lng) {
+      if (Date.now() - lastAltitudeFetchTime < 10000) return;
+      lastAltitudeFetchTime = Date.now();
+      try {
+        const response = await fetch(`https://api.open-elevation.com/api/v1/lookup?locations=${lat},${lng}`);
+        const data = await response.json();
+        if (data && data.results && data.results.length > 0) {
+          const ele = Math.round(data.results[0].elevation);
+          document.getElementById('stat-alt').innerText = ele + ' m';
+        }
+      } catch (err) {
+        console.warn("Altimetro Fallback a GPS nativo");
+      }
+    }
+
     if (navigator.geolocation) {
       navigator.geolocation.watchPosition(
         (pos) => {
@@ -587,13 +610,13 @@
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
           const heading = pos.coords.heading || 0;
-          const alt = pos.coords.altitude;
+          const altGps = pos.coords.altitude;
           const currentLatLng = new L.LatLng(lat, lng);
 
-          // Aggiornamento Quota / Altitudine
-          if (alt !== null && alt !== undefined) {
-            document.getElementById('stat-alt').innerText = Math.round(alt) + ' m';
+          if (altGps !== null && altGps !== undefined) {
+            document.getElementById('stat-alt').innerText = Math.round(altGps) + ' m';
           }
+          fetchRealElevation(lat, lng);
 
           if (!userMarker) {
             userMarker = L.marker(currentLatLng, { icon: arrowIcon }).addTo(map);
@@ -632,7 +655,6 @@
             }
           }
 
-          // Aggiornamento HUD per tutte le modalità di Rientro
           if ((isReturnBackActive || isReturnAltActive) && startPoint) {
             updateReturnHUD(currentLatLng);
           }
@@ -734,6 +756,9 @@
       clearInterval(timerInterval);
       trackPoints = [];
       totalDistance = 0;
+      photoCount = 0;
+      videoCount = 0;
+      audioCount = 0;
       
       document.getElementById('stat-dist').innerText = '0.00 km';
       document.getElementById('stat-time').innerText = '00:00';
@@ -866,13 +891,9 @@
       let remainingDistance = 0;
 
       if (isReturnAltActive && calculatedReturnPath.length > 1) {
-        // Calcolo distanza lungo il nuovo sentiero verde
         for (let i = 0; i < calculatedReturnPath.length - 1; i++) {
           remainingDistance += calculatedReturnPath[i].distanceTo(calculatedReturnPath[i + 1]);
         }
-      } else if (isReturnBackActive && trackPoints.length > 0) {
-        // Calcolo distanza residua a ritroso sul percorso fatto
-        remainingDistance = currentPos.distanceTo(startPoint);
       } else {
         remainingDistance = currentPos.distanceTo(startPoint);
       }
@@ -905,7 +926,7 @@
       }
     }
 
-    // --- 6. FOTO, VIDEO E MEDIA NUMERATI ---
+    // --- 6. FOTO, VIDEO E MEDIA NUMERATI CON TIMER AUDIO ---
     function triggerCameraCapture(acceptType) {
       const input = document.getElementById('camera-capture');
       input.accept = acceptType;
@@ -949,11 +970,18 @@
       speak(isVideo ? `Video numero ${videoCount} salvato` : `Foto numero ${photoCount} salvata`);
     }
 
+    // --- LOGICA REGISTRAZIONE AUDIO CON TIMER ---
     let mediaRecorder = null;
     let audioChunks = [];
     let isRecordingAudio = false;
+    let audioStartTime = null;
+    let audioTimerInterval = null;
 
     async function recordAudio() {
+      const btnAudio = document.getElementById('btn-audio');
+      const textAudio = document.getElementById('audio-text');
+      const iconAudio = document.getElementById('audio-icon');
+
       if (!isRecordingAudio) {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -962,7 +990,19 @@
           mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
           mediaRecorder.onstop = saveAudioNote;
           mediaRecorder.start();
+
           isRecordingAudio = true;
+          audioStartTime = Date.now();
+          btnAudio.classList.add('btn-audio-rec');
+          iconAudio.className = "fa-solid fa-circle-stop";
+
+          audioTimerInterval = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - audioStartTime) / 1000);
+            const m = Math.floor(elapsed / 60);
+            const s = elapsed % 60;
+            textAudio.innerText = `REC ${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+          }, 1000);
+
           speak("Registrazione audio avviata");
         } catch (err) {
           alert("Impossibile accedere al microfono.");
@@ -970,26 +1010,33 @@
       } else {
         mediaRecorder.stop();
         isRecordingAudio = false;
-        speak("Audio salvato");
+        clearInterval(audioTimerInterval);
+        btnAudio.classList.remove('btn-audio-rec');
+        iconAudio.className = "fa-solid fa-microphone";
+        textAudio.innerText = "Audio";
       }
     }
 
     function saveAudioNote() {
+      audioCount++;
       const blob = new Blob(audioChunks, { type: 'audio/mp3' });
       const audioUrl = URL.createObjectURL(blob);
       const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
+      const badgeLabel = `Audio #${audioCount}`;
 
       L.marker(currentPos, {
         icon: L.divIcon({
-          html: '<div style="background:#9c27b0; color:#fff; border-radius:50%; width:18px; height:18px; border:2px solid #fff;"></div>',
-          iconSize: [22, 22]
+          html: `<div style="background:#9c27b0; color:#fff; font-size:10px; font-weight:bold; padding:2px 6px; border-radius:10px; border:1px solid #fff; text-align:center;">${badgeLabel}</div>`,
+          iconSize: [70, 24]
         })
       }).addTo(map).bindPopup(`
         <div class="media-popup">
-          <b>Nota Vocale</b>
+          <b>${badgeLabel}</b>
           <audio src="${audioUrl}" controls></audio>
         </div>
       `).openPopup();
+
+      speak(`Audio numero ${audioCount} salvato`);
     }
 
     // --- 7. LEGENDA & TIMER PROVA 15 GIORNI ---
