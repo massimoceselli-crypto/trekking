@@ -302,16 +302,20 @@
         <span class="hud-label">Tempo</span>
         <span id="stat-time" class="hud-value">00:00</span>
       </div>
+      <div class="hud-stat">
+        <span class="hud-label">Quota</span>
+        <span id="stat-alt" class="hud-value">-- m</span>
+      </div>
       <div id="gps-status" class="gps-status-badge gps-lost">
         <i class="fa-solid fa-location-crosshairs"></i> <span id="gps-text">RICERCA GPS...</span>
       </div>
       <div id="trial-timer" class="timer-badge">Prova: --</div>
     </div>
 
-    <!-- HUD Rientro Base -->
+    <!-- HUD Rientro / Distanza alla Base -->
     <div id="return-hud" class="hud-card" style="display: none; border-color: #00e676;">
       <div class="hud-stat">
-        <span id="return-mode-title" class="hud-label" style="color: #00e676;">Nuovo Sentiero Rientro</span>
+        <span id="return-mode-title" class="hud-label" style="color: #00e676;">Mancano alla Base</span>
         <span id="return-dist" class="hud-value">0 m</span>
       </div>
       <div class="hud-stat">
@@ -415,8 +419,8 @@
       <ul class="legenda-list">
         <li>📍 <b>Freccia Azzurra:</b> Tua posizione GPS e direzione in tempo reale.</li>
         <li>🔵 <b>Linea Blu:</b> Tracciato di andata registrato.</li>
-        <li>🟠 <b>PERCORSO A RITROSO:</b> Evidenzia in arancione la strada per ripercorrere i tuoi passi.</li>
-        <li>🟢 <b>RIENTRO BASE NUOVO PERCORSO:</b> Calcola e traccia in verde neon un nuovo sentiero pedonale reale per tornare alla partenza con bussola e allarme fuori rotta (>15m).</li>
+        <li>🟠 <b>PERCORSO A RITROSO:</b> Evidenzia la strada arancione con calcolo in tempo reale dei metri mancanti al punto di partenza.</li>
+        <li>🟢 <b>RIENTRO BASE NUOVO PERCORSO:</b> Calcola un nuovo sentiero reale verde verso casa con metri residui, bussola ed allarme fuori rotta (>15m).</li>
         <li>⏸️/▶️ <b>Segnalini:</b> Registrano automaticamente le pause e le ripartenze.</li>
         <li>📷 <b>Foto / 📹 Video / 🎙️ Audio:</b> Scatta e salva i media facendoli comparire sulla mappa con numeratore progressivo.</li>
       </ul>
@@ -547,7 +551,7 @@
     let trackPolyline = L.polyline([], { color: '#1e88e5', weight: 5 }).addTo(map);
     let returnBackPolyline = L.polyline([], { color: '#ff9800', weight: 5, dashArray: '6, 6' }).addTo(map);
     let returnAltPolyline = L.polyline([], { color: '#00e676', weight: 6 }).addTo(map);
-    let calculatedReturnPath = []; // Punti del nuovo sentiero calcolato
+    let calculatedReturnPath = [];
 
     let startPoint = null;
     let startMarker = null;
@@ -583,7 +587,13 @@
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
           const heading = pos.coords.heading || 0;
+          const alt = pos.coords.altitude;
           const currentLatLng = new L.LatLng(lat, lng);
+
+          // Aggiornamento Quota / Altitudine
+          if (alt !== null && alt !== undefined) {
+            document.getElementById('stat-alt').innerText = Math.round(alt) + ' m';
+          }
 
           if (!userMarker) {
             userMarker = L.marker(currentLatLng, { icon: arrowIcon }).addTo(map);
@@ -610,7 +620,7 @@
                     html: '<div style="background:#00e676; border:2px solid #fff; border-radius:50%; width:16px; height:16px;"></div>',
                     iconSize: [24, 24]
                   })
-                }).addTo(map).bindPopup("Punto di Partenza");
+                }).addTo(map).bindPopup("Punto di Partenza (Casa)");
               }
             }
             trackPoints.push(currentLatLng);
@@ -622,15 +632,17 @@
             }
           }
 
+          // Aggiornamento HUD per tutte le modalità di Rientro
+          if ((isReturnBackActive || isReturnAltActive) && startPoint) {
+            updateReturnHUD(currentLatLng);
+          }
+
           if (isReturnBackActive && trackPoints.length > 0) {
             checkOffTrackDistance(currentLatLng, trackPoints);
           }
 
-          if (isReturnAltActive && startPoint) {
-            updateSafeReturnAltHUD(currentLatLng);
-            if (calculatedReturnPath.length > 0) {
-              checkOffTrackDistance(currentLatLng, calculatedReturnPath);
-            }
+          if (isReturnAltActive && calculatedReturnPath.length > 0) {
+            checkOffTrackDistance(currentLatLng, calculatedReturnPath);
           }
         },
         (err) => {
@@ -776,15 +788,25 @@
       closeSaveModal();
     }
 
-    // --- 5. PULSANTI RIENTRO & NAVIGATORE SENTIERI REALI ---
+    // --- 5. RIENTRO E CALCOLO METRI IN TEMPO REALE ---
     function toggleReturnBack() {
+      if (!startPoint) {
+        speak("Nessun punto di partenza registrato.");
+        alert("Nessun punto di partenza registrato. Avvia prima la traccia!");
+        return;
+      }
+
       isReturnBackActive = !isReturnBackActive;
       isReturnAltActive = false;
       returnAltPolyline.setLatLngs([]);
-      document.getElementById('return-hud').style.display = 'none';
+      
+      const hud = document.getElementById('return-hud');
+      hud.style.display = isReturnBackActive ? 'flex' : 'none';
+      document.getElementById('return-mode-title').innerText = "Rientro a Ritroso";
 
       if (isReturnBackActive) {
         speak("Modalità percorso a ritroso attivata.");
+        if (userMarker) updateReturnHUD(userMarker.getLatLng());
       } else {
         speak("Modalità rientro disattivata.");
       }
@@ -805,11 +827,9 @@
       if (isReturnAltActive) {
         hud.style.display = 'flex';
         document.getElementById('return-mode-title').innerText = "Calcolo nuovo sentiero...";
-        speak("Calcolo del nuovo sentiero di rientro sui sentieri in corso.");
+        speak("Calcolo del nuovo sentiero di rientro in corso.");
 
         const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
-        
-        // Chiamata al motore di calcolo pedonale OpenStreetMap (OSRM Foot)
         const url = `https://router.project-osrm.org/route/v1/foot/${currentPos.lng},${currentPos.lat};${startPoint.lng},${startPoint.lat}?overview=full&geometries=geojson`;
 
         try {
@@ -822,18 +842,17 @@
             
             returnAltPolyline.setLatLngs(calculatedReturnPath);
             document.getElementById('return-mode-title').innerText = "Nuovo Sentiero Rientro";
-            speak("Nuovo sentiero calcolato con successo. Segui la linea verde.");
-            updateSafeReturnAltHUD(currentPos);
+            speak("Nuovo sentiero calcolato. Segui la linea verde.");
+            updateReturnHUD(currentPos);
           } else {
             throw new Error("Nessun sentiero trovato");
           }
         } catch (err) {
-          console.warn("Routing fallback:", err);
           calculatedReturnPath = [currentPos, startPoint];
           returnAltPolyline.setLatLngs(calculatedReturnPath);
-          document.getElementById('return-mode-title').innerText = "Rientro Diretto";
-          speak("Sentieri secondari non mappati. Tracciata rotta diretta verso la base.");
-          updateSafeReturnAltHUD(currentPos);
+          document.getElementById('return-mode-title').innerText = "Rientro Diretto Base";
+          speak("Tracciata rotta diretta verso la base.");
+          updateReturnHUD(currentPos);
         }
       } else {
         returnAltPolyline.setLatLngs([]);
@@ -843,9 +862,24 @@
       }
     }
 
-    function updateSafeReturnAltHUD(currentPos) {
-      const dist = currentPos.distanceTo(startPoint);
-      document.getElementById('return-dist').innerText = dist > 1000 ? (dist / 1000).toFixed(2) + ' km' : Math.round(dist) + ' m';
+    function updateReturnHUD(currentPos) {
+      let remainingDistance = 0;
+
+      if (isReturnAltActive && calculatedReturnPath.length > 1) {
+        // Calcolo distanza lungo il nuovo sentiero verde
+        for (let i = 0; i < calculatedReturnPath.length - 1; i++) {
+          remainingDistance += calculatedReturnPath[i].distanceTo(calculatedReturnPath[i + 1]);
+        }
+      } else if (isReturnBackActive && trackPoints.length > 0) {
+        // Calcolo distanza residua a ritroso sul percorso fatto
+        remainingDistance = currentPos.distanceTo(startPoint);
+      } else {
+        remainingDistance = currentPos.distanceTo(startPoint);
+      }
+
+      document.getElementById('return-dist').innerText = remainingDistance > 1000 
+        ? (remainingDistance / 1000).toFixed(2) + ' km' 
+        : Math.round(remainingDistance) + ' m';
 
       const dLng = (startPoint.lng - currentPos.lng) * Math.PI / 180;
       const lat1 = currentPos.lat * Math.PI / 180;
