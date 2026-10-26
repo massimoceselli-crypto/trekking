@@ -311,7 +311,7 @@
     <!-- HUD Rientro Base -->
     <div id="return-hud" class="hud-card" style="display: none; border-color: #00e676;">
       <div class="hud-stat">
-        <span id="return-mode-title" class="hud-label" style="color: #00e676;">Rientro Base</span>
+        <span id="return-mode-title" class="hud-label" style="color: #00e676;">Nuovo Sentiero Rientro</span>
         <span id="return-dist" class="hud-value">0 m</span>
       </div>
       <div class="hud-stat">
@@ -416,7 +416,7 @@
         <li>📍 <b>Freccia Azzurra:</b> Tua posizione GPS e direzione in tempo reale.</li>
         <li>🔵 <b>Linea Blu:</b> Tracciato di andata registrato.</li>
         <li>🟠 <b>PERCORSO A RITROSO:</b> Evidenzia in arancione la strada per ripercorrere i tuoi passi.</li>
-        <li>🟢 <b>RIENTRO BASE NUOVO PERCORSO:</b> Traccia in verde neon il rientro diretto verso la partenza con bussola e allarme fuori rotta (>15m).</li>
+        <li>🟢 <b>RIENTRO BASE NUOVO PERCORSO:</b> Calcola e traccia in verde neon un nuovo sentiero pedonale reale per tornare alla partenza con bussola e allarme fuori rotta (>15m).</li>
         <li>⏸️/▶️ <b>Segnalini:</b> Registrano automaticamente le pause e le ripartenze.</li>
         <li>📷 <b>Foto / 📹 Video / 🎙️ Audio:</b> Scatta e salva i media facendoli comparire sulla mappa con numeratore progressivo.</li>
       </ul>
@@ -546,7 +546,8 @@
 
     let trackPolyline = L.polyline([], { color: '#1e88e5', weight: 5 }).addTo(map);
     let returnBackPolyline = L.polyline([], { color: '#ff9800', weight: 5, dashArray: '6, 6' }).addTo(map);
-    let returnAltPolyline = L.polyline([], { color: '#00e676', weight: 5, dashArray: '10, 10' }).addTo(map);
+    let returnAltPolyline = L.polyline([], { color: '#00e676', weight: 6 }).addTo(map);
+    let calculatedReturnPath = []; // Punti del nuovo sentiero calcolato
 
     let startPoint = null;
     let startMarker = null;
@@ -621,12 +622,15 @@
             }
           }
 
-          if ((isReturnBackActive || isReturnAltActive) && trackPoints.length > 0) {
-            checkOffTrackDistance(currentLatLng);
+          if (isReturnBackActive && trackPoints.length > 0) {
+            checkOffTrackDistance(currentLatLng, trackPoints);
           }
 
           if (isReturnAltActive && startPoint) {
-            updateSafeReturnAlt(currentLatLng);
+            updateSafeReturnAltHUD(currentLatLng);
+            if (calculatedReturnPath.length > 0) {
+              checkOffTrackDistance(currentLatLng, calculatedReturnPath);
+            }
           }
         },
         (err) => {
@@ -661,7 +665,6 @@
       const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
 
       if (!isTracking) {
-        // AVVIA O RIPRENDI
         isTracking = true;
         btnRec.classList.add('recording');
         btnStop.style.display = 'flex';
@@ -682,7 +685,6 @@
           }).addTo(map).bindPopup("Ripresa Cammino");
         }
       } else {
-        // METTI IN PAUSA
         isTracking = false;
         btnRec.classList.remove('recording');
         icon.className = "fa-solid fa-play";
@@ -774,7 +776,7 @@
       closeSaveModal();
     }
 
-    // --- 5. PULSANTI RIENTRO & AVVISI VOCALI FUORI ROTTA ---
+    // --- 5. PULSANTI RIENTRO & NAVIGATORE SENTIERI REALI ---
     function toggleReturnBack() {
       isReturnBackActive = !isReturnBackActive;
       isReturnAltActive = false;
@@ -788,30 +790,60 @@
       }
     }
 
-    function toggleReturnAlt() {
+    async function toggleReturnAlt() {
       if (!startPoint) {
         speak("Nessun punto di partenza registrato.");
         alert("Nessun punto di partenza registrato. Avvia prima la traccia!");
         return;
       }
+
       isReturnAltActive = !isReturnAltActive;
       isReturnBackActive = false;
 
       const hud = document.getElementById('return-hud');
-      hud.style.display = isReturnAltActive ? 'flex' : 'none';
-      document.getElementById('return-mode-title').innerText = "Rientro Base";
 
       if (isReturnAltActive) {
-        speak("Modalità rientro base nuovo percorso attivata.");
-        if (userMarker) updateSafeReturnAlt(userMarker.getLatLng());
+        hud.style.display = 'flex';
+        document.getElementById('return-mode-title').innerText = "Calcolo nuovo sentiero...";
+        speak("Calcolo del nuovo sentiero di rientro sui sentieri in corso.");
+
+        const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
+        
+        // Chiamata al motore di calcolo pedonale OpenStreetMap (OSRM Foot)
+        const url = `https://router.project-osrm.org/route/v1/foot/${currentPos.lng},${currentPos.lat};${startPoint.lng},${startPoint.lat}?overview=full&geometries=geojson`;
+
+        try {
+          const response = await fetch(url);
+          const data = await response.json();
+
+          if (data.routes && data.routes.length > 0) {
+            const coords = data.routes[0].geometry.coordinates;
+            calculatedReturnPath = coords.map(c => new L.LatLng(c[1], c[0]));
+            
+            returnAltPolyline.setLatLngs(calculatedReturnPath);
+            document.getElementById('return-mode-title').innerText = "Nuovo Sentiero Rientro";
+            speak("Nuovo sentiero calcolato con successo. Segui la linea verde.");
+            updateSafeReturnAltHUD(currentPos);
+          } else {
+            throw new Error("Nessun sentiero trovato");
+          }
+        } catch (err) {
+          console.warn("Routing fallback:", err);
+          calculatedReturnPath = [currentPos, startPoint];
+          returnAltPolyline.setLatLngs(calculatedReturnPath);
+          document.getElementById('return-mode-title').innerText = "Rientro Diretto";
+          speak("Sentieri secondari non mappati. Tracciata rotta diretta verso la base.");
+          updateSafeReturnAltHUD(currentPos);
+        }
       } else {
         returnAltPolyline.setLatLngs([]);
+        calculatedReturnPath = [];
+        hud.style.display = 'none';
         speak("Modalità rientro disattivata.");
       }
     }
 
-    function updateSafeReturnAlt(currentPos) {
-      returnAltPolyline.setLatLngs([currentPos, startPoint]);
+    function updateSafeReturnAltHUD(currentPos) {
       const dist = currentPos.distanceTo(startPoint);
       document.getElementById('return-dist').innerText = dist > 1000 ? (dist / 1000).toFixed(2) + ' km' : Math.round(dist) + ' m';
 
@@ -826,9 +858,9 @@
       document.getElementById('return-bearing').innerText = Math.round(bearing) + '°';
     }
 
-    function checkOffTrackDistance(currentPos) {
+    function checkOffTrackDistance(currentPos, referencePath) {
       let minDistance = Infinity;
-      trackPoints.forEach(pt => {
+      referencePath.forEach(pt => {
         const d = currentPos.distanceTo(pt);
         if (d < minDistance) minDistance = d;
       });
