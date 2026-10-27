@@ -407,7 +407,7 @@
       <button id="btn-audio" class="btn" onclick="recordAudio()">
         <i id="audio-icon" class="fa-solid fa-microphone"></i> <span id="audio-text">Audio</span>
       </button>
-      <button class="btn" onclick="openEmergencyModal()">
+      <button class="btn" onclick="openEmergencyModal(false)">
         <i class="fa-solid fa-phone"></i> Contatto
       </button>
       <button class="btn" onclick="openLegenda()">
@@ -418,7 +418,7 @@
 
   <input type="file" id="camera-capture" style="display: none;" onchange="handleMediaCaptured(event)">
 
-  <!-- Modal Intro / Prova Iniziale -->
+  <!-- MODALE 1: Intro / Benvenuto e Licenza -->
   <div id="intro-modal" class="modal-overlay">
     <div class="modal-card">
       <h2>Benvenuto su SentieroVivo! 🥾</h2>
@@ -430,7 +430,7 @@
         - Al termine, è richiesto un contributo di <b>5,00 €</b> con sblocco istantaneo.
       </p>
 
-      <button class="pay-btn" onclick="startTrial()" style="margin-top: 10px;">INIZIA PROVA GRATUITA (15 gg)</button>
+      <button class="pay-btn" onclick="startTrialStep1()" style="margin-top: 10px;">INIZIA PROVA GRATUITA (15 gg)</button>
 
       <p style="font-size: 12px; color: #aaa; margin-top: 12px; cursor: pointer;" onclick="promptMasterUnlock()">
         Hai già un codice regalo o devi inserire la Master Key? <b style="color:#00bcd4;">Clicca qui</b>
@@ -438,16 +438,22 @@
     </div>
   </div>
 
-  <!-- Modal Gestione Contatto Emergenza Sempre Accessibile -->
+  <!-- MODALE 2: Inserimento Obbligatorio Contatto SOS (Nome + Numero) -->
   <div id="emergency-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card">
       <h2>Contatto SOS di Fiducia 📞</h2>
-      <p>Inserisci il numero di telefono del contatto a cui inviare l'SMS automatico con le coordinate GPS in caso di emergenza.</p>
+      <p style="font-size: 12px; color: #aaa; margin-bottom: 15px;">
+        Inserisci il Nome e il Numero di telefono della persona a cui inviare l'SMS di emergenza con la tua posizione GPS quando premerai il tasto <b>S.O.S.</b>
+      </p>
       
-      <input type="tel" id="emergency-contact-input" class="input-code" placeholder="es. 3391234567">
+      <div style="text-align: left; margin-bottom: 8px; font-size: 11px; color: #00bcd4;">NOME CONTATTO:</div>
+      <input type="text" id="emergency-name-input" class="input-code" placeholder="es. Mario Rossi">
+
+      <div style="text-align: left; margin-bottom: 8px; font-size: 11px; color: #00bcd4;">NUMERO TELEFONO:</div>
+      <input type="tel" id="emergency-phone-input" class="input-code" placeholder="es. 3391234567">
       
-      <button class="pay-btn" onclick="saveEmergencyContact()">SALVA CONTATTO</button>
-      <button class="btn-activate" onclick="closeEmergencyModal()" style="background: #555;">CHIUDI</button>
+      <button class="pay-btn" onclick="saveEmergencyContact()" style="margin-top: 10px;">CONFERMA E ENTRA NELL'APP</button>
+      <button id="close-emergency-btn" class="btn-activate" onclick="closeEmergencyModal()" style="background: #555; display: none; margin-top: 5px;">CHIUDI</button>
     </div>
   </div>
 
@@ -489,7 +495,7 @@
         <li>📍 <b>Freccia Azzurra:</b> Tua posizione GPS e direzione in tempo reale.</li>
         <li>🔵 <b>Linea Blu:</b> Tracciato di andata registrato.</li>
         <li>🚨 <b>Tasto S.O.S.:</b> Invia un SMS immediato con le tue coordinate esatte al tuo contatto di fiducia ed avvia la chiamata al 112.</li>
-        <li>📞 <b>Contatto:</b> Imposta o modifica il numero di cellulare per gli SMS di soccorso.</li>
+        <li>📞 <b>Contatto:</b> Modifica in qualsiasi momento Nome e Numero del contatto SOS.</li>
         <li>🚩 <b>Bandierine di Sosta:</b> Mostrano l'ora della pausa e le coordinate esatte.</li>
         <li>▶️ <b>AVVIA / ⏸️ PAUSA / ⏹️ STOP:</b> Registra, mette in pausa e salva l'escursione.</li>
         <li>🟠 <b>PERCORSO A RITROSO:</b> Rientro a ritroso con metri residui in tempo reale.</li>
@@ -551,7 +557,7 @@
       }
     }
 
-    // --- GESTIONE LICENZE & CONTATTO EMERGENZA ---
+    // --- GESTIONE LICENZE & CONTATTO EMERGENZA OBBILGATORIO ---
     const MASTER_KEY = "MASSIMO-MASTER-2026";
     const GIFT_KEY = "REGALO-SENTIERO-2026";
     const NEW_GIFT_KEY = "SENTIEROVIP2026";
@@ -576,9 +582,39 @@
     const deviceId = getDeviceId();
     document.getElementById('device-id-display').innerText = deviceId;
 
-    function openEmergencyModal() {
-      const saved = localStorage.getItem('sv_emergency_contact') || "";
-      document.getElementById('emergency-contact-input').value = saved;
+    let isLicensed = localStorage.getItem('sv_licensed_' + deviceId) === 'true' || localStorage.getItem('sv_master_unlocked') === 'true';
+    let hasEmergencyContact = localStorage.getItem('sv_emergency_phone') ? true : false;
+
+    // Avvio Sequenza Finestre Modali
+    if (!isLicensed) {
+      document.getElementById('intro-modal').style.display = 'flex';
+    } else if (!hasEmergencyContact) {
+      openEmergencyModal(true); // Modalità Obbligatoria (primo avvio dopo licenza)
+    } else {
+      document.getElementById('intro-modal').style.display = 'none';
+      document.getElementById('trial-timer').style.display = 'none';
+    }
+
+    function startTrialStep1() {
+      document.getElementById('intro-modal').style.display = 'none';
+      initTrialTimer();
+      // Passo al Modale 2 Obbligatorio
+      openEmergencyModal(true);
+    }
+
+    function openEmergencyModal(isMandatory) {
+      const savedName = localStorage.getItem('sv_emergency_name') || "";
+      const savedPhone = localStorage.getItem('sv_emergency_phone') || "";
+      document.getElementById('emergency-name-input').value = savedName;
+      document.getElementById('emergency-phone-input').value = savedPhone;
+
+      const closeBtn = document.getElementById('close-emergency-btn');
+      if (isMandatory) {
+        closeBtn.style.display = 'none'; // Nasconde pulsante chiudi se è il primo avvio obbligatorio
+      } else {
+        closeBtn.style.display = 'block'; // Mostra se aperto dal pulsante in basso
+      }
+
       document.getElementById('emergency-modal').style.display = 'flex';
     }
 
@@ -587,28 +623,20 @@
     }
 
     function saveEmergencyContact() {
-      const val = document.getElementById('emergency-contact-input').value.trim();
-      if (val) {
-        localStorage.setItem('sv_emergency_contact', val);
-        alert("Contatto di emergenza salvato correttamente!");
-        speak("Contatto di emergenza aggiornato");
+      const nameVal = document.getElementById('emergency-name-input').value.trim();
+      const phoneVal = document.getElementById('emergency-phone-input').value.trim();
+
+      if (!nameVal || !phoneVal) {
+        alert("Inserisci sia il NOME che il NUMERO DI TELEFONO per continuare!");
+        return;
       }
+
+      localStorage.setItem('sv_emergency_name', nameVal);
+      localStorage.setItem('sv_emergency_phone', phoneVal);
+      
+      speak("Contatto di emergenza salvato. Benvenuto su SentieroVivo.");
+      alert(`Contatto di emergenza salvato:\n${nameVal} (${phoneVal})`);
       closeEmergencyModal();
-    }
-
-    let isLicensed = localStorage.getItem('sv_licensed_' + deviceId) === 'true' || localStorage.getItem('sv_master_unlocked') === 'true';
-
-    if (isLicensed) {
-      document.getElementById('intro-modal').style.display = 'none';
-      document.getElementById('trial-timer').style.display = 'none';
-    } else {
-      document.getElementById('intro-modal').style.display = 'flex';
-    }
-
-    function startTrial() {
-      document.getElementById('intro-modal').style.display = 'none';
-      speak("Benvenuto su SentieroVivo. Prova avviata.");
-      initTrialTimer();
     }
 
     function generateValidCode(id) {
@@ -630,11 +658,17 @@
         localStorage.setItem('sv_licensed_' + deviceId, 'true');
         if (input === MASTER_KEY) localStorage.setItem('sv_master_unlocked', 'true');
         isLicensed = true;
-        speak("Applicazione attivata con successo.");
-        alert("Attivazione completata!");
+        
         document.getElementById('intro-modal').style.display = 'none';
         document.getElementById('pay-modal').style.display = 'none';
         document.getElementById('trial-timer').style.display = 'none';
+
+        if (!localStorage.getItem('sv_emergency_phone')) {
+          openEmergencyModal(true);
+        } else {
+          speak("Applicazione attivata con successo.");
+          alert("Attivazione completata!");
+        }
       } else {
         speak("Codice non valido.");
         alert("Codice non valido per questo dispositivo.");
@@ -853,11 +887,12 @@
       const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
       const lat = currentPos.lat.toFixed(6);
       const lng = currentPos.lng.toFixed(6);
-      let contact = localStorage.getItem('sv_emergency_contact') || "";
+      const contactPhone = localStorage.getItem('sv_emergency_phone') || "";
+      const contactName = localStorage.getItem('sv_emergency_name') || "Soccorso";
 
-      if (!contact) {
-        contact = prompt("Nessun contatto di emergenza impostato.\nInserisci il numero di cellulare per l'SMS di soccorso:");
-        if (contact) localStorage.setItem('sv_emergency_contact', contact.trim());
+      if (!contactPhone) {
+        openEmergencyModal(true);
+        return;
       }
 
       L.marker(currentPos, {
@@ -871,14 +906,10 @@
 
       const smsText = encodeURIComponent(`HO BISOGNO DI AIUTO! Le mie coordinate GPS sono: Lat ${lat}, Long ${lng}`);
       
-      let confirmCall = confirm(`🚨 ALLARME SOS!\n\nCoordinate: Lat ${lat}, Long ${lng}\n\nPremi OK per inviare l'SMS ed attivare la chiamata.`);
+      let confirmCall = confirm(`🚨 ALLARME SOS!\n\nDestinatario: ${contactName} (${contactPhone})\nCoordinate: Lat ${lat}, Long ${lng}\n\nPremi OK per inviare l'SMS ed attivare la chiamata.`);
 
       if (confirmCall) {
-        if (contact) {
-          window.location.href = `sms:${contact}?body=${smsText}`;
-        } else {
-          window.location.href = `tel:112`;
-        }
+        window.location.href = `sms:${contactPhone}?body=${smsText}`;
       }
     }
 
