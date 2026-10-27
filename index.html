@@ -236,12 +236,11 @@
       text-align: center;
       box-shadow: 0 10px 40px rgba(0,0,0,0.9);
       max-height: 88vh;
-      overflow-y: auto; /* Barra di scorrimento verticale attiva */
+      overflow-y: auto;
       scrollbar-width: thin;
       scrollbar-color: #ff9800 #111;
     }
 
-    /* Personalizzazione scrollbar */
     .modal-card::-webkit-scrollbar {
       width: 6px;
     }
@@ -250,7 +249,6 @@
       border-radius: 10px;
     }
 
-    /* Caratteri Ingranditi per Alta Leggibilità */
     .modal-card h2 {
       color: #ff9800;
       margin-bottom: 14px;
@@ -259,7 +257,7 @@
     }
     .modal-card p {
       color: #e0e0e0;
-      font-size: 15px; /* Ingrandito per vista ottimale */
+      font-size: 15px;
       margin-bottom: 18px;
       line-height: 1.6;
     }
@@ -310,7 +308,7 @@
     }
     .legenda-list {
       text-align: left;
-      font-size: 14px; /* Ingrandito */
+      font-size: 14px;
       color: #eee;
       line-height: 1.7;
     }
@@ -414,6 +412,9 @@
       <button class="btn" onclick="toggleVoiceAlerts()">
         <i id="voice-icon" class="fa-solid fa-volume-high" style="color: #00e676;"></i> Voce
       </button>
+      <button class="btn" onclick="toggleMapStyle()">
+        <i class="fa-solid fa-layer-group" style="color: #00bcd4;"></i> Mappa CAI
+      </button>
       <button class="btn" onclick="triggerCameraCapture('image/*')">
         <i class="fa-solid fa-camera"></i> Foto
       </button>
@@ -433,8 +434,21 @@
   </div>
 
   <input type="file" id="camera-capture" style="display: none;" onchange="handleMediaCaptured(event)">
+  <!-- Input nascosto per caricare file GPX da Archivio -->
+  <input type="file" id="gpx-file-input" accept=".gpx" style="display: none;" onchange="loadExternalGPX(event)">
 
-  <!-- MODALE 1: Intro / Benvenuto e Licenza (Caratteri Ingranditi) -->
+  <!-- MODALE NOME PERCORSO ALL'AVVIO -->
+  <div id="start-track-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <h2>Nuova Escursione 🥾</h2>
+      <p>Assegna un nome a questa registrazione. Tutti i file (traccia, foto, video e audio) faranno riferimento a questo nome.</p>
+      <input type="text" id="track-name-input" class="input-code" placeholder="es. Anello del Romito">
+      <button class="pay-btn" onclick="confirmStartTrack()">CONFERMA E AVVIA</button>
+      <button class="btn-activate" onclick="cancelStartTrack()" style="background: #555;">ANNULLA</button>
+    </div>
+  </div>
+
+  <!-- MODALE 1: Intro / Benvenuto e Licenza -->
   <div id="intro-modal" class="modal-overlay">
     <div class="modal-card">
       <h2>Benvenuto su SentieroVivo! 🥾</h2>
@@ -454,7 +468,7 @@
     </div>
   </div>
 
-  <!-- MODALE 2: Contatto SOS (Ingrandito e Scorrevole) -->
+  <!-- MODALE 2: Contatto SOS -->
   <div id="emergency-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card">
       <h2>Contatto SOS di Fiducia 📞</h2>
@@ -492,18 +506,18 @@
     </div>
   </div>
 
-  <!-- Modal Salva GPX -->
+  <!-- Modal Salva GPX & Riconferma -->
   <div id="save-track-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card">
-      <h2>Salva Percorso 💾</h2>
-      <p>Assegna un nome al percorso registrato per scaricarlo nella cartella <b>Download</b> del tuo dispositivo.</p>
-      <input type="text" id="track-filename" class="input-code" placeholder="Nome Percorso (es. Escursione_Monte)">
-      <button class="pay-btn" onclick="confirmSaveGPX()">SCARICA FILE GPX</button>
+      <h2>Salva Escursione 💾</h2>
+      <p>Scarica il file GPX della traccia e conserva i file multimediali scattati.</p>
+      <input type="text" id="track-filename" class="input-code" placeholder="Nome Escursione">
+      <button class="pay-btn" onclick="confirmSaveGPX()">SCARICA FILE GPX E MEDIA</button>
       <button class="btn-activate" onclick="closeSaveModal()" style="background: #555;">CHIUDI E NUOVA TRACCIA</button>
     </div>
   </div>
 
-  <!-- Modal Legenda & Guida Ingrandita con Sezione Installazione -->
+  <!-- Modal Legenda & Guida -->
   <div id="legenda-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card">
       <h2>Legenda & Guida 📖</h2>
@@ -523,10 +537,11 @@
         <li>🔵 <b>Linea Blu:</b> Tracciato di andata registrato.</li>
         <li>🚨 <b>Tasto S.O.S.:</b> Invia un SMS immediato con le coordinate al contatto di fiducia ed avvia la chiamata al 112.</li>
         <li>📞 <b>Contatto:</b> Modifica in qualsiasi momento Nome e Numero del contatto SOS.</li>
+        <li>🗺️ <b>Mappa CAI:</b> Alterna la mappa stradale standard con la mappa Topografica / Escursionistica (OpenTopoMap) con altimetria e numerazione sentieri.</li>
         <li>🚩 <b>Bandierine di Sosta:</b> Mostrano l'ora della pausa e le coordinate esatte.</li>
-        <li>▶️ <b>AVVIA / ⏸️ PAUSA / ⏹️ STOP:</b> Registra, mette in pausa e salva l'escursione.</li>
-        <li>🟠 <b>PERCORSO A RITROSO:</b> Rientro a ritroso con metri residui in tempo reale.</li>
-        <li>🟢 <b>RIENTRO BASE NUOVO PERCORSO:</b> Calcola un nuovo sentiero verde verso casa con navigatore e allarme fuori rotta (>15m).</li>
+        <li>▶️ <b>AVVIA / ⏸️ PAUSA / ⏹️ STOP:</b> Registra, mette in pausa e salva l'escursione chiedendo il nome del percorso all'avvio.</li>
+        <li>🟠 <b>PERCORSO A RITROSO:</b> Ripercorre la traccia attuale oppure permette di caricare un vecchio file GPX salvato dall'archivio.</li>
+        <li>🟢 <b>RIENTRO BASE NUOVO PERCORSO:</b> Calcola la rotta pedonale più sicura verso la base con allarme fuori rotta (>15m).</li>
         <li>📷 <b>Foto / 📹 Video / 🎙️ Audio:</b> Scatta e salva i media numerati sulla mappa con timer di registrazione audio in tempo reale.</li>
       </ul>
       <button class="pay-btn" onclick="closeLegenda()" style="margin-top: 15px;">CHIUDI LEGENDA</button>
@@ -584,7 +599,7 @@
       }
     }
 
-    // --- GESTIONE LICENZE & CONTATTO EMERGENZA OBBLIGATORIO ---
+    // --- GESTIONE LICENZE & CONTATTO EMERGENZA ---
     const MASTER_KEY = "MASSIMO-MASTER-2026";
     const GIFT_KEY = "REGALO-SENTIERO-2026";
     const NEW_GIFT_KEY = "SENTIEROVIP2026";
@@ -708,16 +723,38 @@
       }
     }
 
-    // --- MAPPA & GPS ---
+    // --- MAPPA LEAFLET & STRATI ESCURSIONISTICI (CAI / OpenTopoMap) ---
     const map = L.map('map', { zoomControl: false }).setView([43.5485, 10.3106], 16);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '© OpenStreetMap'
     }).addTo(map);
 
+    const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+      maxZoom: 17,
+      attribution: '© OpenTopoMap'
+    });
+
+    let isTopoActive = false;
+    function toggleMapStyle() {
+      if (!isTopoActive) {
+        map.removeLayer(osmLayer);
+        topoLayer.addTo(map);
+        isTopoActive = true;
+        speak("Mappa topografica CAI attivata.");
+      } else {
+        map.removeLayer(topoLayer);
+        osmLayer.addTo(map);
+        isTopoActive = false;
+        speak("Mappa standard attivata.");
+      }
+    }
+
     let isTracking = false;
+    let currentTrackName = "";
     let trackPoints = [];
+    let recordedMediaList = []; // Elenco media scattati
     let photoCount = 0;
     let videoCount = 0;
     let audioCount = 0;
@@ -726,6 +763,7 @@
     let trackPolyline = L.polyline([], { color: '#1e88e5', weight: 5 }).addTo(map);
     let returnBackPolyline = L.polyline([], { color: '#ff9800', weight: 5, dashArray: '6, 6' }).addTo(map);
     let returnAltPolyline = L.polyline([], { color: '#00e676', weight: 6 }).addTo(map);
+    let loadedGpxPolyline = L.polyline([], { color: '#ab47bc', weight: 5, dashArray: '4, 4' }).addTo(map);
     let calculatedReturnPath = [];
 
     let startPoint = null;
@@ -813,7 +851,7 @@
                     html: '<div style="background:#00e676; border:2px solid #fff; border-radius:50%; width:16px; height:16px;"></div>',
                     iconSize: [24, 24]
                   })
-                }).addTo(map).bindPopup("Punto di Partenza (Casa)");
+                }).addTo(map).bindPopup("Punto di Partenza (Base)");
               }
             }
             trackPoints.push(currentLatLng);
@@ -860,8 +898,29 @@
       }
     }
 
-    // --- PAUSA & BANDIERINA DI SOSTA ---
+    // --- AVVIO TRACCIA CON NOME ESCONSUIONE OBBLIGATORIO ---
     function toggleTracking() {
+      if (!isTracking && !startTime) {
+        // Chiede il nome dell'escursione al primo avvio
+        document.getElementById('track-name-input').value = `Sentiero_${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}`;
+        document.getElementById('start-track-modal').style.display = 'flex';
+      } else {
+        executeToggleTracking();
+      }
+    }
+
+    function confirmStartTrack() {
+      const input = document.getElementById('track-name-input').value.trim();
+      currentTrackName = input ? input.replace(/[^a-z0-9_-]/gi, '_') : `Sentiero_${Date.now()}`;
+      document.getElementById('start-track-modal').style.display = 'none';
+      executeToggleTracking();
+    }
+
+    function cancelStartTrack() {
+      document.getElementById('start-track-modal').style.display = 'none';
+    }
+
+    function executeToggleTracking() {
       const btnRec = document.getElementById('btn-rec');
       const btnStop = document.getElementById('btn-stop');
       const icon = document.getElementById('rec-icon');
@@ -878,7 +937,7 @@
         if (!startTime) {
           startTime = Date.now();
           timerInterval = setInterval(updateTimer, 1000);
-          speak("Registrazione percorso avviata");
+          speak(`Registrazione escursione ${currentTrackName.replace(/_/g, ' ')} avviata`);
         } else {
           speak("Registrazione ripresa");
         }
@@ -951,14 +1010,17 @@
         return;
       }
       isTracking = false;
+      document.getElementById('track-filename').value = currentTrackName || `Sentiero_${new Date().toISOString().slice(0,10)}`;
       document.getElementById('save-track-modal').style.display = 'flex';
     }
 
     function resetRecordingUI() {
       isTracking = false;
       startTime = null;
+      currentTrackName = "";
       clearInterval(timerInterval);
       trackPoints = [];
+      recordedMediaList = [];
       totalDistance = 0;
       photoCount = 0;
       videoCount = 0;
@@ -985,7 +1047,7 @@
 
     function confirmSaveGPX() {
       const filenameInput = document.getElementById('track-filename').value.trim();
-      const filename = filenameInput ? filenameInput.replace(/[^a-z0-9]/gi, '_') : `SentieroVivo_${new Date().toISOString().slice(0,10)}`;
+      const filename = filenameInput ? filenameInput.replace(/[^a-z0-9_-]/gi, '_') : `Sentiero_${new Date().toISOString().slice(0,10)}`;
 
       let gpxContent = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="SentieroVivo">
@@ -1003,6 +1065,7 @@
   </trk>
 </gpx>`;
 
+      // Download GPX
       const blob = new Blob([gpxContent], { type: 'application/gpx+xml' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -1012,19 +1075,41 @@
       a.click();
       document.body.removeChild(a);
 
-      speak("Percorso scaricato nella cartella Download del tuo telefono.");
-      alert(`File "${filename}.gpx" salvato nella cartella Download del tuo telefono!`);
+      // Download Singoli File Media ordinati
+      recordedMediaList.forEach((media) => {
+        const mUrl = URL.createObjectURL(media.blob);
+        const mA = document.createElement('a');
+        mA.href = mUrl;
+        mA.download = `${filename}_${media.name}`;
+        document.body.appendChild(mA);
+        mA.click();
+        document.body.removeChild(mA);
+      });
+
+      speak("Escursione scaricata nella memoria del telefono.");
+      alert(`Salvato file "${filename}.gpx" e i file multimediali collegati.`);
       closeSaveModal();
     }
 
-    // --- RIENTRO & NAVIGATORE ---
+    // --- PERCORSO A RITROSO (ATTUALE O DA ARCHIVIO) ---
     function toggleReturnBack() {
+      if (trackPoints.length > 0) {
+        let choice = confirm("Vuoi ripercorrere a ritroso l'escursione ATTUALE?\n(Clicca CANCELLA per caricare una vecchia traccia dall'archivio)");
+        if (choice) {
+          activateCurrentReturnBack();
+        } else {
+          triggerGPXFileSelect();
+        }
+      } else {
+        triggerGPXFileSelect();
+      }
+    }
+
+    function activateCurrentReturnBack() {
       if (!startPoint) {
-        speak("Nessun punto di partenza registrato.");
-        alert("Nessun punto di partenza registrato. Avvia prima la traccia!");
+        alert("Nessun punto di partenza registrato.");
         return;
       }
-
       isReturnBackActive = !isReturnBackActive;
       isReturnAltActive = false;
       returnAltPolyline.setLatLngs([]);
@@ -1041,12 +1126,55 @@
       }
     }
 
+    function triggerGPXFileSelect() {
+      document.getElementById('gpx-file-input').click();
+    }
+
+    function loadExternalGPX(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const content = e.target.result;
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(content, "text/xml");
+        const trkpts = xml.querySelectorAll("trkpt");
+
+        let loadedPoints = [];
+        trkpts.forEach(pt => {
+          const lat = parseFloat(pt.getAttribute("lat"));
+          const lon = parseFloat(pt.getAttribute("lon"));
+          if (!isNaN(lat) && !isNaN(lon)) {
+            loadedPoints.push(new L.LatLng(lat, lon));
+          }
+        });
+
+        if (loadedPoints.length > 0) {
+          loadedGpxPolyline.setLatLngs(loadedPoints);
+          map.fitBounds(loadedGpxPolyline.getBounds());
+          startPoint = loadedPoints[0];
+          
+          isReturnBackActive = true;
+          document.getElementById('return-hud').style.display = 'flex';
+          document.getElementById('return-mode-title').innerText = "Rientro Traccia Caricata";
+          speak("Traccia caricata dall'archivio. Navigazione a ritroso attivata.");
+        } else {
+          alert("Nessun punto valido trovato nel file GPX selezionato.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // --- RIENTRO BASE NUOVO PERCORSO (NAVIGATORE SENTIERI REALI) ---
     async function toggleReturnAlt() {
-      if (!startPoint) {
-        speak("Nessun punto di partenza registrato.");
-        alert("Nessun punto di partenza registrato. Avvia prima la traccia!");
+      if (!startPoint && (!userMarker)) {
+        speak("Impossibile stabilire la base di partenza.");
+        alert("Avvia prima l'escursione per registrare la base di partenza!");
         return;
       }
+
+      const targetPoint = startPoint || (userMarker ? userMarker.getLatLng() : map.getCenter());
 
       isReturnAltActive = !isReturnAltActive;
       isReturnBackActive = false;
@@ -1056,10 +1184,10 @@
       if (isReturnAltActive) {
         hud.style.display = 'flex';
         document.getElementById('return-mode-title').innerText = "Calcolo nuovo sentiero...";
-        speak("Calcolo del nuovo sentiero di rientro in corso.");
+        speak("Calcolo del nuovo sentiero sicuro di rientro in corso.");
 
         const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
-        const url = `https://router.project-osrm.org/route/v1/foot/${currentPos.lng},${currentPos.lat};${startPoint.lng},${startPoint.lat}?overview=full&geometries=geojson`;
+        const url = `https://router.project-osrm.org/route/v1/foot/${currentPos.lng},${currentPos.lat};${targetPoint.lng},${targetPoint.lat}?overview=full&geometries=geojson`;
 
         try {
           const response = await fetch(url);
@@ -1077,7 +1205,7 @@
             throw new Error("Nessun sentiero trovato");
           }
         } catch (err) {
-          calculatedReturnPath = [currentPos, startPoint];
+          calculatedReturnPath = [currentPos, targetPoint];
           returnAltPolyline.setLatLngs(calculatedReturnPath);
           document.getElementById('return-mode-title').innerText = "Rientro Diretto Base";
           speak("Tracciata rotta diretta verso la base.");
@@ -1147,13 +1275,19 @@
       const isVideo = file.type.startsWith('video');
 
       let badgeLabel = "";
+      let fileNameOnly = "";
+
       if (isVideo) {
         videoCount++;
         badgeLabel = `Video #${videoCount}`;
+        fileNameOnly = `VIDEO_${videoCount}.mp4`;
       } else {
         photoCount++;
         badgeLabel = `Foto #${photoCount}`;
+        fileNameOnly = `FOTO_${photoCount}.jpg`;
       }
+
+      recordedMediaList.push({ name: fileNameOnly, blob: file });
 
       const mediaTag = isVideo 
         ? `<video src="${fileUrl}" controls></video>` 
@@ -1226,6 +1360,9 @@
       const audioUrl = URL.createObjectURL(blob);
       const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
       const badgeLabel = `Audio #${audioCount}`;
+      const fileNameOnly = `VOCALE_${audioCount}.mp3`;
+
+      recordedMediaList.push({ name: fileNameOnly, blob: blob });
 
       L.marker(currentPos, {
         icon: L.divIcon({
@@ -1242,7 +1379,7 @@
       speak(`Audio numero ${audioCount} salvato`);
     }
 
-    // --- LEGENDA & PROVA ---
+    // --- LEGENDA & PROVA 15 GIORNI ---
     function openLegenda() {
       document.getElementById('legenda-modal').style.display = 'flex';
     }
