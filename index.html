@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="it">
 <head>
   <meta charset="UTF-8">
@@ -49,9 +49,9 @@
       background: #00bcd4;
       color: #000;
       text-align: center;
-      padding: 8px;
+      padding: 10px;
       font-weight: bold;
-      font-size: 13px;
+      font-size: 14px;
       z-index: 9999;
       cursor: pointer;
     }
@@ -69,9 +69,9 @@
       pointer-events: none;
     }
     .hud-card {
-      background: rgba(18, 18, 18, 0.90);
+      background: rgba(18, 18, 18, 0.92);
       backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 14px;
       padding: 8px 12px;
       display: flex;
@@ -85,27 +85,28 @@
       flex-direction: column;
     }
     .hud-label {
-      font-size: 9px;
+      font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 0.8px;
       color: #a0a0a0;
     }
     .hud-value {
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 700;
       color: #ffffff;
     }
 
     /* Riquadro Coordinate GPS */
     .coords-hud {
-      background: rgba(0, 0, 0, 0.85);
+      background: rgba(0, 0, 0, 0.88);
       border: 1px solid #00bcd4;
       border-radius: 8px;
-      padding: 4px 10px;
-      font-size: 11px;
+      padding: 6px 10px;
+      font-size: 12px;
       color: #00bcd4;
       font-family: monospace;
       text-align: center;
+      font-weight: bold;
     }
 
     .timer-badge {
@@ -122,7 +123,7 @@
       font-weight: 700;
       padding: 4px 8px;
       border-radius: 20px;
-      font-size: 10px;
+      font-size: 11px;
       display: flex;
       align-items: center;
       gap: 4px;
@@ -158,9 +159,9 @@
       flex-wrap: wrap;
     }
     .btn {
-      background: rgba(30, 30, 30, 0.92);
+      background: rgba(30, 30, 30, 0.95);
       backdrop-filter: blur(8px);
-      border: 1px solid rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.25);
       color: white;
       padding: 10px 12px;
       border-radius: 10px;
@@ -213,7 +214,7 @@
       justify-content: center;
     }
 
-    /* Finestre Modali */
+    /* Finestre Modali Ingrandite con Scorrimento */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -223,38 +224,52 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 15px;
     }
     .modal-card {
       background: #1e1e1e;
       border: 2px solid #ff9800;
       border-radius: 20px;
-      padding: 24px;
-      max-width: 400px;
+      padding: 24px 20px;
+      max-width: 440px;
       width: 100%;
       text-align: center;
       box-shadow: 0 10px 40px rgba(0,0,0,0.9);
-      max-height: 85vh;
-      overflow-y: auto;
+      max-height: 88vh;
+      overflow-y: auto; /* Barra di scorrimento verticale attiva */
+      scrollbar-width: thin;
+      scrollbar-color: #ff9800 #111;
     }
+
+    /* Personalizzazione scrollbar */
+    .modal-card::-webkit-scrollbar {
+      width: 6px;
+    }
+    .modal-card::-webkit-scrollbar-thumb {
+      background-color: #ff9800;
+      border-radius: 10px;
+    }
+
+    /* Caratteri Ingranditi per Alta Leggibilità */
     .modal-card h2 {
       color: #ff9800;
-      margin-bottom: 12px;
-      font-size: 20px;
+      margin-bottom: 14px;
+      font-size: 22px;
+      font-weight: 800;
     }
     .modal-card p {
-      color: #ccc;
-      font-size: 13px;
-      margin-bottom: 16px;
-      line-height: 1.5;
+      color: #e0e0e0;
+      font-size: 15px; /* Ingrandito per vista ottimale */
+      margin-bottom: 18px;
+      line-height: 1.6;
     }
     .device-box {
       background: #111;
       border: 1px dashed #555;
-      padding: 10px;
+      padding: 12px;
       border-radius: 8px;
       font-family: monospace;
-      font-size: 14px;
+      font-size: 15px;
       color: #00bcd4;
       margin-bottom: 15px;
       word-break: break-all;
@@ -263,43 +278,44 @@
       background: #4caf50;
       color: white;
       width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      border-radius: 12px;
+      border: none;
+      font-weight: 800;
+      cursor: pointer;
+      margin-bottom: 12px;
+    }
+    .input-code {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #555;
+      background: #2a2a2a;
+      color: #fff;
+      text-align: center;
+      font-size: 16px;
+      margin-bottom: 12px;
+    }
+    .btn-activate {
+      background: #2196f3;
+      color: white;
+      width: 100%;
       padding: 12px;
       font-size: 15px;
       border-radius: 10px;
       border: none;
       font-weight: 700;
       cursor: pointer;
-      margin-bottom: 12px;
-    }
-    .input-code {
-      width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #444;
-      background: #2a2a2a;
-      color: #fff;
-      text-align: center;
-      font-size: 14px;
-      margin-bottom: 10px;
-    }
-    .btn-activate {
-      background: #2196f3;
-      color: white;
-      width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: none;
-      font-weight: 700;
-      cursor: pointer;
     }
     .legenda-list {
       text-align: left;
-      font-size: 12px;
-      color: #ddd;
-      line-height: 1.6;
+      font-size: 14px; /* Ingrandito */
+      color: #eee;
+      line-height: 1.7;
     }
     .legenda-list li {
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
 
     .media-popup {
@@ -418,38 +434,38 @@
 
   <input type="file" id="camera-capture" style="display: none;" onchange="handleMediaCaptured(event)">
 
-  <!-- MODALE 1: Intro / Benvenuto e Licenza -->
+  <!-- MODALE 1: Intro / Benvenuto e Licenza (Caratteri Ingranditi) -->
   <div id="intro-modal" class="modal-overlay">
     <div class="modal-card">
       <h2>Benvenuto su SentieroVivo! 🥾</h2>
       <p>Applicazione web per l'escursionismo con tracciamento GPS in tempo reale, foto/video geolocalizzati, sintesi vocale e Rientro Sicuro.</p>
 
-      <p style="background: rgba(255, 152, 0, 0.15); border: 1px solid #ff9800; padding: 12px; border-radius: 10px; color: #fff; font-size: 12px; text-align: left;">
-        ℹ️ <b>INFORMAZIONE SULL'USO:</b><br>
-        - Hai a disposizione <b>15 GIORNI DI PROVA GRATUITA</b>.<br>
-        - Al termine, è richiesto un contributo di <b>5,00 €</b> con sblocco istantaneo.
-      </p>
+      <div style="background: rgba(255, 152, 0, 0.15); border: 1px solid #ff9800; padding: 14px; border-radius: 12px; color: #fff; font-size: 14px; text-align: left; margin-bottom: 16px;">
+        ℹ️ <b>INFORMAZIONE SULL'USO:</b><br><br>
+        • Hai a disposizione <b>15 GIORNI DI PROVA GRATUITA</b>.<br><br>
+        • Al termine, per continuare ad usarla su questo telefono, è richiesto un contributo di <b>5,00 €</b> con sblocco istantaneo.
+      </div>
 
-      <button class="pay-btn" onclick="startTrialStep1()" style="margin-top: 10px;">INIZIA PROVA GRATUITA (15 gg)</button>
+      <button class="pay-btn" onclick="startTrialStep1()">INIZIA PROVA GRATUITA (15 gg)</button>
 
-      <p style="font-size: 12px; color: #aaa; margin-top: 12px; cursor: pointer;" onclick="promptMasterUnlock()">
-        Hai già un codice regalo o devi inserire la Master Key? <b style="color:#00bcd4;">Clicca qui</b>
+      <p style="font-size: 14px; color: #aaa; margin-top: 15px; cursor: pointer;" onclick="promptMasterUnlock()">
+        Hai un codice regalo o una Master Key?<br><b style="color:#00bcd4; text-decoration: underline;">Clicca qui per inserirlo</b>
       </p>
     </div>
   </div>
 
-  <!-- MODALE 2: Inserimento Obbligatorio Contatto SOS (Nome + Numero) -->
+  <!-- MODALE 2: Contatto SOS (Ingrandito e Scorrevole) -->
   <div id="emergency-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card">
       <h2>Contatto SOS di Fiducia 📞</h2>
-      <p style="font-size: 12px; color: #aaa; margin-bottom: 15px;">
+      <p style="font-size: 14px; color: #ccc; margin-bottom: 16px;">
         Inserisci il Nome e il Numero di telefono della persona a cui inviare l'SMS di emergenza con la tua posizione GPS quando premerai il tasto <b>S.O.S.</b>
       </p>
       
-      <div style="text-align: left; margin-bottom: 8px; font-size: 11px; color: #00bcd4;">NOME CONTATTO:</div>
+      <div style="text-align: left; margin-bottom: 6px; font-size: 13px; color: #00bcd4; font-weight: bold;">NOME CONTATTO:</div>
       <input type="text" id="emergency-name-input" class="input-code" placeholder="es. Mario Rossi">
 
-      <div style="text-align: left; margin-bottom: 8px; font-size: 11px; color: #00bcd4;">NUMERO TELEFONO:</div>
+      <div style="text-align: left; margin-bottom: 6px; font-size: 13px; color: #00bcd4; font-weight: bold;">NUMERO TELEFONO:</div>
       <input type="tel" id="emergency-phone-input" class="input-code" placeholder="es. 3391234567">
       
       <button class="pay-btn" onclick="saveEmergencyContact()" style="margin-top: 10px;">CONFERMA E ENTRA NELL'APP</button>
@@ -461,9 +477,9 @@
   <div id="pay-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card">
       <h2>Periodo di Prova Terminato</h2>
-      <p>I 15 giorni di prova sono trascorse. Per attivare SentieroVivo, versa la quota di 5,00 € oppure inserisci il codice regalo.</p>
+      <p>I 15 giorni di prova sono trascorsi. Per attivare SentieroVivo, versa la quota di 5,00 € oppure inserisci il codice regalo.</p>
 
-      <div style="font-size: 12px; color: #aaa; margin-bottom: 5px;">ID Dispositivo Unico:</div>
+      <div style="font-size: 13px; color: #aaa; margin-bottom: 5px;">ID Dispositivo Unico:</div>
       <div id="device-id-display" class="device-box">--------</div>
 
       <!-- Pulsante PayPal Live Integrato -->
@@ -487,14 +503,25 @@
     </div>
   </div>
 
-  <!-- Modal Legenda -->
+  <!-- Modal Legenda & Guida Ingrandita con Sezione Installazione -->
   <div id="legenda-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card">
       <h2>Legenda & Guida 📖</h2>
+
+      <div style="background: rgba(0, 188, 212, 0.12); border: 1px solid #00bcd4; padding: 12px; border-radius: 12px; text-align: left; margin-bottom: 16px;">
+        <h3 style="color: #00bcd4; font-size: 15px; margin-bottom: 8px;">📲 Come installare l'App sul telefono:</h3>
+        <p style="font-size: 13px; color: #ddd; margin-bottom: 6px;">
+          <b>• Su Android (Chrome):</b> Clicca sui 3 pallini in alto a destra ➔ seleziona <i>"Aggiungi a schermata Home"</i> (oppure <i>"Installa app"</i>).
+        </p>
+        <p style="font-size: 13px; color: #ddd; margin-bottom: 0;">
+          <b>• Su iPhone (Safari):</b> Clicca sul tasto Condividi (quadratino con freccia in su) ➔ seleziona <i>"Aggiungi alla schermata Home"</i>.
+        </p>
+      </div>
+
       <ul class="legenda-list">
         <li>📍 <b>Freccia Azzurra:</b> Tua posizione GPS e direzione in tempo reale.</li>
         <li>🔵 <b>Linea Blu:</b> Tracciato di andata registrato.</li>
-        <li>🚨 <b>Tasto S.O.S.:</b> Invia un SMS immediato con le tue coordinate esatte al tuo contatto di fiducia ed avvia la chiamata al 112.</li>
+        <li>🚨 <b>Tasto S.O.S.:</b> Invia un SMS immediato con le coordinate al contatto di fiducia ed avvia la chiamata al 112.</li>
         <li>📞 <b>Contatto:</b> Modifica in qualsiasi momento Nome e Numero del contatto SOS.</li>
         <li>🚩 <b>Bandierine di Sosta:</b> Mostrano l'ora della pausa e le coordinate esatte.</li>
         <li>▶️ <b>AVVIA / ⏸️ PAUSA / ⏹️ STOP:</b> Registra, mette in pausa e salva l'escursione.</li>
@@ -557,7 +584,7 @@
       }
     }
 
-    // --- GESTIONE LICENZE & CONTATTO EMERGENZA OBBILGATORIO ---
+    // --- GESTIONE LICENZE & CONTATTO EMERGENZA OBBLIGATORIO ---
     const MASTER_KEY = "MASSIMO-MASTER-2026";
     const GIFT_KEY = "REGALO-SENTIERO-2026";
     const NEW_GIFT_KEY = "SENTIEROVIP2026";
@@ -585,11 +612,10 @@
     let isLicensed = localStorage.getItem('sv_licensed_' + deviceId) === 'true' || localStorage.getItem('sv_master_unlocked') === 'true';
     let hasEmergencyContact = localStorage.getItem('sv_emergency_phone') ? true : false;
 
-    // Avvio Sequenza Finestre Modali
     if (!isLicensed) {
       document.getElementById('intro-modal').style.display = 'flex';
     } else if (!hasEmergencyContact) {
-      openEmergencyModal(true); // Modalità Obbligatoria (primo avvio dopo licenza)
+      openEmergencyModal(true);
     } else {
       document.getElementById('intro-modal').style.display = 'none';
       document.getElementById('trial-timer').style.display = 'none';
@@ -598,7 +624,6 @@
     function startTrialStep1() {
       document.getElementById('intro-modal').style.display = 'none';
       initTrialTimer();
-      // Passo al Modale 2 Obbligatorio
       openEmergencyModal(true);
     }
 
@@ -610,9 +635,9 @@
 
       const closeBtn = document.getElementById('close-emergency-btn');
       if (isMandatory) {
-        closeBtn.style.display = 'none'; // Nasconde pulsante chiudi se è il primo avvio obbligatorio
+        closeBtn.style.display = 'none';
       } else {
-        closeBtn.style.display = 'block'; // Mostra se aperto dal pulsante in basso
+        closeBtn.style.display = 'block';
       }
 
       document.getElementById('emergency-modal').style.display = 'flex';
