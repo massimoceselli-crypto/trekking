@@ -39,6 +39,23 @@
       z-index: 1;
     }
 
+    /* Banner Aggiornamento PWA */
+    #update-banner {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: #00bcd4;
+      color: #000;
+      text-align: center;
+      padding: 8px;
+      font-weight: bold;
+      font-size: 13px;
+      z-index: 9999;
+      cursor: pointer;
+    }
+
     /* Barra Statistiche in Alto */
     .top-bar {
       position: absolute;
@@ -56,7 +73,7 @@
       backdrop-filter: blur(10px);
       border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 14px;
-      padding: 10px 14px;
+      padding: 8px 12px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -68,15 +85,27 @@
       flex-direction: column;
     }
     .hud-label {
-      font-size: 10px;
+      font-size: 9px;
       text-transform: uppercase;
       letter-spacing: 0.8px;
       color: #a0a0a0;
     }
     .hud-value {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
       color: #ffffff;
+    }
+
+    /* Riquadro Coordinate GPS */
+    .coords-hud {
+      background: rgba(0, 0, 0, 0.85);
+      border: 1px solid #00bcd4;
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 11px;
+      color: #00bcd4;
+      font-family: monospace;
+      text-align: center;
     }
 
     .timer-badge {
@@ -91,12 +120,12 @@
       background: #2e7d32;
       color: #ffffff;
       font-weight: 700;
-      padding: 4px 10px;
+      padding: 4px 8px;
       border-radius: 20px;
-      font-size: 11px;
+      font-size: 10px;
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
     }
     .gps-status-badge.gps-lost {
       background: #c62828;
@@ -156,10 +185,12 @@
       border-color: #ffb74d;
       color: #000;
     }
-    .btn-audio-rec {
-      background: #e53935 !important;
+    .btn-sos {
+      background: #d32f2f !important;
       border-color: #ff5252 !important;
-      animation: blink 1s infinite;
+      color: #fff !important;
+      font-weight: 800;
+      animation: blink 1.2s infinite;
     }
     .btn-stop {
       background: #e53935;
@@ -294,6 +325,11 @@
 </head>
 <body>
 
+  <!-- Banner Aggiornamento PWA -->
+  <div id="update-banner" onclick="applyAppUpdate()">
+    🔄 Nuova versione di SentieroVivo disponibile! Clicca qui per aggiornare.
+  </div>
+
   <div id="map"></div>
 
   <!-- Barra Statistiche in Alto -->
@@ -312,9 +348,14 @@
         <span id="stat-alt" class="hud-value">-- m</span>
       </div>
       <div id="gps-status" class="gps-status-badge gps-lost">
-        <i class="fa-solid fa-location-crosshairs"></i> <span id="gps-text">RICERCA GPS...</span>
+        <i class="fa-solid fa-location-crosshairs"></i> <span id="gps-text">GPS...</span>
       </div>
       <div id="trial-timer" class="timer-badge">Prova: --</div>
+    </div>
+
+    <!-- 1. Riquadro Coordinate GPS in Tempo Reale -->
+    <div class="coords-hud">
+      📍 Lat: <span id="gps-lat">0.000000</span> | Long: <span id="gps-lng">0.000000</span>
     </div>
 
     <!-- HUD Rientro / Distanza alla Base -->
@@ -348,6 +389,12 @@
       <button id="btn-stop" class="btn btn-stop" onclick="promptStopAndSave()" style="display:none;">
         <i class="fa-solid fa-square"></i> STOP
       </button>
+      
+      <!-- 3. Tasto S.O.S. Soccorso -->
+      <button class="btn btn-sos" onclick="triggerSOS()">
+        <i class="fa-solid fa-triangle-exclamation"></i> S.O.S.
+      </button>
+
       <button class="btn" onclick="toggleVoiceAlerts()">
         <i id="voice-icon" class="fa-solid fa-volume-high" style="color: #00e676;"></i> Voce
       </button>
@@ -368,15 +415,22 @@
 
   <input type="file" id="camera-capture" style="display: none;" onchange="handleMediaCaptured(event)">
 
-  <!-- Modal Intro / Prova Iniziale -->
+  <!-- Modal Intro / Prova Iniziale / Contatto Emergenza -->
   <div id="intro-modal" class="modal-overlay">
     <div class="modal-card">
       <h2>Benvenuto su SentieroVivo! 🥾</h2>
       <p>Applicazione web per l'escursionismo con tracciamento GPS in tempo reale, foto/video geolocalizzati, sintesi vocale e Rientro Sicuro.</p>
-      <p style="background: rgba(255, 152, 0, 0.15); border: 1px solid #ff9800; padding: 12px; border-radius: 10px; color: #fff; font-size: 13px; text-align: left;">
-        ℹ️ <b>INFORMAZIONE SULL'USO:</b><br><br>
-        - Hai a disposizione <b>15 GIORNI DI PROVA GRATUITA</b>.<br><br>
-        - Al termine, per continuare l'uso su questo dispositivo, è richiesto un contributo di <b>5,00 €</b> con sblocco istantaneo.
+      
+      <!-- 4. Impostazione Contatto Emergenza -->
+      <div style="background: rgba(0, 188, 212, 0.1); border: 1px solid #00bcd4; padding: 10px; border-radius: 10px; margin-bottom: 12px;">
+        <label style="font-size: 11px; color: #00bcd4; display: block; margin-bottom: 4px;">📞 CONTATTO DI EMERGENZA (Telefono/SMS):</label>
+        <input type="tel" id="emergency-contact-input" class="input-code" style="margin-bottom:0;" placeholder="es. 3391234567">
+      </div>
+
+      <p style="background: rgba(255, 152, 0, 0.15); border: 1px solid #ff9800; padding: 12px; border-radius: 10px; color: #fff; font-size: 12px; text-align: left;">
+        ℹ️ <b>INFORMAZIONE SULL'USO:</b><br>
+        - Hai a disposizione <b>15 GIORNI DI PROVA GRATUITA</b>.<br>
+        - Al termine, è richiesto un contributo di <b>5,00 €</b> con sblocco istantaneo.
       </p>
 
       <button class="pay-btn" onclick="startTrial()" style="margin-top: 10px;">INIZIA PROVA GRATUITA (15 gg)</button>
@@ -424,11 +478,12 @@
       <ul class="legenda-list">
         <li>📍 <b>Freccia Azzurra:</b> Tua posizione GPS e direzione in tempo reale.</li>
         <li>🔵 <b>Linea Blu:</b> Tracciato di andata registrato.</li>
-        <li>▶️ <b>AVVIA TRACCIA / ⏸️ PAUSA / ⏹️ STOP:</b> Durante la registrazione, il tasto si trasforma in <b>PAUSA</b> (in arancione) per mettere temporaneamente in pausa il cammino. Il tasto <b>STOP</b> (in rosso) conclude e salva l'escursione.</li>
-        <li>🟠 <b>PERCORSO A RITROSO:</b> Evidenzia la strada arancione con calcolo in tempo reale dei metri mancanti al punto di partenza.</li>
-        <li>🟢 <b>RIENTRO BASE NUOVO PERCORSO:</b> Calcola un nuovo sentiero reale verde verso casa con metri residui, bussola ed allarme fuori rotta (>15m).</li>
-        <li>⏸️/▶️ <b>Segnalini sulla mappa:</b> Registrano automaticamente le pause e le ripartenze.</li>
-        <li>📷 <b>Foto / 📹 Video / 🎙️ Audio:</b> Scatta e salva i media facendoli comparire sulla mappa con numeratore progressivo (`Foto #1`, `Video #1`, `Audio #1`) e timer di registrazione vocale in tempo reale.</li>
+        <li>🚨 <b>Tasto S.O.S.:</b> Invia un SMS immediato con le tue coordinate esatte al tuo contatto di fiducia ed avvia la chiamata al 112.</li>
+        <li>🚩 <b>Bandierine di Sosta:</b> Mostrano l'ora della pausa e le coordinate esatte.</li>
+        <li>▶️ <b>AVVIA / ⏸️ PAUSA / ⏹️ STOP:</b> Registra, mette in pausa e salva l'escursione.</li>
+        <li>🟠 <b>PERCORSO A RITROSO:</b> Rientro a ritroso con metri residui in tempo reale.</li>
+        <li>🟢 <b>RIENTRO BASE NUOVO PERCORSO:</b> Calcola un nuovo sentiero verde verso casa con navigatore e allarme fuori rotta (>15m).</li>
+        <li>📷 <b>Foto / 📹 Video / 🎙️ Audio:</b> Scatta e salva i media numerati sulla mappa con timer di registrazione audio in tempo reale.</li>
       </ul>
       <button class="pay-btn" onclick="closeLegenda()" style="margin-top: 15px;">CHIUDI LEGENDA</button>
     </div>
@@ -436,6 +491,28 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
+    // --- 5. REGISTRAZIONE SERVICE WORKER PWA & AGGIORNAMENTI ---
+    let newWorker = null;
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').then(reg => {
+        reg.addEventListener('updatefound', () => {
+          newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              document.getElementById('update-banner').style.display = 'block';
+            }
+          });
+        });
+      });
+    }
+
+    function applyAppUpdate() {
+      if (newWorker) {
+        newWorker.postMessage({ action: 'skipWaiting' });
+        window.location.reload();
+      }
+    }
+
     // --- 1. ASSISTENTE VOCALE ---
     let voiceEnabled = true;
     let lastOffTrackAlertTime = 0;
@@ -463,7 +540,7 @@
       }
     }
 
-    // --- 2. GESTIONE LICENZE ---
+    // --- 2. GESTIONE LICENZE & CONTATTO EMERGENZA ---
     const MASTER_KEY = "MASSIMO-MASTER-2026";
     const GIFT_KEY = "REGALO-SENTIERO-2026";
     const NEW_GIFT_KEY = "SENTIEROVIP2026";
@@ -488,6 +565,11 @@
     const deviceId = getDeviceId();
     document.getElementById('device-id-display').innerText = deviceId;
 
+    let savedContact = localStorage.getItem('sv_emergency_contact') || "";
+    if (savedContact) {
+      document.getElementById('emergency-contact-input').value = savedContact;
+    }
+
     let isLicensed = localStorage.getItem('sv_licensed_' + deviceId) === 'true' || localStorage.getItem('sv_master_unlocked') === 'true';
 
     if (isLicensed) {
@@ -498,6 +580,9 @@
     }
 
     function startTrial() {
+      const contactVal = document.getElementById('emergency-contact-input').value.trim();
+      if (contactVal) localStorage.setItem('sv_emergency_contact', contactVal);
+
       document.getElementById('intro-modal').style.display = 'none';
       speak("Benvenuto su SentieroVivo. Prova avviata.");
       initTrialTimer();
@@ -541,7 +626,7 @@
       }
     }
 
-    // --- 3. MAPPA, ALTITUDINE SRTM & FRECCETTA GPS ---
+    // --- 3. MAPPA, COORDINATE IN TEMPO REALE & FRECCETTA GPS ---
     const map = L.map('map', { zoomControl: false }).setView([43.5485, 10.3106], 16);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -553,7 +638,7 @@
     let trackPoints = [];
     let photoCount = 0;
     let videoCount = 0;
-    let audioCount = 0; // Contatore progressivo per i messaggi audio
+    let audioCount = 0;
     let lastAltitudeFetchTime = 0;
 
     let trackPolyline = L.polyline([], { color: '#1e88e5', weight: 5 }).addTo(map);
@@ -612,6 +697,10 @@
           const heading = pos.coords.heading || 0;
           const altGps = pos.coords.altitude;
           const currentLatLng = new L.LatLng(lat, lng);
+
+          // 1. Aggiornamento Coordinate GPS in tempo reale nel riquadro HUD
+          document.getElementById('gps-lat').innerText = lat.toFixed(6);
+          document.getElementById('gps-lng').innerText = lng.toFixed(6);
 
           if (altGps !== null && altGps !== undefined) {
             document.getElementById('stat-alt').innerText = Math.round(altGps) + ' m';
@@ -690,7 +779,7 @@
       }
     }
 
-    // --- 4. GESTIONE AVVIA / PAUSA / RIPRENDI / STOP ---
+    // --- 4. GESTIONE PAUSA & BANDIERINA DI SOSTA CON COORDINATE ---
     function toggleTracking() {
       const btnRec = document.getElementById('btn-rec');
       const btnStop = document.getElementById('btn-stop');
@@ -711,12 +800,6 @@
           speak("Registrazione percorso avviata");
         } else {
           speak("Registrazione ripresa");
-          L.marker(currentPos, {
-            icon: L.divIcon({
-              html: '<div style="background:#ff9800; border:2px solid #fff; border-radius:50%; width:14px; height:14px;"></div>',
-              iconSize: [20, 20]
-            })
-          }).addTo(map).bindPopup("Ripresa Cammino");
         }
       } else {
         isTracking = false;
@@ -725,12 +808,52 @@
         text.innerText = "RIPRENDI";
         speak("Registrazione in pausa");
 
+        // 2. Bandierina di Sosta con Orario e Coordinate GPS
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const latStr = currentPos.lat.toFixed(6);
+        const lngStr = currentPos.lng.toFixed(6);
+
         L.marker(currentPos, {
           icon: L.divIcon({
-            html: '<div style="background:#e53935; border:2px solid #fff; border-radius:50%; width:14px; height:14px;"></div>',
-            iconSize: [20, 20]
+            html: '<div style="font-size: 22px;">🚩</div>',
+            iconSize: [24, 24]
           })
-        }).addTo(map).bindPopup("Punto di Sosta / Pausa");
+        }).addTo(map).bindPopup(`
+          <div style="font-size:12px; text-align:center;">
+            <b>🚩 Sosta ore ${timeStr}</b><br>
+            <span style="color:#00bcd4; font-family:monospace;">Lat: ${latStr}<br>Lng: ${lngStr}</span>
+          </div>
+        `).openPopup();
+      }
+    }
+
+    // --- 3 & 4. TASTO S.O.S. + CHIAMATA 112 + SMS AUTOMATICO ---
+    function triggerSOS() {
+      const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
+      const lat = currentPos.lat.toFixed(6);
+      const lng = currentPos.lng.toFixed(6);
+      const contact = localStorage.getItem('sv_emergency_contact') || "";
+
+      // Marker lampeggiante di emergenza sulla mappa
+      L.marker(currentPos, {
+        icon: L.divIcon({
+          html: '<div style="font-size:28px; animation: blink 0.8s infinite;">🚨</div>',
+          iconSize: [30, 30]
+        })
+      }).addTo(map).bindPopup(`<b>🚨 POSIZIONE DI EMERGENZA SOS</b><br>Lat: ${lat}<br>Lng: ${lng}`).openPopup();
+
+      speak("Allarme SOS attivato!");
+
+      const smsText = encodeURIComponent(`HO BISOGNO DI AIUTO! Le mie coordinate GPS sono: Lat ${lat}, Long ${lng}`);
+      
+      let confirmCall = confirm(`🚨 ALLARME SOS!\n\nCoordinate: Lat ${lat}, Long ${lng}\n\nPremi OK per inviare l'SMS di emergenza e chiamare i soccorsi.`);
+
+      if (confirmCall) {
+        if (contact) {
+          window.location.href = `sms:${contact}?body=${smsText}`;
+        } else {
+          window.location.href = `tel:112`;
+        }
       }
     }
 
@@ -970,7 +1093,6 @@
       speak(isVideo ? `Video numero ${videoCount} salvato` : `Foto numero ${photoCount} salvata`);
     }
 
-    // --- LOGICA REGISTRAZIONE AUDIO CON TIMER ---
     let mediaRecorder = null;
     let audioChunks = [];
     let isRecordingAudio = false;
