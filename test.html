@@ -828,19 +828,15 @@
     let startTime = null;
     let timerInterval = null;
 
-    // ORIENTAMENTO BUSSOLA HARDWARE
+    // ORIENTAMENTO BUSSOLA HARDWARE (Stabilizzata)
     if (window.DeviceOrientationEvent) {
       window.addEventListener('deviceorientationabsolute', handleOrientation, true) ||
       window.addEventListener('deviceorientation', handleOrientation, true);
     }
 
     function handleOrientation(event) {
-      let heading = event.alpha;
-      if (event.webkitCompassHeading) heading = event.webkitCompassHeading;
-      const arrowEl = document.querySelector('.gps-arrow-icon');
-      if (arrowEl && heading !== null) {
-        arrowEl.style.transform = `rotate(${heading}deg)`;
-      }
+      // Disattivata rotazione dinamica per evitare scatti sulla mappa
+      return;
     }
 
     async function fetchRealElevation(lat, lng) {
