@@ -342,7 +342,8 @@
       height: 36px;
     }
     .gps-arrow-icon {
-      transition: transform 0.2s ease-out;
+      /* Disattivata transizione di rotazione per evitare scatti */
+      transform: none !important;
     }
   </style>
 </head>
@@ -813,11 +814,12 @@
     let startPoint = null;
     let startMarker = null;
 
+    // ICONA POSIZIONE FISSA SENZA ROTAZIONE BUSSOLA
     const arrowIcon = L.divIcon({
       className: 'gps-arrow-icon',
-      html: `<div style="color: #00bcd4; font-size: 24px; text-shadow: 0 0 5px #000;"><i class="fa-solid fa-location-arrow"></i></div>`,
-      iconSize: [36, 36],
-      iconAnchor: [18, 18]
+      html: `<div style="color: #00bcd4; font-size: 26px; text-shadow: 0 0 5px #000;"><i class="fa-solid fa-circle-dot"></i></div>`,
+      iconSize: [30, 30],
+      iconAnchor: [15, 15]
     });
     let userMarker = null;
 
@@ -828,14 +830,8 @@
     let startTime = null;
     let timerInterval = null;
 
-    // ORIENTAMENTO BUSSOLA HARDWARE (Stabilizzata)
-    if (window.DeviceOrientationEvent) {
-      window.addEventListener('deviceorientationabsolute', handleOrientation, true) ||
-      window.addEventListener('deviceorientation', handleOrientation, true);
-    }
-
+    // ORIENTAMENTO BUSSOLA DISATTIVATO COMPLETAMENTE PER STABILITÀ
     function handleOrientation(event) {
-      // Disattivata rotazione dinamica per evitare scatti sulla mappa
       return;
     }
 
