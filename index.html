@@ -3,21 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SentieroVivo - GPS Escursionismo</title>
+  <title>SentieroVivo TEST - GPS Escursionismo</title>
   
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#121212">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="apple-touch-icon" href="icon-512.png">
-
-  <!-- FontAwesome & Leaflet CSS -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
-  <!-- SDK PayPal Live -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  
   <script src="https://www.paypal.com/sdk/js?client-id=BAAOyfhYFNnJRmNcWct&currency=EUR"></script>
-
+  
   <style>
     * {
       box-sizing: border-box;
@@ -33,6 +25,23 @@
       background-color: #121212;
       color: #ffffff;
     }
+
+    /* Modalità Alto Contrasto per il Sole */
+    body.high-contrast {
+      background-color: #000000 !important;
+      color: #ffff00 !important;
+    }
+    body.high-contrast .hud-card, body.high-contrast .coords-hud {
+      background: #000000 !important;
+      border: 2px solid #ffff00 !important;
+      color: #ffff00 !important;
+    }
+    body.high-contrast .btn {
+      background: #000000 !important;
+      border: 2px solid #ffff00 !important;
+      color: #ffff00 !important;
+    }
+
     #map {
       width: 100%;
       height: 100%;
@@ -214,7 +223,7 @@
       justify-content: center;
     }
 
-    /* Finestre Modali Ingrandite con Scorrimento */
+    /* Modali Ingrandite con Scorrimento */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -316,60 +325,64 @@
       margin-bottom: 10px;
     }
 
+    /* POPUP FOTO/VIDEO COMPATTO */
     .media-popup {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      width: 220px;
+      gap: 4px;
+      width: 110px;
     }
     .media-popup img, .media-popup video {
       width: 100%;
-      border-radius: 8px;
-      max-height: 180px;
+      border-radius: 6px;
+      max-height: 80px;
       object-fit: cover;
     }
     .media-popup audio {
       width: 100%;
-      height: 36px;
+      height: 28px;
     }
     .gps-arrow-icon {
-      transition: transform 0.2s ease-out;
+      transform: none !important;
     }
   </style>
 </head>
 <body>
 
-  <!-- Banner Aggiornamento PWA -->
   <div id="update-banner" onclick="applyAppUpdate()">
-    🔄 Nuova versione di SentieroVivo disponibile! Clicca qui per aggiornare.
+    🔄 Nuova versione di SentieroVivo TEST disponibile! Clicca qui per aggiornare.
   </div>
 
   <div id="map"></div>
 
-  <!-- Barra Statistiche in Alto -->
+  <!-- Barra Superiore Statistiche -->
   <div class="top-bar">
     <div class="hud-card">
       <div class="hud-stat">
-        <span class="hud-label">SentieroVivo 🔑</span>
+        <span class="hud-label">SentieroVivo TEST 🧪</span>
         <span id="stat-dist" class="hud-value">0.00 km</span>
       </div>
+
       <div class="hud-stat">
         <span class="hud-label">Tempo</span>
         <span id="stat-time" class="hud-value">00:00</span>
       </div>
+
       <div class="hud-stat">
         <span class="hud-label">Quota</span>
         <span id="stat-alt" class="hud-value">-- m</span>
       </div>
-      <div id="gps-status" class="gps-status-badge gps-lost">
-        <i class="fa-solid fa-location-crosshairs"></i> <span id="gps-text">GPS...</span>
+
+      <div id="gps-status" class="gps-status-badge">
+        <i class="fa-solid fa-satellite-dish"></i> <span id="gps-text">GPS...</span>
       </div>
+
       <div id="trial-timer" class="timer-badge">Prova: --</div>
     </div>
 
-    <!-- Riquadro Coordinate GPS -->
+    <!-- Riquadro Coordinate GPS & Batteria -->
     <div class="coords-hud">
-      📍 Lat: <span id="gps-lat">0.000000</span> | Long: <span id="gps-lng">0.000000</span>
+      📍 Lat: <span id="gps-lat">0.000000</span> | Long: <span id="gps-lng">0.000000</span> | 🔋 <span id="battery-level">--%</span>
     </div>
 
     <!-- HUD Rientro / Distanza alla Base -->
@@ -385,14 +398,14 @@
     </div>
   </div>
 
-  <!-- Barra Controlli In Basso -->
+  <!-- Barra Inferiore Controlli -->
   <div class="bottom-bar">
     <div class="action-row">
-      <button id="btn-return-back" class="btn btn-return-back" onclick="toggleReturnBack()">
-        <i class="fa-solid fa-route"></i> PERCORSO A RITROSO
+      <button class="btn btn-return-back" onclick="toggleReturnBack()">
+        <i class="fa-solid fa-arrow-rotate-left"></i> PERCORSO A RITROSO
       </button>
-      <button id="btn-return-alt" class="btn btn-return-alt" onclick="toggleReturnAlt()">
-        <i class="fa-solid fa-compass"></i> RIENTRO BASE NUOVO PERCORSO
+      <button class="btn btn-return-alt" onclick="toggleReturnAlt()">
+        <i class="fa-solid fa-route"></i> RIENTRO BASE NUOVO PERCORSO
       </button>
     </div>
 
@@ -415,6 +428,9 @@
       <button class="btn" onclick="toggleMapStyle()">
         <i class="fa-solid fa-layer-group" style="color: #00bcd4;"></i> Mappa CAI
       </button>
+      <button class="btn" onclick="toggleHighContrast()">
+        <i class="fa-solid fa-sun" style="color: #ffeb3b;"></i> Sole
+      </button>
       <button class="btn" onclick="triggerCameraCapture('image/*')">
         <i class="fa-solid fa-camera"></i> Foto
       </button>
@@ -433,20 +449,17 @@
     </div>
   </div>
 
-  <input type="file" id="camera-capture" style="display: none;" onchange="handleMediaCaptured(event)">
-  <input type="file" id="gpx-file-input" accept=".gpx" style="display: none;" onchange="loadExternalGPX(event)">
+  <input type="file" id="camera-capture" style="display:none" onchange="handleMediaCaptured(event)">
+  <input type="file" id="gpx-file-input" accept=".gpx" style="display:none" onchange="loadExternalGPX(event)">
 
-  <!-- MODALE SOS EMERGENZA DIRETTAMENTE AZIONABILE -->
+  <!-- Modale S.O.S. -->
   <div id="sos-action-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card" style="border-color: #ff5252;">
       <h2 style="color: #ff5252;">🚨 ALLARME S.O.S. 🚨</h2>
-      <p style="font-size: 14px; color: #fff; margin-bottom: 12px;">
-        Le tue coordinate GPS sono state bloccate:<br>
-        <b style="color: #00bcd4; font-family: monospace; font-size: 16px;" id="sos-coords-display">Lat: 0.000000, Lng: 0.000000</b>
-      </p>
+      <p>Coordinate GPS e stato batteria bloccati:<br><br><b id="sos-coords-display" style="color: #00bcd4; font-size: 16px;">Lat: 0.000000, Lng: 0.000000</b></p>
       
       <button class="pay-btn" onclick="sendSOS_SMS()" style="background: #e53935; margin-bottom: 10px;">
-        📲 INVIA SMS A <span id="sos-contact-name-display">CONTATTO</span>
+        📲 INVIA SMS COMPLETO A <span id="sos-contact-name-display">CONTATTO</span>
       </button>
 
       <button class="pay-btn" onclick="callSOS_112()" style="background: #d32f2f; margin-bottom: 15px;">
@@ -457,27 +470,26 @@
     </div>
   </div>
 
-  <!-- MODALE NOME PERCORSO ALL'AVVIO -->
+  <!-- Modale Avvio Escursione -->
   <div id="start-track-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card">
       <h2>Nuova Escursione 🥾</h2>
-      <p>Assegna un nome a questa registrazione. Tutti i file (traccia, foto, video e audio) faranno riferimento a questo nome.</p>
-      <input type="text" id="track-name-input" class="input-code" placeholder="es. Anello del Romito">
+      <p>Assegna un nome a questa registrazione. Tutti i file faranno riferimento a questo nome.</p>
+      <input type="text" id="track-name-input" class="input-code" placeholder="Nome Escursione">
       <button class="pay-btn" onclick="confirmStartTrack()">CONFERMA E AVVIA</button>
       <button class="btn-activate" onclick="cancelStartTrack()" style="background: #555;">ANNULLA</button>
     </div>
   </div>
 
-  <!-- MODALE 1: Intro / Benvenuto e Licenza -->
-  <div id="intro-modal" class="modal-overlay">
+  <!-- Modale Introduzione / Prova -->
+  <div id="intro-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card">
-      <h2>Benvenuto su SentieroVivo! 🥾</h2>
-      <p>Applicazione web per l'escursionismo con tracciamento GPS in tempo reale, foto/video geolocalizzati, sintesi vocale e Rientro Sicuro.</p>
-
+      <h2>Benvenuto su SentieroVivo TEST! 🧪</h2>
+      <p>Ambiente di sperimentazione con Persistent Storage, Campionamento Dinamico e Wake Lock integrato.</p>
       <div style="background: rgba(255, 152, 0, 0.15); border: 1px solid #ff9800; padding: 14px; border-radius: 12px; color: #fff; font-size: 14px; text-align: left; margin-bottom: 16px;">
         ℹ️ <b>INFORMAZIONE SULL'USO:</b><br><br>
-        • Hai a disposizione <b>15 GIORNI DI PROVA GRATUITA</b>.<br><br>
-        • Al termine, per continuare ad usarla su questo telefono, è richiesto un contributo di <b>5,00 €</b> con sblocco istantaneo.
+        - Hai a disposizione <b>15 GIORNI DI PROVA GRATUITA</b>.<br><br>
+        - Al termine, è richiesto il codice regalo o la chiave di attivazione.
       </div>
 
       <button class="pay-btn" onclick="startTrialStep1()">INIZIA PROVA GRATUITA (15 gg)</button>
@@ -488,13 +500,11 @@
     </div>
   </div>
 
-  <!-- MODALE 2: Contatto SOS -->
+  <!-- Modale Contatto Emergenza -->
   <div id="emergency-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card">
       <h2>Contatto SOS di Fiducia 📞</h2>
-      <p style="font-size: 14px; color: #ccc; margin-bottom: 16px;">
-        Inserisci il Nome e il Numero di telefono della persona a cui inviare l'SMS di emergenza con la tua posizione GPS quando premerai il tasto <b>S.O.S.</b>
-      </p>
+      <p>Inserisci Nome e Numero del contatto di emergenza.</p>
       
       <div style="text-align: left; margin-bottom: 6px; font-size: 13px; color: #00bcd4; font-weight: bold;">NOME CONTATTO:</div>
       <input type="text" id="emergency-name-input" class="input-code" placeholder="es. Mario Rossi">
@@ -507,18 +517,16 @@
     </div>
   </div>
 
-  <!-- Modal di Blocco / Scadenza Prova -->
+  <!-- Modale Licenza Scaduta -->
   <div id="pay-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card">
       <h2>Periodo di Prova Terminato</h2>
-      <p>I 15 giorni di prova sono trascorsi. Per attivare SentieroVivo, versa la quota di 5,00 € oppure inserisci il codice regalo.</p>
-
+      <p>I 15 giorni di prova sono trascorsi. Inserisci il codice regalo o attiva la licenza.</p>
+      
       <div style="font-size: 13px; color: #aaa; margin-bottom: 5px;">ID Dispositivo Unico:</div>
       <div id="device-id-display" class="device-box">--------</div>
 
-      <!-- Pulsante PayPal Live Integrato -->
       <div id="paypal-button-container" style="width: 100%; margin-bottom: 15px;"></div>
-
       <hr style="border: 0.5px solid #444; margin: 15px 0;">
 
       <input type="text" id="activation-code" class="input-code" placeholder="Inserisci Codice Regalo">
@@ -526,51 +534,41 @@
     </div>
   </div>
 
-  <!-- Modal Salva GPX -->
+  <!-- Modale Salva Traccia -->
   <div id="save-track-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card">
       <h2>Salva Escursione 💾</h2>
-      <p>Scarica il file GPX della traccia e conserva i file multimediali scattati.</p>
+      <p>Scegli il formato e scarica il file della traccia assieme ai file multimediali.</p>
       <input type="text" id="track-filename" class="input-code" placeholder="Nome Escursione">
-      <button class="pay-btn" onclick="confirmSaveGPX()">SCARICA FILE GPX E MEDIA</button>
-      <button class="btn-activate" onclick="closeSaveModal()" style="background: #555;">CHIUDI E NUOVA TRACCIA</button>
+      <button class="pay-btn" onclick="confirmSaveGPX('gpx')">SCARICA FORMATO GPX</button>
+      <button class="pay-btn" onclick="confirmSaveGPX('kml')" style="background: #0288d1; margin-top: 5px;">SCARICA FORMATO KML</button>
+      <button class="btn-activate" onclick="closeSaveModal()" style="background: #555; margin-top: 10px;">CHIUDI E NUOVA TRACCIA</button>
     </div>
   </div>
 
-  <!-- Modal Legenda & Guida -->
+  <!-- Modale Legenda -->
   <div id="legenda-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card">
       <h2>Legenda & Guida 📖</h2>
-
-      <div style="background: rgba(0, 188, 212, 0.12); border: 1px solid #00bcd4; padding: 12px; border-radius: 12px; text-align: left; margin-bottom: 16px;">
-        <h3 style="color: #00bcd4; font-size: 15px; margin-bottom: 8px;">📲 Come installare l'App sul telefono:</h3>
-        <p style="font-size: 13px; color: #ddd; margin-bottom: 6px;">
-          <b>• Su Android (Chrome):</b> Clicca sui 3 pallini in alto a destra ➔ seleziona <i>"Aggiungi a schermata Home"</i> (oppure <i>"Installa app"</i>).
-        </p>
-        <p style="font-size: 13px; color: #ddd; margin-bottom: 0;">
-          <b>• Su iPhone (Safari):</b> Clicca sul tasto Condividi (quadratino con freccia in su) ➔ seleziona <i>"Aggiungi alla schermata Home"</i>.
-        </p>
-      </div>
-
       <ul class="legenda-list">
-        <li>📍 <b>Freccia Azzurra:</b> Tua posizione GPS e direzione in tempo reale.</li>
-        <li>🔵 <b>Linea Blu:</b> Tracciato di andata registrato.</li>
-        <li>🚨 <b>Tasto S.O.S.:</b> Blocca le coordinate GPS e apre il pannello per inviare l'SMS di emergenza o chiamare direttamente il 112.</li>
-        <li>📞 <b>Contatto:</b> Modifica in qualsiasi momento Nome e Numero del contatto SOS.</li>
-        <li>🗺️ <b>Mappa CAI:</b> Alterna la mappa stradale standard con la mappa Topografica / Escursionistica (OpenTopoMap) con altimetria e numerazione sentieri.</li>
-        <li>🚩 <b>Bandierine di Sosta:</b> Mostrano l'ora della pausa e le coordinate esatte.</li>
-        <li>▶️ <b>AVVIA / ⏸️ PAUSA / ⏹️ STOP:</b> Registra, mette in pausa e salva l'escursione chiedendo il nome del percorso all'avvio.</li>
-        <li>🟠 <b>PERCORSO A RITROSO:</b> Ripercorre la traccia attuale oppure permette di caricare un vecchio file GPX salvato dall'archivio.</li>
-        <li>🟢 <b>RIENTRO BASE NUOVO PERCORSO:</b> Calcola la rotta pedonale più sicura verso la base con allarme fuori rotta (>15m).</li>
-        <li>📷 <b>Foto / 📹 Video / 🎙️ Audio:</b> Scatta e salva i media numerati sulla mappa con timer di registrazione audio in tempo reale.</li>
+        <li>📍 <b>Posizione GPS:</b> Posizione hardware in tempo reale.</li>
+        <li>🚨 <b>Tasto S.O.S.:</b> Genera l'SMS completo con coordinate, data, ora e % di batteria residua.</li>
+        <li>☀️ <b>Tasto Sole:</b> Attiva la modalità ad alto contrasto visibile sotto la luce diretta.</li>
+        <li>🔋 <b>Risparmio Batteria:</b> Campionamento dinamico GPS in pausa durante le soste lunghe.</li>
       </ul>
-      <button class="pay-btn" onclick="closeLegenda()" style="margin-top: 15px;">CHIUDI LEGENDA</button>
+      <button class="btn-activate" onclick="closeLegenda()" style="margin-top: 15px;">CHIUDI LEGENDA</button>
     </div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // --- SERVICE WORKER PWA ---
+    // --- PERSISTENT STORAGE & SERVICE WORKER ---
+    if (navigator.storage && navigator.storage.persist) {
+      navigator.storage.persist().then(granted => {
+        if (granted) console.log("Memoria locale resa PERSISTENTE dal sistema.");
+      });
+    }
+
     let newWorker = null;
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').then(reg => {
@@ -590,6 +588,41 @@
         newWorker.postMessage({ action: 'skipWaiting' });
         window.location.reload();
       }
+    }
+
+    // --- MONITORAGGIO BATTERIA & WAKE LOCK ---
+    let currentBatteryLevel = 100;
+    let wakeLock = null;
+
+    if ('getBattery' in navigator) {
+      navigator.getBattery().then(battery => {
+        updateBatteryUI(battery);
+        battery.addEventListener('levelchange', () => updateBatteryUI(battery));
+      });
+    }
+
+    function updateBatteryUI(battery) {
+      currentBatteryLevel = Math.round(battery.level * 100);
+      document.getElementById('battery-level').innerText = currentBatteryLevel + '%';
+      if (currentBatteryLevel <= 15 && wakeLock) {
+        wakeLock.release();
+        wakeLock = null;
+      }
+    }
+
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator && currentBatteryLevel > 15) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch (err) {
+        console.warn("Wake Lock non supportato o rifiutato.");
+      }
+    }
+
+    // --- MODALITÀ ALTO CONTRASTO (SOLE) ---
+    function toggleHighContrast() {
+      document.body.classList.toggle('high-contrast');
     }
 
     // --- ASSISTENTE VOCALE ---
@@ -619,7 +652,7 @@
       }
     }
 
-    // --- GESTIONE LICENZE & CONTATTO EMERGENZA ---
+    // --- LICENZE & CONTATTO EMERGENZA ---
     const MASTER_KEY = "MASSIMO-MASTER-2026";
     const GIFT_KEY = "REGALO-SENTIERO-2026";
     const NEW_GIFT_KEY = "SENTIEROVIP2026";
@@ -669,12 +702,7 @@
       document.getElementById('emergency-phone-input').value = savedPhone;
 
       const closeBtn = document.getElementById('close-emergency-btn');
-      if (isMandatory) {
-        closeBtn.style.display = 'none';
-      } else {
-        closeBtn.style.display = 'block';
-      }
-
+      closeBtn.style.display = isMandatory ? 'none' : 'block';
       document.getElementById('emergency-modal').style.display = 'flex';
     }
 
@@ -687,15 +715,13 @@
       const phoneVal = document.getElementById('emergency-phone-input').value.trim();
 
       if (!nameVal || !phoneVal) {
-        alert("Inserisci sia il NOME che il NUMERO DI TELEFONO per continuare!");
+        alert("Inserisci NOME e NUMERO DI TELEFONO!");
         return;
       }
 
       localStorage.setItem('sv_emergency_name', nameVal);
       localStorage.setItem('sv_emergency_phone', phoneVal);
-      
-      speak("Contatto di emergenza salvato. Benvenuto su SentieroVivo.");
-      alert(`Contatto di emergenza salvato:\n${nameVal} (${phoneVal})`);
+      speak("Contatto di emergenza salvato.");
       closeEmergencyModal();
     }
 
@@ -727,24 +753,29 @@
           openEmergencyModal(true);
         } else {
           speak("Applicazione attivata con successo.");
-          alert("Attivazione completata!");
         }
       } else {
         speak("Codice non valido.");
-        alert("Codice non valido per questo dispositivo.");
+        alert("Codice non valido.");
       }
     }
 
     function promptMasterUnlock() {
-      const code = prompt("Inserisci la Master Key o il Codice di Sblocco:");
+      const code = prompt("Inserisci la Master Key o il Codice:");
       if (code) {
         document.getElementById('activation-code').value = code;
         validateActivation();
       }
     }
 
-    // --- MAPPA LEAFLET & STRATI ESCURSIONISTICI (CAI / OpenTopoMap) ---
+    // --- MAPPA & STRATI CAI ---
     const map = L.map('map', { zoomControl: false }).setView([43.5485, 10.3106], 16);
+
+    // GESTIONE ZOOM MANUALE LIBERO
+    let userInteracted = false;
+    map.on('dragstart zoomstart', function() {
+      userInteracted = true;
+    });
 
     const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -774,6 +805,11 @@
     let isTracking = false;
     let currentTrackName = "";
     let trackPoints = [];
+    let savedTrackPoints = []; 
+    let savedEndPoint = null;   
+    let reconnectPolyline = L.polyline([], { color: '#00bcd4', weight: 4, dashArray: '4, 4' }).addTo(map);
+    let isReconnecting = false;
+
     let recordedMediaList = [];
     let photoCount = 0;
     let videoCount = 0;
@@ -789,15 +825,12 @@
     let startPoint = null;
     let startMarker = null;
 
+    // ICONA POSIZIONE FISSA
     const arrowIcon = L.divIcon({
       className: 'gps-arrow-icon',
-      html: `
-        <svg width="36" height="36" viewBox="0 0 36 36">
-          <polygon points="18,2 32,32 18,24 4,32" fill="#00bcd4" stroke="#ffffff" stroke-width="2"/>
-        </svg>
-      `,
-      iconSize: [36, 36],
-      iconAnchor: [18, 18]
+      html: `<div style="color: #00bcd4; font-size: 26px; text-shadow: 0 0 5px #000;"><i class="fa-solid fa-circle-dot"></i></div>`,
+      iconSize: [30, 30],
+      iconAnchor: [15, 15]
     });
     let userMarker = null;
 
@@ -808,6 +841,7 @@
     let startTime = null;
     let timerInterval = null;
 
+    // GESTIONE QUOTA/ALTIMETRO
     async function fetchRealElevation(lat, lng) {
       if (Date.now() - lastAltitudeFetchTime < 10000) return;
       lastAltitudeFetchTime = Date.now();
@@ -819,10 +853,11 @@
           document.getElementById('stat-alt').innerText = ele + ' m';
         }
       } catch (err) {
-        console.warn("Altimetro Fallback a GPS nativo");
+        console.warn("Altimetro Fallback GPS");
       }
     }
 
+    // CAMPIONAMENTO DINAMICO GPS
     if (navigator.geolocation) {
       navigator.geolocation.watchPosition(
         (pos) => {
@@ -834,14 +869,14 @@
 
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
-          const heading = pos.coords.heading || 0;
+          const speed = pos.coords.speed || 0;
           const altGps = pos.coords.altitude;
           const currentLatLng = new L.LatLng(lat, lng);
 
           document.getElementById('gps-lat').innerText = lat.toFixed(6);
           document.getElementById('gps-lng').innerText = lng.toFixed(6);
 
-          if (altGps !== null && altGps !== undefined) {
+          if (altGps !== null && altGps !== undefined && Math.abs(altGps) > 0) {
             document.getElementById('stat-alt').innerText = Math.round(altGps) + ' m';
           }
           fetchRealElevation(lat, lng);
@@ -851,35 +886,46 @@
             map.panTo(currentLatLng);
           } else {
             userMarker.setLatLng(currentLatLng);
+            // Centra la mappa solo se l'utente non la sta esplorando manualmente
+            if (!userInteracted) {
+              map.panTo(currentLatLng);
+            }
           }
 
-          const arrowEl = document.querySelector('.gps-arrow-icon svg');
-          if (arrowEl) {
-            arrowEl.style.transform = `rotate(${heading}deg)`;
+          // CONTROLLO RICONGIUNGIMENTO
+          if (isReconnecting && savedEndPoint) {
+            const distToSavedEnd = currentLatLng.distanceTo(savedEndPoint);
+            reconnectPolyline.setLatLngs([currentLatLng, savedEndPoint]);
+
+            if (distToSavedEnd <= 10) {
+              isReconnecting = false;
+              reconnectPolyline.setLatLngs([]);
+              speak("Sei arrivato al punto di salvataggio. Ora puoi iniziare il percorso a ritroso verso la base.");
+              returnBackPolyline.setLatLngs(savedTrackPoints);
+            }
           }
 
           if (isTracking) {
-            if (trackPoints.length > 0) {
-              const lastPt = trackPoints[trackPoints.length - 1];
-              totalDistance += lastPt.distanceTo(currentLatLng);
-              document.getElementById('stat-dist').innerText = (totalDistance / 1000).toFixed(2) + ' km';
-            } else {
-              startPoint = currentLatLng;
-              if (!startMarker) {
-                startMarker = L.marker(startPoint, {
-                  icon: L.divIcon({
-                    html: '<div style="background:#00e676; border:2px solid #fff; border-radius:50%; width:16px; height:16px;"></div>',
-                    iconSize: [24, 24]
-                  })
-                }).addTo(map).bindPopup("Punto di Partenza (Base)");
+            if (trackPoints.length === 0 || speed > 0.3) {
+              if (trackPoints.length > 0) {
+                const lastPt = trackPoints[trackPoints.length - 1];
+                totalDistance += lastPt.distanceTo(currentLatLng);
+                document.getElementById('stat-dist').innerText = (totalDistance / 1000).toFixed(2) + ' km';
+              } else {
+                startPoint = currentLatLng;
+                if (!startMarker) {
+                  startMarker = L.marker(startPoint, {
+                    icon: L.divIcon({ html: '🏠', iconSize: [24, 24] })
+                  }).addTo(map).bindPopup("Punto di Partenza (Base)");
+                }
               }
-            }
-            trackPoints.push(currentLatLng);
+              trackPoints.push(currentLatLng);
 
-            if (isReturnBackActive) {
-              returnBackPolyline.setLatLngs(trackPoints);
-            } else {
-              trackPolyline.setLatLngs(trackPoints);
+              if (isReturnBackActive) {
+                returnBackPolyline.setLatLngs(trackPoints);
+              } else {
+                trackPolyline.setLatLngs(trackPoints);
+              }
             }
           }
 
@@ -887,7 +933,7 @@
             updateReturnHUD(currentLatLng);
           }
 
-          if (isReturnBackActive && trackPoints.length > 0) {
+          if (isReturnBackActive && trackPoints.length > 0 && isTracking) {
             checkOffTrackDistance(currentLatLng, trackPoints);
           }
 
@@ -918,7 +964,7 @@
       }
     }
 
-    // --- AVVIO TRACCIA CON NOME ESCURSIONE ---
+    // --- AVVIO TRACCIA ---
     function toggleTracking() {
       if (!isTracking && !startTime) {
         document.getElementById('track-name-input').value = `Sentiero_${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}`;
@@ -932,6 +978,7 @@
       const input = document.getElementById('track-name-input').value.trim();
       currentTrackName = input ? input.replace(/[^a-z0-9_-]/gi, '_') : `Sentiero_${Date.now()}`;
       document.getElementById('start-track-modal').style.display = 'none';
+      requestWakeLock();
       executeToggleTracking();
     }
 
@@ -956,7 +1003,7 @@
         if (!startTime) {
           startTime = Date.now();
           timerInterval = setInterval(updateTimer, 1000);
-          speak(`Registrazione escursione ${currentTrackName.replace(/_/g, ' ')} avviata`);
+          speak(`Registrazione escursione avviata`);
         } else {
           speak("Registrazione ripresa");
         }
@@ -968,24 +1015,13 @@
         speak("Registrazione in pausa");
 
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const latStr = currentPos.lat.toFixed(6);
-        const lngStr = currentPos.lng.toFixed(6);
-
         L.marker(currentPos, {
-          icon: L.divIcon({
-            html: '<div style="font-size: 22px;">🚩</div>',
-            iconSize: [24, 24]
-          })
-        }).addTo(map).bindPopup(`
-          <div style="font-size:12px; text-align:center;">
-            <b>🚩 Sosta ore ${timeStr}</b><br>
-            <span style="color:#00bcd4; font-family:monospace;">Lat: ${latStr}<br>Lng: ${lngStr}</span>
-          </div>
-        `).openPopup();
+          icon: L.divIcon({ html: '🚩', iconSize: [24, 24] })
+        }).addTo(map).bindPopup(`🚩 Sosta ore ${timeStr}`).openPopup();
       }
     }
 
-    // --- LOGICA GESTIONE NUOVO MODALE S.O.S. (SMS + 112) ---
+    // --- LOGICA SOS POTENZIATA ---
     let activeSosLat = "0.000000";
     let activeSosLng = "0.000000";
 
@@ -1002,22 +1038,20 @@
       }
 
       L.marker(currentPos, {
-        icon: L.divIcon({
-          html: '<div style="font-size:28px; animation: blink 0.8s infinite;">🚨</div>',
-          iconSize: [30, 30]
-        })
-      }).addTo(map).bindPopup(`<b>🚨 POSIZIONE DI EMERGENZA SOS</b><br>Lat: ${activeSosLat}<br>Lng: ${activeSosLng}`).openPopup();
+        icon: L.divIcon({ html: '🚨', iconSize: [30, 30] })
+      }).addTo(map).bindPopup(`🚨 SOS<br>Lat: ${activeSosLat}<br>Lng: ${activeSosLng}`).openPopup();
 
       speak("Allarme SOS attivato!");
 
-      document.getElementById('sos-coords-display').innerText = `Lat: ${activeSosLat}, Lng: ${activeSosLng}`;
+      document.getElementById('sos-coords-display').innerText = `Lat: ${activeSosLat}, Lng: ${activeSosLng} (Batt: ${currentBatteryLevel}%)`;
       document.getElementById('sos-contact-name-display').innerText = contactName.toUpperCase();
       document.getElementById('sos-action-modal').style.display = 'flex';
     }
 
     function sendSOS_SMS() {
       const contactPhone = localStorage.getItem('sv_emergency_phone') || "";
-      const smsText = encodeURIComponent(`HO BISOGNO DI AIUTO! Le mie coordinate GPS sono: Lat ${activeSosLat}, Long ${activeSosLng}`);
+      const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const smsText = encodeURIComponent(`HO BISOGNO DI AIUTO! Coordinate: Lat ${activeSosLat}, Long ${activeSosLng} (Ore ${timeNow}, Batteria ${currentBatteryLevel}%)`);
       window.location.href = `sms:${contactPhone}?body=${smsText}`;
     }
 
@@ -1038,10 +1072,14 @@
 
     function promptStopAndSave() {
       if (trackPoints.length === 0) {
-        alert("Nessun percorso registrato da salvare.");
+        alert("Nessun percorso registrato.");
         return;
       }
       isTracking = false;
+      
+      savedTrackPoints = [...trackPoints];
+      savedEndPoint = userMarker ? userMarker.getLatLng() : trackPoints[trackPoints.length - 1];
+
       document.getElementById('track-filename').value = currentTrackName || `Sentiero_${new Date().toISOString().slice(0,10)}`;
       document.getElementById('save-track-modal').style.display = 'flex';
     }
@@ -1077,35 +1115,49 @@
       resetRecordingUI();
     }
 
-    function confirmSaveGPX() {
+    // ESPORTAZIONE MULTI-FORMATO (GPX & KML)
+    function confirmSaveGPX(format) {
       const filenameInput = document.getElementById('track-filename').value.trim();
       const filename = filenameInput ? filenameInput.replace(/[^a-z0-9_-]/gi, '_') : `Sentiero_${new Date().toISOString().slice(0,10)}`;
 
-      let gpxContent = `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="SentieroVivo">
-  <trk>
+      let fileContent = "";
+      let mimeType = "";
+      let extension = format;
+
+      if (format === 'kml') {
+        mimeType = 'application/vnd.google-earth.kml+xml';
+        let kmlCoords = savedTrackPoints.map(pt => `${pt.lng},${pt.lat},0`).join(" ");
+        fileContent = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
     <name>${filename}</name>
-    <trkseg>`;
+    <Placemark>
+      <name>Tracciato SentieroVivo</name>
+      <LineString><coordinates>${kmlCoords}</coordinates></LineString>
+    </Placemark>
+  </Document>
+</kml>`;
+      } else {
+        mimeType = 'application/gpx+xml';
+        fileContent = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="SentieroVivo">
+  <trk><name>${filename}</name><trkseg>`;
+        savedTrackPoints.forEach(pt => {
+          fileContent += `\n    <trkpt lat="${pt.lat}" lon="${pt.lng}"></trkpt>`;
+        });
+        fileContent += `\n  </trkseg></trk>\n</gpx>`;
+      }
 
-      trackPoints.forEach(pt => {
-        gpxContent += `
-      <trkpt lat="${pt.lat}" lon="${pt.lng}"></trkpt>`;
-      });
-
-      gpxContent += `
-    </trkseg>
-  </trk>
-</gpx>`;
-
-      const blob = new Blob([gpxContent], { type: 'application/gpx+xml' });
+      const blob = new Blob([fileContent], { type: mimeType });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${filename}.gpx`;
+      a.download = `${filename}.${extension}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
 
+      // Download Foto, Video e Note Vocali
       recordedMediaList.forEach((media) => {
         const mUrl = URL.createObjectURL(media.blob);
         const mA = document.createElement('a');
@@ -1116,30 +1168,45 @@
         document.body.removeChild(mA);
       });
 
-      speak("Escursione scaricata nella memoria del telefono.");
-      alert(`Salvato file "${filename}.gpx" e i file multimediali collegati.`);
+      const fullFileName = `${filename}.${extension}`;
+      speak(`Escursione salvata nella cartella Download.`);
+      
+      alert(`💾 FILE SALVATO CON SUCCESSO!\n\nIl file "${fullFileName}" ed eventuali foto/audio sono stati salvati nella memoria del tuo telefono.\n\n📂 Percorso: Gestione File ➔ Download`);
+      
       closeSaveModal();
     }
 
-    // --- PERCORSO A RITROSO ---
+    // PERCORSO A RITROSO CON RICONGIUNGIMENTO GUIDATO
     function toggleReturnBack() {
-      if (trackPoints.length > 0) {
-        let choice = confirm("Vuoi ripercorrere a ritroso l'escursione ATTUALE?\n(Clicca CANCELLA per caricare una vecchia traccia dall'archivio)");
-        if (choice) {
-          activateCurrentReturnBack();
-        } else {
-          triggerGPXFileSelect();
+      const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
+
+      if (savedEndPoint && !isTracking) {
+        const distFromSavedEnd = currentPos.distanceTo(savedEndPoint);
+        
+        if (distFromSavedEnd > 12) {
+          isReconnecting = true;
+          isReturnBackActive = true;
+          reconnectPolyline.setLatLngs([currentPos, savedEndPoint]);
+          
+          document.getElementById('return-hud').style.display = 'flex';
+          document.getElementById('return-mode-title').innerText = "Ricongiungimento Traccia";
+          
+          speak("Calcolo ricongiungimento all'ultima traccia salvata.");
+          return;
         }
+      }
+
+      if (trackPoints.length > 0 || savedTrackPoints.length > 0) {
+        activateCurrentReturnBack();
       } else {
         triggerGPXFileSelect();
       }
     }
 
     function activateCurrentReturnBack() {
-      if (!startPoint) {
-        alert("Nessun punto di partenza registrato.");
-        return;
-      }
+      const targetPoints = trackPoints.length > 0 ? trackPoints : savedTrackPoints;
+      if (targetPoints.length === 0) return;
+
       isReturnBackActive = !isReturnBackActive;
       isReturnAltActive = false;
       returnAltPolyline.setLatLngs([]);
@@ -1149,10 +1216,11 @@
       document.getElementById('return-mode-title').innerText = "Rientro a Ritroso";
 
       if (isReturnBackActive) {
-        speak("Modalità percorso a ritroso attivata.");
+        returnBackPolyline.setLatLngs(targetPoints);
+        speak("Rientro a ritroso attivato.");
         if (userMarker) updateReturnHUD(userMarker.getLatLng());
       } else {
-        speak("Modalità rientro disattivata.");
+        returnBackPolyline.setLatLngs([]);
       }
     }
 
@@ -1175,9 +1243,7 @@
         trkpts.forEach(pt => {
           const lat = parseFloat(pt.getAttribute("lat"));
           const lon = parseFloat(pt.getAttribute("lon"));
-          if (!isNaN(lat) && !isNaN(lon)) {
-            loadedPoints.push(new L.LatLng(lat, lon));
-          }
+          if (!isNaN(lat) && !isNaN(lon)) loadedPoints.push(new L.LatLng(lat, lon));
         });
 
         if (loadedPoints.length > 0) {
@@ -1188,89 +1254,74 @@
           isReturnBackActive = true;
           document.getElementById('return-hud').style.display = 'flex';
           document.getElementById('return-mode-title').innerText = "Rientro Traccia Caricata";
-          speak("Traccia caricata dall'archivio. Navigazione a ritroso attivata.");
-        } else {
-          alert("Nessun punto valido trovato nel file GPX selezionato.");
+          speak("Traccia caricata. Rientro a ritroso attivo.");
         }
       };
       reader.readAsText(file);
     }
 
-    // --- RIENTRO BASE NUOVO PERCORSO ---
+    // RIENTRO BASE NUOVO PERCORSO
     async function toggleReturnAlt() {
-      if (!startPoint && (!userMarker)) {
-        speak("Impossibile stabilire la base di partenza.");
-        alert("Avvia prima l'escursione per registrare la base di partenza!");
-        return;
-      }
-
-      const targetPoint = startPoint || (userMarker ? userMarker.getLatLng() : map.getCenter());
+      const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
+      const targetPoint = startPoint || (savedTrackPoints.length > 0 ? savedTrackPoints[0] : currentPos);
 
       isReturnAltActive = !isReturnAltActive;
       isReturnBackActive = false;
-
       const hud = document.getElementById('return-hud');
 
       if (isReturnAltActive) {
         hud.style.display = 'flex';
         document.getElementById('return-mode-title').innerText = "Calcolo nuovo sentiero...";
-        speak("Calcolo del nuovo sentiero sicuro di rientro in corso.");
+        speak("Calcolo del nuovo sentiero sicuro dalla tua posizione attuale.");
 
-        const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
         const url = `https://router.project-osrm.org/route/v1/foot/${currentPos.lng},${currentPos.lat};${targetPoint.lng},${targetPoint.lat}?overview=full&geometries=geojson`;
 
         try {
           const response = await fetch(url);
           const data = await response.json();
-
           if (data.routes && data.routes.length > 0) {
             const coords = data.routes[0].geometry.coordinates;
             calculatedReturnPath = coords.map(c => new L.LatLng(c[1], c[0]));
-            
             returnAltPolyline.setLatLngs(calculatedReturnPath);
             document.getElementById('return-mode-title').innerText = "Nuovo Sentiero Rientro";
             speak("Nuovo sentiero calcolato. Segui la linea verde.");
             updateReturnHUD(currentPos);
-          } else {
-            throw new Error("Nessun sentiero trovato");
           }
         } catch (err) {
           calculatedReturnPath = [currentPos, targetPoint];
           returnAltPolyline.setLatLngs(calculatedReturnPath);
           document.getElementById('return-mode-title').innerText = "Rientro Diretto Base";
-          speak("Tracciata rotta diretta verso la base.");
           updateReturnHUD(currentPos);
         }
       } else {
         returnAltPolyline.setLatLngs([]);
         calculatedReturnPath = [];
         hud.style.display = 'none';
-        speak("Modalità rientro disattivata.");
       }
     }
 
     function updateReturnHUD(currentPos) {
+      let target = startPoint || (savedTrackPoints.length > 0 ? savedTrackPoints[0] : currentPos);
       let remainingDistance = 0;
-
+      
       if (isReturnAltActive && calculatedReturnPath.length > 1) {
         for (let i = 0; i < calculatedReturnPath.length - 1; i++) {
           remainingDistance += calculatedReturnPath[i].distanceTo(calculatedReturnPath[i + 1]);
         }
       } else {
-        remainingDistance = currentPos.distanceTo(startPoint);
+        remainingDistance = currentPos.distanceTo(target);
       }
 
       document.getElementById('return-dist').innerText = remainingDistance > 1000 
         ? (remainingDistance / 1000).toFixed(2) + ' km' 
         : Math.round(remainingDistance) + ' m';
 
-      const dLng = (startPoint.lng - currentPos.lng) * Math.PI / 180;
+      const dLng = (target.lng - currentPos.lng) * Math.PI / 180;
       const lat1 = currentPos.lat * Math.PI / 180;
-      const lat2 = startPoint.lat * Math.PI / 180;
+      const lat2 = target.lat * Math.PI / 180;
       const y = Math.sin(dLng) * Math.cos(lat2);
       const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
-      let bearing = Math.atan2(y, x) * 180 / Math.PI;
-      bearing = (bearing + 360) % 360;
+      let bearing = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
 
       document.getElementById('return-bearing').innerText = Math.round(bearing) + '°';
     }
@@ -1284,11 +1335,11 @@
 
       if (minDistance > 15 && (Date.now() - lastOffTrackAlertTime > 20000)) {
         lastOffTrackAlertTime = Date.now();
-        speak("Attenzione! Sei fuori percorso. Ti sei allontanato dal sentiero.");
+        speak("Attenzione! Sei fuori percorso.");
       }
     }
 
-    // --- FOTO, VIDEO E MEDIA ---
+    // --- FOTO, VIDEO E AUDIO ---
     function triggerCameraCapture(acceptType) {
       const input = document.getElementById('camera-capture');
       input.accept = acceptType;
@@ -1304,18 +1355,8 @@
       const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
       const isVideo = file.type.startsWith('video');
 
-      let badgeLabel = "";
-      let fileNameOnly = "";
-
-      if (isVideo) {
-        videoCount++;
-        badgeLabel = `Video #${videoCount}`;
-        fileNameOnly = `VIDEO_${videoCount}.mp4`;
-      } else {
-        photoCount++;
-        badgeLabel = `Foto #${photoCount}`;
-        fileNameOnly = `FOTO_${photoCount}.jpg`;
-      }
+      let badgeLabel = isVideo ? `Video #${++videoCount}` : `Foto #${++photoCount}`;
+      let fileNameOnly = isVideo ? `VIDEO_${videoCount}.mp4` : `FOTO_${photoCount}.jpg`;
 
       recordedMediaList.push({ name: fileNameOnly, blob: file });
 
@@ -1325,17 +1366,12 @@
 
       L.marker(currentPos, {
         icon: L.divIcon({
-          html: `<div style="background:#2196f3; color:#fff; font-size:10px; font-weight:bold; padding:2px 6px; border-radius:10px; border:1px solid #fff; text-align:center;">${badgeLabel}</div>`,
+          html: `<div style="background:#ff9800; color:#000; padding:2px 6px; border-radius:10px; font-size:11px; font-weight:bold;">${badgeLabel}</div>`,
           iconSize: [70, 24]
         })
-      }).addTo(map).bindPopup(`
-        <div class="media-popup">
-          <b>${badgeLabel}</b>
-          ${mediaTag}
-        </div>
-      `).openPopup();
+      }).addTo(map).bindPopup(`<div class="media-popup"><b>${badgeLabel}</b>${mediaTag}</div>`).openPopup();
 
-      speak(isVideo ? `Video numero ${videoCount} salvato` : `Foto numero ${photoCount} salvata`);
+      speak(isVideo ? `Video salvato` : `Foto salvata`);
     }
 
     let mediaRecorder = null;
@@ -1360,7 +1396,6 @@
 
           isRecordingAudio = true;
           audioStartTime = Date.now();
-          btnAudio.classList.add('btn-audio-rec');
           iconAudio.className = "fa-solid fa-circle-stop";
 
           audioTimerInterval = setInterval(() => {
@@ -1378,7 +1413,6 @@
         mediaRecorder.stop();
         isRecordingAudio = false;
         clearInterval(audioTimerInterval);
-        btnAudio.classList.remove('btn-audio-rec');
         iconAudio.className = "fa-solid fa-microphone";
         textAudio.innerText = "Audio";
       }
@@ -1390,29 +1424,23 @@
       const audioUrl = URL.createObjectURL(blob);
       const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
       const badgeLabel = `Audio #${audioCount}`;
-      const fileNameOnly = `VOCALE_${audioCount}.mp3`;
 
-      recordedMediaList.push({ name: fileNameOnly, blob: blob });
+      recordedMediaList.push({ name: `VOCALE_${audioCount}.mp3`, blob: blob });
 
       L.marker(currentPos, {
         icon: L.divIcon({
-          html: `<div style="background:#9c27b0; color:#fff; font-size:10px; font-weight:bold; padding:2px 6px; border-radius:10px; border:1px solid #fff; text-align:center;">${badgeLabel}</div>`,
+          html: `<div style="background:#00bcd4; color:#000; padding:2px 6px; border-radius:10px; font-size:11px; font-weight:bold;">${badgeLabel}</div>`,
           iconSize: [70, 24]
         })
-      }).addTo(map).bindPopup(`
-        <div class="media-popup">
-          <b>${badgeLabel}</b>
-          <audio src="${audioUrl}" controls></audio>
-        </div>
-      `).openPopup();
+      }).addTo(map).bindPopup(`<div class="media-popup"><b>${badgeLabel}</b><audio src="${audioUrl}" controls></audio></div>`).openPopup();
 
-      speak(`Audio numero ${audioCount} salvato`);
+      speak("Audio salvato");
     }
 
-    // --- LEGENDA & PROVA 15 GIORNI ---
     function openLegenda() {
       document.getElementById('legenda-modal').style.display = 'flex';
     }
+
     function closeLegenda() {
       document.getElementById('legenda-modal').style.display = 'none';
     }
@@ -1428,40 +1456,13 @@
           localStorage.setItem('sv_trial_remaining', trialSeconds);
           let days = Math.floor(trialSeconds / (24 * 3600));
           let h = Math.floor((trialSeconds % (24 * 3600)) / 3600);
-          
-          document.getElementById('trial-timer').innerText = 
-            `Prova: ${days}g ${h < 10 ? '0' : ''}${h}h`;
-
+          document.getElementById('trial-timer').innerText = `Prova: ${days}g ${h < 10 ? '0' : ''}${h}h`;
           if (trialSeconds <= 0) {
             clearInterval(trialInterval);
-            speak("Periodo di prova terminato.");
             document.getElementById('pay-modal').style.display = 'flex';
           }
         }, 1000);
       }
-    }
-
-    // --- PAYPAL LIVE ---
-    if (typeof paypal !== 'undefined') {
-      paypal.Buttons({
-        createOrder: function(data, actions) {
-          return actions.order.create({
-            purchase_units: [{
-              amount: { value: '5.00' },
-              description: 'Attivazione Licenza SentieroVivo'
-            }]
-          });
-        },
-        onApprove: function(data, actions) {
-          return actions.order.capture().then(function(details) {
-            localStorage.setItem('sv_licensed_' + deviceId, 'true');
-            isLicensed = true;
-            speak("Pagamento confermato. Applicazione attivata con successo.");
-            alert("Pagamento completato! SentieroVivo è ora attivato.");
-            location.reload();
-          });
-        }
-      }).render('#paypal-button-container');
     }
   </script>
 </body>
