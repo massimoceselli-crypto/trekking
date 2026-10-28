@@ -319,29 +319,56 @@
       margin-bottom: 10px;
     }
 
+    /* MINIATURA FOTO/VIDEO PICCOLISSIMA */
     .media-popup {
       display: flex;
       flex-direction: column;
       gap: 4px;
-      width: 110px;
+      width: 85px;
+      cursor: pointer;
     }
     .media-popup img, .media-popup video {
       width: 100%;
-      border-radius: 6px;
-      max-height: 80px;
+      border-radius: 4px;
+      max-height: 55px;
       object-fit: cover;
     }
     .media-popup audio {
       width: 100%;
-      height: 28px;
+      height: 26px;
     }
 
-    /* PALLINO POSIZIONE AZZURRO BEN VISIBILE E NIDO */
+    /* PALLINO POSIZIONE AZZURRO INGRANDITO (22px) CON BORDO E OMBRA BEN VISIBILI */
     .gps-dot-icon {
       background-color: #00bcd4;
-      border: 3px solid #ffffff;
+      border: 4px solid #ffffff;
       border-radius: 50%;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.9);
+    }
+
+    /* MODALE LIGHTBOX PER FOTO/VIDEO A TUTTO SCHERMO */
+    #fullscreen-media-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.95);
+      z-index: 100000;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+    }
+    #fullscreen-media-container {
+      max-width: 100%;
+      max-height: 80vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #fullscreen-media-container img, #fullscreen-media-container video {
+      max-width: 100%;
+      max-height: 80vh;
+      border-radius: 8px;
     }
   </style>
 </head>
@@ -449,6 +476,12 @@
 
   <input type="file" id="camera-capture" style="display:none" onchange="handleMediaCaptured(event)">
   <input type="file" id="gpx-file-input" accept=".gpx" style="display:none" onchange="loadExternalGPX(event)">
+
+  <!-- Modale Visualizzazione Foto/Video a Tutto Schermo -->
+  <div id="fullscreen-media-modal">
+    <div id="fullscreen-media-container"></div>
+    <button class="btn-activate" onclick="closeFullscreenMedia()" style="background: #e53935; width: 200px; margin-top: 15px;">CHIUDI FOTO</button>
+  </div>
 
   <!-- Modale S.O.S. -->
   <div id="sos-action-modal" class="modal-overlay" style="display: none;">
@@ -816,11 +849,11 @@
     let startPoint = null;
     let startMarker = null;
 
-    // PALLINO AZZURRO CHIARO E BEN VISIBILE
+    // PALLINO AZZURRO INGRANDITO (22px) CON BORDO E OMBRA
     const dotIcon = L.divIcon({
       className: 'gps-dot-icon',
-      iconSize: [16, 16],
-      iconAnchor: [8, 8]
+      iconSize: [22, 22],
+      iconAnchor: [11, 11]
     });
     let userMarker = null;
 
@@ -1241,7 +1274,6 @@
       reader.readAsText(file);
     }
 
-    // LINEA VERDE RIENTRO BASE GARANTITA
     async function toggleReturnAlt() {
       const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
       const targetPoint = startPoint || (savedTrackPoints.length > 0 ? savedTrackPoints[0] : currentPos);
@@ -1255,12 +1287,10 @@
         document.getElementById('return-mode-title').innerText = "Rientro Base";
         speak("Calcolo del nuovo sentiero di rientro.");
 
-        // Traccia immediatamente la linea verde diretta per garantire la visualizzazione
         calculatedReturnPath = [currentPos, targetPoint];
         returnAltPolyline.setLatLngs(calculatedReturnPath);
         updateReturnHUD(currentPos);
 
-        // Tentativo di calcolo percorso stradale/pedonale in sottofondo
         const url = `https://router.project-osrm.org/route/v1/foot/${currentPos.lng.toFixed(5)},${currentPos.lat.toFixed(5)};${targetPoint.lng.toFixed(5)},${targetPoint.lat.toFixed(5)}?overview=full&geometries=geojson`;
 
         try {
@@ -1341,8 +1371,8 @@
       recordedMediaList.push({ name: fileNameOnly, blob: file });
 
       const mediaTag = isVideo 
-        ? `<video src="${fileUrl}" controls></video>` 
-        : `<img src="${fileUrl}">`;
+        ? `<video src="${fileUrl}" onclick="openFullscreenMedia('${fileUrl}', true)"></video>` 
+        : `<img src="${fileUrl}" onclick="openFullscreenMedia('${fileUrl}', false)">`;
 
       L.marker(currentPos, {
         icon: L.divIcon({
@@ -1352,6 +1382,21 @@
       }).addTo(map).bindPopup(`<div class="media-popup"><b>${badgeLabel}</b>${mediaTag}</div>`).openPopup();
 
       speak(isVideo ? `Video salvato` : `Foto salvata`);
+    }
+
+    function openFullscreenMedia(url, isVideo) {
+      const container = document.getElementById('fullscreen-media-container');
+      if (isVideo) {
+        container.innerHTML = `<video src="${url}" controls autoplay></video>`;
+      } else {
+        container.innerHTML = `<img src="${url}">`;
+      }
+      document.getElementById('fullscreen-media-modal').style.display = 'flex';
+    }
+
+    function closeFullscreenMedia() {
+      document.getElementById('fullscreen-media-container').innerHTML = '';
+      document.getElementById('fullscreen-media-modal').style.display = 'none';
     }
 
     let mediaRecorder = null;
