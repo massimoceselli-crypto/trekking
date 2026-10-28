@@ -5,19 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SentieroVivo TEST - GPS Escursionismo</title>
   
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#121212">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="apple-touch-icon" href="icon-512.png">
-
-  <!-- FontAwesome & Leaflet CSS -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
-  <!-- SDK PayPal Live -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  
   <script src="https://www.paypal.com/sdk/js?client-id=BAAOyfhYFNnJRmNcWct&currency=EUR"></script>
-
+  
   <style>
     * {
       box-sizing: border-box;
@@ -356,31 +348,34 @@
 </head>
 <body>
 
-  <!-- Banner Aggiornamento PWA -->
   <div id="update-banner" onclick="applyAppUpdate()">
     🔄 Nuova versione di SentieroVivo TEST disponibile! Clicca qui per aggiornare.
   </div>
 
   <div id="map"></div>
 
-  <!-- Barra Statistiche in Alto -->
+  <!-- Barra Superiore Statistiche -->
   <div class="top-bar">
     <div class="hud-card">
       <div class="hud-stat">
         <span class="hud-label">SentieroVivo TEST 🧪</span>
         <span id="stat-dist" class="hud-value">0.00 km</span>
       </div>
+
       <div class="hud-stat">
         <span class="hud-label">Tempo</span>
         <span id="stat-time" class="hud-value">00:00</span>
       </div>
+
       <div class="hud-stat">
         <span class="hud-label">Quota</span>
         <span id="stat-alt" class="hud-value">-- m</span>
       </div>
-      <div id="gps-status" class="gps-status-badge gps-lost">
-        <i class="fa-solid fa-location-crosshairs"></i> <span id="gps-text">GPS...</span>
+
+      <div id="gps-status" class="gps-status-badge">
+        <i class="fa-solid fa-satellite-dish"></i> <span id="gps-text">GPS...</span>
       </div>
+
       <div id="trial-timer" class="timer-badge">Prova: --</div>
     </div>
 
@@ -402,14 +397,14 @@
     </div>
   </div>
 
-  <!-- Barra Controlli In Basso -->
+  <!-- Barra Inferiore Controlli -->
   <div class="bottom-bar">
     <div class="action-row">
-      <button id="btn-return-back" class="btn btn-return-back" onclick="toggleReturnBack()">
-        <i class="fa-solid fa-route"></i> PERCORSO A RITROSO
+      <button class="btn btn-return-back" onclick="toggleReturnBack()">
+        <i class="fa-solid fa-arrow-rotate-left"></i> PERCORSO A RITROSO
       </button>
-      <button id="btn-return-alt" class="btn btn-return-alt" onclick="toggleReturnAlt()">
-        <i class="fa-solid fa-compass"></i> RIENTRO BASE NUOVO PERCORSO
+      <button class="btn btn-return-alt" onclick="toggleReturnAlt()">
+        <i class="fa-solid fa-route"></i> RIENTRO BASE NUOVO PERCORSO
       </button>
     </div>
 
@@ -453,17 +448,14 @@
     </div>
   </div>
 
-  <input type="file" id="camera-capture" style="display: none;" onchange="handleMediaCaptured(event)">
-  <input type="file" id="gpx-file-input" accept=".gpx" style="display: none;" onchange="loadExternalGPX(event)">
+  <input type="file" id="camera-capture" style="display:none" onchange="handleMediaCaptured(event)">
+  <input type="file" id="gpx-file-input" accept=".gpx" style="display:none" onchange="loadExternalGPX(event)">
 
-  <!-- MODALE SOS EMERGENZA -->
+  <!-- Modale S.O.S. -->
   <div id="sos-action-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card" style="border-color: #ff5252;">
       <h2 style="color: #ff5252;">🚨 ALLARME S.O.S. 🚨</h2>
-      <p style="font-size: 14px; color: #fff; margin-bottom: 12px;">
-        Coordinate GPS e stato batteria bloccati:<br>
-        <b style="color: #00bcd4; font-family: monospace; font-size: 15px;" id="sos-coords-display">Lat: 0.000000, Lng: 0.000000</b>
-      </p>
+      <p>Coordinate GPS e stato batteria bloccati:<br><br><b id="sos-coords-display" style="color: #00bcd4; font-size: 16px;">Lat: 0.000000, Lng: 0.000000</b></p>
       
       <button class="pay-btn" onclick="sendSOS_SMS()" style="background: #e53935; margin-bottom: 10px;">
         📲 INVIA SMS COMPLETO A <span id="sos-contact-name-display">CONTATTO</span>
@@ -477,27 +469,26 @@
     </div>
   </div>
 
-  <!-- MODALE NOME PERCORSO ALL'AVVIO -->
+  <!-- Modale Avvio Escursione -->
   <div id="start-track-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card">
       <h2>Nuova Escursione 🥾</h2>
       <p>Assegna un nome a questa registrazione. Tutti i file faranno riferimento a questo nome.</p>
-      <input type="text" id="track-name-input" class="input-code" placeholder="es. Anello del Romito">
+      <input type="text" id="track-name-input" class="input-code" placeholder="Nome Escursione">
       <button class="pay-btn" onclick="confirmStartTrack()">CONFERMA E AVVIA</button>
       <button class="btn-activate" onclick="cancelStartTrack()" style="background: #555;">ANNULLA</button>
     </div>
   </div>
 
-  <!-- MODALE 1: Intro / Benvenuto -->
-  <div id="intro-modal" class="modal-overlay">
+  <!-- Modale Introduzione / Prova -->
+  <div id="intro-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card">
       <h2>Benvenuto su SentieroVivo TEST! 🧪</h2>
       <p>Ambiente di sperimentazione con Persistent Storage, Campionamento Dinamico e Wake Lock integrato.</p>
-
       <div style="background: rgba(255, 152, 0, 0.15); border: 1px solid #ff9800; padding: 14px; border-radius: 12px; color: #fff; font-size: 14px; text-align: left; margin-bottom: 16px;">
         ℹ️ <b>INFORMAZIONE SULL'USO:</b><br><br>
-        • Hai a disposizione <b>15 GIORNI DI PROVA GRATUITA</b>.<br><br>
-        • Al termine, è richiesto il codice regalo o la chiave di attivazione.
+        - Hai a disposizione <b>15 GIORNI DI PROVA GRATUITA</b>.<br><br>
+        - Al termine, è richiesto il codice regalo o la chiave di attivazione.
       </div>
 
       <button class="pay-btn" onclick="startTrialStep1()">INIZIA PROVA GRATUITA (15 gg)</button>
@@ -508,13 +499,11 @@
     </div>
   </div>
 
-  <!-- MODALE 2: Contatto SOS -->
+  <!-- Modale Contatto Emergenza -->
   <div id="emergency-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card">
       <h2>Contatto SOS di Fiducia 📞</h2>
-      <p style="font-size: 14px; color: #ccc; margin-bottom: 16px;">
-        Inserisci Nome e Numero del contatto di emergenza.
-      </p>
+      <p>Inserisci Nome e Numero del contatto di emergenza.</p>
       
       <div style="text-align: left; margin-bottom: 6px; font-size: 13px; color: #00bcd4; font-weight: bold;">NOME CONTATTO:</div>
       <input type="text" id="emergency-name-input" class="input-code" placeholder="es. Mario Rossi">
@@ -527,12 +516,12 @@
     </div>
   </div>
 
-  <!-- Modal di Blocco / Scadenza Prova -->
+  <!-- Modale Licenza Scaduta -->
   <div id="pay-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card">
       <h2>Periodo di Prova Terminato</h2>
       <p>I 15 giorni di prova sono trascorsi. Inserisci il codice regalo o attiva la licenza.</p>
-
+      
       <div style="font-size: 13px; color: #aaa; margin-bottom: 5px;">ID Dispositivo Unico:</div>
       <div id="device-id-display" class="device-box">--------</div>
 
@@ -544,19 +533,19 @@
     </div>
   </div>
 
-  <!-- Modal Salva GPX / KML -->
+  <!-- Modale Salva Traccia -->
   <div id="save-track-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card">
       <h2>Salva Escursione 💾</h2>
       <p>Scegli il formato e scarica il file della traccia assieme ai file multimediali.</p>
       <input type="text" id="track-filename" class="input-code" placeholder="Nome Escursione">
       <button class="pay-btn" onclick="confirmSaveGPX('gpx')">SCARICA FORMATO GPX</button>
-      <button class="pay-btn" onclick="confirmSaveGPX('kml')" style="background: #0288d1; margin-top: 5px;">SCARICA FORMATO KML (Google Earth)</button>
+      <button class="pay-btn" onclick="confirmSaveGPX('kml')" style="background: #0288d1; margin-top: 5px;">SCARICA FORMATO KML</button>
       <button class="btn-activate" onclick="closeSaveModal()" style="background: #555; margin-top: 10px;">CHIUDI E NUOVA TRACCIA</button>
     </div>
   </div>
 
-  <!-- Modal Legenda -->
+  <!-- Modale Legenda -->
   <div id="legenda-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card">
       <h2>Legenda & Guida 📖</h2>
@@ -566,7 +555,7 @@
         <li>☀️ <b>Tasto Sole:</b> Attiva la modalità ad alto contrasto visibile sotto la luce diretta.</li>
         <li>🔋 <b>Risparmio Batteria:</b> Campionamento dinamico GPS in pausa durante le soste lunghe.</li>
       </ul>
-      <button class="pay-btn" onclick="closeLegenda()" style="margin-top: 15px;">CHIUDI LEGENDA</button>
+      <button class="btn-activate" onclick="closeLegenda()" style="margin-top: 15px;">CHIUDI LEGENDA</button>
     </div>
   </div>
 
@@ -826,11 +815,7 @@
 
     const arrowIcon = L.divIcon({
       className: 'gps-arrow-icon',
-      html: `
-        <svg width="36" height="36" viewBox="0 0 36 36">
-          <polygon points="18,2 32,32 18,24 4,32" fill="#00bcd4" stroke="#ffffff" stroke-width="2"/>
-        </svg>
-      `,
+      html: `<div style="color: #00bcd4; font-size: 24px; text-shadow: 0 0 5px #000;"><i class="fa-solid fa-location-arrow"></i></div>`,
       iconSize: [36, 36],
       iconAnchor: [18, 18]
     });
@@ -852,7 +837,7 @@
     function handleOrientation(event) {
       let heading = event.alpha;
       if (event.webkitCompassHeading) heading = event.webkitCompassHeading;
-      const arrowEl = document.querySelector('.gps-arrow-icon svg');
+      const arrowEl = document.querySelector('.gps-arrow-icon');
       if (arrowEl && heading !== null) {
         arrowEl.style.transform = `rotate(${heading}deg)`;
       }
@@ -885,7 +870,7 @@
 
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
-          const speed = pos.coords.speed || 0; // m/s
+          const speed = pos.coords.speed || 0;
           const altGps = pos.coords.altitude;
           const currentLatLng = new L.LatLng(lat, lng);
 
@@ -905,7 +890,6 @@
           }
 
           if (isTracking) {
-            // Filtro dinaminco: registra solo se in movimento (>0.3 m/s) o prima posizione
             if (trackPoints.length === 0 || speed > 0.3) {
               if (trackPoints.length > 0) {
                 const lastPt = trackPoints[trackPoints.length - 1];
@@ -916,7 +900,7 @@
                 if (!startMarker) {
                   startMarker = L.marker(startPoint, {
                     icon: L.divIcon({
-                      html: '<div style="background:#00e676; border:2px solid #fff; border-radius:50%; width:16px; height:16px;"></div>',
+                      html: '🏠',
                       iconSize: [24, 24]
                     })
                   }).addTo(map).bindPopup("Punto di Partenza (Base)");
@@ -1019,8 +1003,8 @@
 
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         L.marker(currentPos, {
-          icon: L.divIcon({ html: '<div style="font-size: 22px;">🚩</div>', iconSize: [24, 24] })
-        }).addTo(map).bindPopup(`<b>🚩 Sosta ore ${timeStr}</b>`).openPopup();
+          icon: L.divIcon({ html: '🚩', iconSize: [24, 24] })
+        }).addTo(map).bindPopup(`🚩 Sosta ore ${timeStr}`).openPopup();
       }
     }
 
@@ -1041,8 +1025,8 @@
       }
 
       L.marker(currentPos, {
-        icon: L.divIcon({ html: '<div style="font-size:28px; animation: blink 0.8s infinite;">🚨</div>', iconSize: [30, 30] })
-      }).addTo(map).bindPopup(`<b>🚨 SOS</b><br>Lat: ${activeSosLat}<br>Lng: ${activeSosLng}`).openPopup();
+        icon: L.divIcon({ html: '🚨', iconSize: [30, 30] })
+      }).addTo(map).bindPopup(`🚨 SOS<br>Lat: ${activeSosLat}<br>Lng: ${activeSosLng}`).openPopup();
 
       speak("Allarme SOS attivato!");
 
@@ -1114,7 +1098,7 @@
       resetRecordingUI();
     }
 
-    // ESPORTAZIONE MULTI-FORMATO (GPX & KML)
+    // ESPORTAZIONE MULTI-FORMATO (GPX & KML) CON NOTIFICA PERCORSO SALVATAGGIO
     function confirmSaveGPX(format) {
       const filenameInput = document.getElementById('track-filename').value.trim();
       const filename = filenameInput ? filenameInput.replace(/[^a-z0-9_-]/gi, '_') : `Sentiero_${new Date().toISOString().slice(0,10)}`;
@@ -1156,6 +1140,7 @@
       a.click();
       document.body.removeChild(a);
 
+      // Download Foto, Video e Note Vocali
       recordedMediaList.forEach((media) => {
         const mUrl = URL.createObjectURL(media.blob);
         const mA = document.createElement('a');
@@ -1166,7 +1151,12 @@
         document.body.removeChild(mA);
       });
 
-      speak(`Escursione salvata in formato ${extension.toUpperCase()}.`);
+      const fullFileName = `${filename}.${extension}`;
+      speak(`Escursione salvata nella cartella Download.`);
+      
+      // Messaggio a schermo con indicazione chiara della cartella
+      alert(`💾 FILE SALVATO CON SUCCESSO!\n\nIl file "${fullFileName}" ed eventuali foto/audio sono stati salvati nella memoria del tuo telefono.\n\n📂 Percorso: Gestione File ➔ Download`);
+      
       closeSaveModal();
     }
 
@@ -1340,7 +1330,7 @@
 
       L.marker(currentPos, {
         icon: L.divIcon({
-          html: `<div style="background:#2196f3; color:#fff; font-size:10px; font-weight:bold; padding:2px 6px; border-radius:10px; border:1px solid #fff; text-align:center;">${badgeLabel}</div>`,
+          html: `<div style="background:#ff9800; color:#000; padding:2px 6px; border-radius:10px; font-size:11px; font-weight:bold;">${badgeLabel}</div>`,
           iconSize: [70, 24]
         })
       }).addTo(map).bindPopup(`<div class="media-popup"><b>${badgeLabel}</b>${mediaTag}</div>`).openPopup();
@@ -1403,16 +1393,21 @@
 
       L.marker(currentPos, {
         icon: L.divIcon({
-          html: `<div style="background:#9c27b0; color:#fff; font-size:10px; font-weight:bold; padding:2px 6px; border-radius:10px; border:1px solid #fff; text-align:center;">${badgeLabel}</div>`,
+          html: `<div style="background:#00bcd4; color:#000; padding:2px 6px; border-radius:10px; font-size:11px; font-weight:bold;">${badgeLabel}</div>`,
           iconSize: [70, 24]
         })
       }).addTo(map).bindPopup(`<div class="media-popup"><b>${badgeLabel}</b><audio src="${audioUrl}" controls></audio></div>`).openPopup();
 
-      speak(`Audio salvato`);
+      speak("Audio salvato");
     }
 
-    function openLegenda() { document.getElementById('legenda-modal').style.display = 'flex'; }
-    function closeLegenda() { document.getElementById('legenda-modal').style.display = 'none'; }
+    function openLegenda() {
+      document.getElementById('legenda-modal').style.display = 'flex';
+    }
+
+    function closeLegenda() {
+      document.getElementById('legenda-modal').style.display = 'none';
+    }
 
     const TRIAL_15_DAYS_SEC = 15 * 24 * 3600;
     let trialSeconds = parseInt(localStorage.getItem('sv_trial_remaining')) || TRIAL_15_DAYS_SEC;
