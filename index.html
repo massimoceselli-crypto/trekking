@@ -825,12 +825,12 @@
     let startPoint = null;
     let startMarker = null;
 
-    // ICONA POSIZIONE FISSA
+    // FRECCIA AZZURRA CLASSICA (STABILE E FERMA SENZA ROTAZIONE SBAGLIATA)
     const arrowIcon = L.divIcon({
       className: 'gps-arrow-icon',
-      html: `<div style="color: #00bcd4; font-size: 26px; text-shadow: 0 0 5px #000;"><i class="fa-solid fa-circle-dot"></i></div>`,
-      iconSize: [30, 30],
-      iconAnchor: [15, 15]
+      html: `<div style="color: #00bcd4; font-size: 28px; text-shadow: 0 0 5px #000;"><i class="fa-solid fa-location-arrow"></i></div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16]
     });
     let userMarker = null;
 
@@ -886,7 +886,7 @@
             map.panTo(currentLatLng);
           } else {
             userMarker.setLatLng(currentLatLng);
-            // Centra la mappa solo se l'utente non la sta esplorando manualmente
+            // Centra la mappa solo se l'utente non sta facendo uno zoom o esplorando la mappa
             if (!userInteracted) {
               map.panTo(currentLatLng);
             }
