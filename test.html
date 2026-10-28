@@ -26,7 +26,6 @@
       color: #ffffff;
     }
 
-    /* Modalità Alto Contrasto per il Sole */
     body.high-contrast {
       background-color: #000000 !important;
       color: #ffff00 !important;
@@ -48,7 +47,6 @@
       z-index: 1;
     }
 
-    /* Banner Aggiornamento PWA */
     #update-banner {
       display: none;
       position: absolute;
@@ -65,7 +63,6 @@
       cursor: pointer;
     }
 
-    /* Barra Statistiche in Alto */
     .top-bar {
       position: absolute;
       top: 12px;
@@ -105,7 +102,6 @@
       color: #ffffff;
     }
 
-    /* Riquadro Coordinate GPS */
     .coords-hud {
       background: rgba(0, 0, 0, 0.88);
       border: 1px solid #00bcd4;
@@ -148,7 +144,6 @@
       100% { opacity: 1; }
     }
 
-    /* Barra Controlli In Basso */
     .bottom-bar {
       position: absolute;
       bottom: 20px;
@@ -223,7 +218,6 @@
       justify-content: center;
     }
 
-    /* Modali Ingrandite con Scorrimento */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -328,22 +322,26 @@
     .media-popup {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      width: 220px;
+      gap: 4px;
+      width: 110px;
     }
     .media-popup img, .media-popup video {
       width: 100%;
-      border-radius: 8px;
-      max-height: 180px;
+      border-radius: 6px;
+      max-height: 80px;
       object-fit: cover;
     }
     .media-popup audio {
       width: 100%;
-      height: 36px;
+      height: 28px;
     }
-    .gps-arrow-icon {
-      /* Disattivata transizione di rotazione per evitare scatti */
-      transform: none !important;
+
+    /* PALLINO POSIZIONE AZZURRO BEN VISIBILE E NIDO */
+    .gps-dot-icon {
+      background-color: #00bcd4;
+      border: 3px solid #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
     }
   </style>
 </head>
@@ -551,7 +549,7 @@
     <div class="modal-card">
       <h2>Legenda & Guida 📖</h2>
       <ul class="legenda-list">
-        <li>📍 <b>Freccia Azzurra & Bussola:</b> Posizione GPS ed orientamento hardware in tempo reale.</li>
+        <li>📍 <b>Posizione GPS:</b> Posizione hardware in tempo reale.</li>
         <li>🚨 <b>Tasto S.O.S.:</b> Genera l'SMS completo con coordinate, data, ora e % di batteria residua.</li>
         <li>☀️ <b>Tasto Sole:</b> Attiva la modalità ad alto contrasto visibile sotto la luce diretta.</li>
         <li>🔋 <b>Risparmio Batteria:</b> Campionamento dinamico GPS in pausa durante le soste lunghe.</li>
@@ -562,7 +560,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // --- PERSISTENT STORAGE & SERVICE WORKER ---
     if (navigator.storage && navigator.storage.persist) {
       navigator.storage.persist().then(granted => {
         if (granted) console.log("Memoria locale resa PERSISTENTE dal sistema.");
@@ -590,7 +587,6 @@
       }
     }
 
-    // --- MONITORAGGIO BATTERIA & WAKE LOCK ---
     let currentBatteryLevel = 100;
     let wakeLock = null;
 
@@ -620,12 +616,10 @@
       }
     }
 
-    // --- MODALITÀ ALTO CONTRASTO (SOLE) ---
     function toggleHighContrast() {
       document.body.classList.toggle('high-contrast');
     }
 
-    // --- ASSISTENTE VOCALE ---
     let voiceEnabled = true;
     let lastOffTrackAlertTime = 0;
     let isGpsActive = false;
@@ -652,7 +646,6 @@
       }
     }
 
-    // --- LICENZE & CONTATTO EMERGENZA ---
     const MASTER_KEY = "MASSIMO-MASTER-2026";
     const GIFT_KEY = "REGALO-SENTIERO-2026";
     const NEW_GIFT_KEY = "SENTIEROVIP2026";
@@ -768,8 +761,12 @@
       }
     }
 
-    // --- MAPPA & STRATI CAI ---
     const map = L.map('map', { zoomControl: false }).setView([43.5485, 10.3106], 16);
+
+    let userInteracted = false;
+    map.on('dragstart zoomstart touchstart', function() {
+      userInteracted = true;
+    });
 
     const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -799,6 +796,11 @@
     let isTracking = false;
     let currentTrackName = "";
     let trackPoints = [];
+    let savedTrackPoints = []; 
+    let savedEndPoint = null;   
+    let reconnectPolyline = L.polyline([], { color: '#00bcd4', weight: 4, dashArray: '4, 4' }).addTo(map);
+    let isReconnecting = false;
+
     let recordedMediaList = [];
     let photoCount = 0;
     let videoCount = 0;
@@ -814,12 +816,11 @@
     let startPoint = null;
     let startMarker = null;
 
-    // ICONA POSIZIONE FISSA SENZA ROTAZIONE BUSSOLA
-    const arrowIcon = L.divIcon({
-      className: 'gps-arrow-icon',
-      html: `<div style="color: #00bcd4; font-size: 26px; text-shadow: 0 0 5px #000;"><i class="fa-solid fa-circle-dot"></i></div>`,
-      iconSize: [30, 30],
-      iconAnchor: [15, 15]
+    // PALLINO AZZURRO CHIARO E BEN VISIBILE
+    const dotIcon = L.divIcon({
+      className: 'gps-dot-icon',
+      iconSize: [16, 16],
+      iconAnchor: [8, 8]
     });
     let userMarker = null;
 
@@ -829,11 +830,6 @@
     let totalDistance = 0;
     let startTime = null;
     let timerInterval = null;
-
-    // ORIENTAMENTO BUSSOLA DISATTIVATO COMPLETAMENTE PER STABILITÀ
-    function handleOrientation(event) {
-      return;
-    }
 
     async function fetchRealElevation(lat, lng) {
       if (Date.now() - lastAltitudeFetchTime < 10000) return;
@@ -850,7 +846,6 @@
       }
     }
 
-    // CAMPIONAMENTO DINAMICO GPS
     if (navigator.geolocation) {
       navigator.geolocation.watchPosition(
         (pos) => {
@@ -869,16 +864,31 @@
           document.getElementById('gps-lat').innerText = lat.toFixed(6);
           document.getElementById('gps-lng').innerText = lng.toFixed(6);
 
-          if (altGps !== null && altGps !== undefined) {
+          if (altGps !== null && altGps !== undefined && Math.abs(altGps) > 0) {
             document.getElementById('stat-alt').innerText = Math.round(altGps) + ' m';
           }
           fetchRealElevation(lat, lng);
 
           if (!userMarker) {
-            userMarker = L.marker(currentLatLng, { icon: arrowIcon }).addTo(map);
+            userMarker = L.marker(currentLatLng, { icon: dotIcon }).addTo(map);
             map.panTo(currentLatLng);
           } else {
             userMarker.setLatLng(currentLatLng);
+            if (!userInteracted) {
+              map.panTo(currentLatLng);
+            }
+          }
+
+          if (isReconnecting && savedEndPoint) {
+            const distToSavedEnd = currentLatLng.distanceTo(savedEndPoint);
+            reconnectPolyline.setLatLngs([currentLatLng, savedEndPoint]);
+
+            if (distToSavedEnd <= 10) {
+              isReconnecting = false;
+              reconnectPolyline.setLatLngs([]);
+              speak("Sei arrivato al punto di salvataggio. Ora puoi iniziare il percorso a ritroso verso la base.");
+              returnBackPolyline.setLatLngs(savedTrackPoints);
+            }
           }
 
           if (isTracking) {
@@ -891,10 +901,7 @@
                 startPoint = currentLatLng;
                 if (!startMarker) {
                   startMarker = L.marker(startPoint, {
-                    icon: L.divIcon({
-                      html: '🏠',
-                      iconSize: [24, 24]
-                    })
+                    icon: L.divIcon({ html: '🏠', iconSize: [24, 24] })
                   }).addTo(map).bindPopup("Punto di Partenza (Base)");
                 }
               }
@@ -912,7 +919,7 @@
             updateReturnHUD(currentLatLng);
           }
 
-          if (isReturnBackActive && trackPoints.length > 0) {
+          if (isReturnBackActive && trackPoints.length > 0 && isTracking) {
             checkOffTrackDistance(currentLatLng, trackPoints);
           }
 
@@ -943,7 +950,6 @@
       }
     }
 
-    // --- AVVIO TRACCIA ---
     function toggleTracking() {
       if (!isTracking && !startTime) {
         document.getElementById('track-name-input').value = `Sentiero_${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}`;
@@ -1000,7 +1006,6 @@
       }
     }
 
-    // --- LOGICA SOS POTENZIATA CON BATTERIA E TIMESTAMP ---
     let activeSosLat = "0.000000";
     let activeSosLng = "0.000000";
 
@@ -1055,6 +1060,10 @@
         return;
       }
       isTracking = false;
+      
+      savedTrackPoints = [...trackPoints];
+      savedEndPoint = userMarker ? userMarker.getLatLng() : trackPoints[trackPoints.length - 1];
+
       document.getElementById('track-filename').value = currentTrackName || `Sentiero_${new Date().toISOString().slice(0,10)}`;
       document.getElementById('save-track-modal').style.display = 'flex';
     }
@@ -1090,7 +1099,6 @@
       resetRecordingUI();
     }
 
-    // ESPORTAZIONE MULTI-FORMATO (GPX & KML) CON NOTIFICA PERCORSO SALVATAGGIO
     function confirmSaveGPX(format) {
       const filenameInput = document.getElementById('track-filename').value.trim();
       const filename = filenameInput ? filenameInput.replace(/[^a-z0-9_-]/gi, '_') : `Sentiero_${new Date().toISOString().slice(0,10)}`;
@@ -1101,7 +1109,7 @@
 
       if (format === 'kml') {
         mimeType = 'application/vnd.google-earth.kml+xml';
-        let kmlCoords = trackPoints.map(pt => `${pt.lng},${pt.lat},0`).join(" ");
+        let kmlCoords = savedTrackPoints.map(pt => `${pt.lng},${pt.lat},0`).join(" ");
         fileContent = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
@@ -1117,7 +1125,7 @@
         fileContent = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="SentieroVivo">
   <trk><name>${filename}</name><trkseg>`;
-        trackPoints.forEach(pt => {
+        savedTrackPoints.forEach(pt => {
           fileContent += `\n    <trkpt lat="${pt.lat}" lon="${pt.lng}"></trkpt>`;
         });
         fileContent += `\n  </trkseg></trk>\n</gpx>`;
@@ -1132,7 +1140,6 @@
       a.click();
       document.body.removeChild(a);
 
-      // Download Foto, Video e Note Vocali
       recordedMediaList.forEach((media) => {
         const mUrl = URL.createObjectURL(media.blob);
         const mA = document.createElement('a');
@@ -1146,28 +1153,41 @@
       const fullFileName = `${filename}.${extension}`;
       speak(`Escursione salvata nella cartella Download.`);
       
-      // Messaggio a schermo con indicazione chiara della cartella
       alert(`💾 FILE SALVATO CON SUCCESSO!\n\nIl file "${fullFileName}" ed eventuali foto/audio sono stati salvati nella memoria del tuo telefono.\n\n📂 Percorso: Gestione File ➔ Download`);
       
       closeSaveModal();
     }
 
-    // --- PERCORSO A RITROSO & NAVIGATORE ---
     function toggleReturnBack() {
-      if (trackPoints.length > 0) {
-        let choice = confirm("Ripercorrere a ritroso l'escursione ATTUALE?\n(Annulla per caricare un file dall'archivio)");
-        if (choice) {
-          activateCurrentReturnBack();
-        } else {
-          triggerGPXFileSelect();
+      const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
+
+      if (savedEndPoint && !isTracking) {
+        const distFromSavedEnd = currentPos.distanceTo(savedEndPoint);
+        
+        if (distFromSavedEnd > 12) {
+          isReconnecting = true;
+          isReturnBackActive = true;
+          reconnectPolyline.setLatLngs([currentPos, savedEndPoint]);
+          
+          document.getElementById('return-hud').style.display = 'flex';
+          document.getElementById('return-mode-title').innerText = "Ricongiungimento Traccia";
+          
+          speak("Calcolo ricongiungimento all'ultima traccia salvata.");
+          return;
         }
+      }
+
+      if (trackPoints.length > 0 || savedTrackPoints.length > 0) {
+        activateCurrentReturnBack();
       } else {
         triggerGPXFileSelect();
       }
     }
 
     function activateCurrentReturnBack() {
-      if (!startPoint) return;
+      const targetPoints = trackPoints.length > 0 ? trackPoints : savedTrackPoints;
+      if (targetPoints.length === 0) return;
+
       isReturnBackActive = !isReturnBackActive;
       isReturnAltActive = false;
       returnAltPolyline.setLatLngs([]);
@@ -1177,8 +1197,11 @@
       document.getElementById('return-mode-title').innerText = "Rientro a Ritroso";
 
       if (isReturnBackActive) {
+        returnBackPolyline.setLatLngs(targetPoints);
         speak("Rientro a ritroso attivato.");
         if (userMarker) updateReturnHUD(userMarker.getLatLng());
+      } else {
+        returnBackPolyline.setLatLngs([]);
       }
     }
 
@@ -1218,9 +1241,10 @@
       reader.readAsText(file);
     }
 
+    // LINEA VERDE RIENTRO BASE GARANTITA
     async function toggleReturnAlt() {
-      if (!startPoint && (!userMarker)) return;
-      const targetPoint = startPoint || (userMarker ? userMarker.getLatLng() : map.getCenter());
+      const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
+      const targetPoint = startPoint || (savedTrackPoints.length > 0 ? savedTrackPoints[0] : currentPos);
 
       isReturnAltActive = !isReturnAltActive;
       isReturnBackActive = false;
@@ -1228,11 +1252,16 @@
 
       if (isReturnAltActive) {
         hud.style.display = 'flex';
-        document.getElementById('return-mode-title').innerText = "Calcolo nuovo sentiero...";
-        speak("Calcolo del nuovo sentiero sicuro in corso.");
+        document.getElementById('return-mode-title').innerText = "Rientro Base";
+        speak("Calcolo del nuovo sentiero di rientro.");
 
-        const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
-        const url = `https://router.project-osrm.org/route/v1/foot/${currentPos.lng},${currentPos.lat};${targetPoint.lng},${targetPoint.lat}?overview=full&geometries=geojson`;
+        // Traccia immediatamente la linea verde diretta per garantire la visualizzazione
+        calculatedReturnPath = [currentPos, targetPoint];
+        returnAltPolyline.setLatLngs(calculatedReturnPath);
+        updateReturnHUD(currentPos);
+
+        // Tentativo di calcolo percorso stradale/pedonale in sottofondo
+        const url = `https://router.project-osrm.org/route/v1/foot/${currentPos.lng.toFixed(5)},${currentPos.lat.toFixed(5)};${targetPoint.lng.toFixed(5)},${targetPoint.lat.toFixed(5)}?overview=full&geometries=geojson`;
 
         try {
           const response = await fetch(url);
@@ -1241,15 +1270,9 @@
             const coords = data.routes[0].geometry.coordinates;
             calculatedReturnPath = coords.map(c => new L.LatLng(c[1], c[0]));
             returnAltPolyline.setLatLngs(calculatedReturnPath);
-            document.getElementById('return-mode-title').innerText = "Nuovo Sentiero Rientro";
-            speak("Nuovo sentiero calcolato. Segui la linea verde.");
-            updateReturnHUD(currentPos);
           }
         } catch (err) {
-          calculatedReturnPath = [currentPos, targetPoint];
-          returnAltPolyline.setLatLngs(calculatedReturnPath);
-          document.getElementById('return-mode-title').innerText = "Rientro Diretto Base";
-          updateReturnHUD(currentPos);
+          console.warn("Utilizzo linea diretta per il rientro base.");
         }
       } else {
         returnAltPolyline.setLatLngs([]);
@@ -1259,22 +1282,24 @@
     }
 
     function updateReturnHUD(currentPos) {
+      let target = startPoint || (savedTrackPoints.length > 0 ? savedTrackPoints[0] : currentPos);
       let remainingDistance = 0;
+      
       if (isReturnAltActive && calculatedReturnPath.length > 1) {
         for (let i = 0; i < calculatedReturnPath.length - 1; i++) {
           remainingDistance += calculatedReturnPath[i].distanceTo(calculatedReturnPath[i + 1]);
         }
       } else {
-        remainingDistance = currentPos.distanceTo(startPoint);
+        remainingDistance = currentPos.distanceTo(target);
       }
 
       document.getElementById('return-dist').innerText = remainingDistance > 1000 
         ? (remainingDistance / 1000).toFixed(2) + ' km' 
         : Math.round(remainingDistance) + ' m';
 
-      const dLng = (startPoint.lng - currentPos.lng) * Math.PI / 180;
+      const dLng = (target.lng - currentPos.lng) * Math.PI / 180;
       const lat1 = currentPos.lat * Math.PI / 180;
-      const lat2 = startPoint.lat * Math.PI / 180;
+      const lat2 = target.lat * Math.PI / 180;
       const y = Math.sin(dLng) * Math.cos(lat2);
       const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
       let bearing = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
@@ -1295,7 +1320,6 @@
       }
     }
 
-    // --- FOTO, VIDEO E AUDIO ---
     function triggerCameraCapture(acceptType) {
       const input = document.getElementById('camera-capture');
       input.accept = acceptType;
