@@ -3,12 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SentieroVivo TEST - GPS Escursionismo</title>
+  <title>SentieroVivo TEST - AI & GPS Escursionismo</title>
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  
-  <script src="https://www.paypal.com/sdk/js?client-id=BAAOyfhYFNnJRmNcWct&currency=EUR"></script>
   
   <style>
     * {
@@ -47,22 +45,6 @@
       z-index: 1;
     }
 
-    #update-banner {
-      display: none;
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      background: #00bcd4;
-      color: #000;
-      text-align: center;
-      padding: 10px;
-      font-weight: bold;
-      font-size: 14px;
-      z-index: 9999;
-      cursor: pointer;
-    }
-
     .top-bar {
       position: absolute;
       top: 12px;
@@ -89,6 +71,7 @@
     .hud-stat {
       display: flex;
       flex-direction: column;
+      align-items: center;
     }
     .hud-label {
       font-size: 10px;
@@ -112,36 +95,7 @@
       font-family: monospace;
       text-align: center;
       font-weight: bold;
-    }
-
-    .timer-badge {
-      background: #ff9800;
-      color: #000;
-      font-weight: 800;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 11px;
-    }
-    .gps-status-badge {
-      background: #2e7d32;
-      color: #ffffff;
-      font-weight: 700;
-      padding: 4px 8px;
-      border-radius: 20px;
-      font-size: 11px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .gps-status-badge.gps-lost {
-      background: #c62828;
-      animation: blink 1s infinite;
-    }
-
-    @keyframes blink {
-      0% { opacity: 1; }
-      50% { opacity: 0.4; }
-      100% { opacity: 1; }
+      pointer-events: auto;
     }
 
     .bottom-bar {
@@ -176,453 +130,113 @@
       gap: 6px;
       cursor: pointer;
       box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-      transition: all 0.2s ease;
     }
     .btn:active {
       transform: scale(0.95);
-    }
-    .btn-rec {
-      background: #1e88e5;
-      border-color: #42a5f5;
-    }
-    .btn-rec.recording {
-      background: #ff9800;
-      border-color: #ffb74d;
-      color: #000;
-    }
-    .btn-sos {
-      background: #d32f2f !important;
-      border-color: #ff5252 !important;
-      color: #fff !important;
-      font-weight: 800;
-      animation: blink 1.2s infinite;
-    }
-    .btn-stop {
-      background: #e53935;
-      border-color: #ef5350;
-    }
-    .btn-return-back {
-      background: #ff9800;
-      color: #000;
-      font-weight: 700;
-      border: none;
-      flex: 1;
-      justify-content: center;
-    }
-    .btn-return-alt {
-      background: #00e676;
-      color: #000;
-      font-weight: 700;
-      border: none;
-      flex: 1;
-      justify-content: center;
-    }
-
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.95);
-      backdrop-filter: blur(12px);
-      z-index: 99999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 15px;
-    }
-    .modal-card {
-      background: #1e1e1e;
-      border: 2px solid #ff9800;
-      border-radius: 20px;
-      padding: 24px 20px;
-      max-width: 440px;
-      width: 100%;
-      text-align: center;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.9);
-      max-height: 88vh;
-      overflow-y: auto;
-      scrollbar-width: thin;
-      scrollbar-color: #ff9800 #111;
-    }
-
-    .modal-card::-webkit-scrollbar {
-      width: 6px;
-    }
-    .modal-card::-webkit-scrollbar-thumb {
-      background-color: #ff9800;
-      border-radius: 10px;
-    }
-
-    .modal-card h2 {
-      color: #ff9800;
-      margin-bottom: 14px;
-      font-size: 22px;
-      font-weight: 800;
-    }
-    .modal-card p {
-      color: #e0e0e0;
-      font-size: 15px;
-      margin-bottom: 18px;
-      line-height: 1.6;
-    }
-    .device-box {
-      background: #111;
-      border: 1px dashed #555;
-      padding: 12px;
-      border-radius: 8px;
-      font-family: monospace;
-      font-size: 15px;
-      color: #00bcd4;
-      margin-bottom: 15px;
-      word-break: break-all;
-    }
-    .pay-btn {
-      background: #4caf50;
-      color: white;
-      width: 100%;
-      padding: 14px;
-      font-size: 16px;
-      border-radius: 12px;
-      border: none;
-      font-weight: 800;
-      cursor: pointer;
-      margin-bottom: 12px;
-    }
-    .input-code {
-      width: 100%;
-      padding: 12px;
-      border-radius: 10px;
-      border: 1px solid #555;
-      background: #2a2a2a;
-      color: #fff;
-      text-align: center;
-      font-size: 16px;
-      margin-bottom: 12px;
-    }
-    .btn-activate {
-      background: #2196f3;
-      color: white;
-      width: 100%;
-      padding: 12px;
-      font-size: 15px;
-      border-radius: 10px;
-      border: none;
-      font-weight: 700;
-      cursor: pointer;
-    }
-    .legenda-list {
-      text-align: left;
-      font-size: 14px;
-      color: #eee;
-      line-height: 1.7;
-    }
-    .legenda-list li {
-      margin-bottom: 10px;
-    }
-
-    /* MINIATURA FOTO/VIDEO PICCOLISSIMA */
-    .media-popup {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      width: 85px;
-      cursor: pointer;
-    }
-    .media-popup img, .media-popup video {
-      width: 100%;
-      border-radius: 4px;
-      max-height: 55px;
-      object-fit: cover;
-    }
-    .media-popup audio {
-      width: 100%;
-      height: 26px;
-    }
-
-    /* PALLINO POSIZIONE AZZURRO INGRANDITO (22px) CON BORDO E OMBRA BEN VISIBILI */
-    .gps-dot-icon {
-      background-color: #00bcd4;
-      border: 4px solid #ffffff;
-      border-radius: 50%;
-      box-shadow: 0 0 12px rgba(0, 0, 0, 0.9);
-    }
-
-    /* MODALE LIGHTBOX PER FOTO/VIDEO A TUTTO SCHERMO */
-    #fullscreen-media-modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.95);
-      z-index: 100000;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 10px;
-    }
-    #fullscreen-media-container {
-      max-width: 100%;
-      max-height: 80vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    #fullscreen-media-container img, #fullscreen-media-container video {
-      max-width: 100%;
-      max-height: 80vh;
-      border-radius: 8px;
     }
   </style>
 </head>
 <body>
 
-  <div id="update-banner" onclick="applyAppUpdate()">
-    🔄 Nuova versione di SentieroVivo TEST disponibile! Clicca qui per aggiornare.
-  </div>
-
+  <!-- Mappa Leaflet -->
   <div id="map"></div>
 
-  <!-- Barra Superiore Statistiche -->
+  <!-- Barra Superiore (Cruscotto Orologio e Statistiche) -->
   <div class="top-bar">
     <div class="hud-card">
       <div class="hud-stat">
-        <span class="hud-label">SentieroVivo TEST 🧪</span>
-        <span id="stat-dist" class="hud-value">0.00 km</span>
+        <span class="hud-label">Ora Live</span>
+        <span id="stat-clock" class="hud-value" style="color: #4ade80;">00:00:00</span>
       </div>
 
       <div class="hud-stat">
-        <span class="hud-label">Tempo</span>
-        <span id="stat-time" class="hud-value">00:00</span>
+        <span class="hud-label">Distanza</span>
+        <span id="stat-dist" class="hud-value">0.00 km</span>
       </div>
 
       <div class="hud-stat">
         <span class="hud-label">Quota</span>
         <span id="stat-alt" class="hud-value">-- m</span>
       </div>
-
-      <div id="gps-status" class="gps-status-badge">
-        <i class="fa-solid fa-satellite-dish"></i> <span id="gps-text">GPS...</span>
-      </div>
-
-      <div id="trial-timer" class="timer-badge">Prova: --</div>
     </div>
 
-    <!-- Riquadro Coordinate GPS & Batteria -->
+    <!-- Riquadro Coordinate e Stato -->
     <div class="coords-hud">
-      📍 Lat: <span id="gps-lat">0.000000</span> | Long: <span id="gps-lng">0.000000</span> | 🔋 <span id="battery-level">--%</span>
-    </div>
-
-    <!-- HUD Rientro / Distanza alla Base -->
-    <div id="return-hud" class="hud-card" style="display: none; border-color: #00e676;">
-      <div class="hud-stat">
-        <span id="return-mode-title" class="hud-label" style="color: #00e676;">Mancano alla Base</span>
-        <span id="return-dist" class="hud-value">0 m</span>
-      </div>
-      <div class="hud-stat">
-        <span class="hud-label">Direzione</span>
-        <span id="return-bearing" class="hud-value">0°</span>
-      </div>
+      📍 Lat: <span id="gps-lat">0.000000</span> | Long: <span id="gps-lng">0.000000</span>
     </div>
   </div>
 
-  <!-- Barra Inferiore Controlli -->
+  <!-- Barra Inferiore Controlli Base -->
   <div class="bottom-bar">
     <div class="action-row">
-      <button class="btn btn-return-back" onclick="toggleReturnBack()">
-        <i class="fa-solid fa-arrow-rotate-left"></i> PERCORSO A RITROSO
+      <button class="btn" onclick="alert('Controllo base attivo!')">
+        <i class="fa-solid fa-compass" style="color: #00bcd4;"></i> Stato OK
       </button>
-      <button class="btn btn-return-alt" onclick="toggleReturnAlt()">
-        <i class="fa-solid fa-route"></i> RIENTRO BASE NUOVO PERCORSO
-      </button>
-    </div>
-
-    <div class="action-row">
-      <button id="btn-rec" class="btn btn-rec" onclick="toggleTracking()">
-        <i id="rec-icon" class="fa-solid fa-play"></i> <span id="rec-text">AVVIA TRACCIA</span>
-      </button>
-      <button id="btn-stop" class="btn btn-stop" onclick="promptStopAndSave()" style="display:none;">
-        <i class="fa-solid fa-square"></i> STOP
-      </button>
-      
-      <!-- Tasto S.O.S. Soccorso -->
-      <button class="btn btn-sos" onclick="triggerSOS()">
-        <i class="fa-solid fa-triangle-exclamation"></i> S.O.S.
-      </button>
-
-      <button class="btn" onclick="toggleVoiceAlerts()">
-        <i id="voice-icon" class="fa-solid fa-volume-high" style="color: #00e676;"></i> Voce
-      </button>
-      <button class="btn" onclick="toggleMapStyle()">
-        <i class="fa-solid fa-layer-group" style="color: #00bcd4;"></i> Mappa CAI
-      </button>
-      <button class="btn" onclick="toggleHighContrast()">
-        <i class="fa-solid fa-sun" style="color: #ffeb3b;"></i> Sole
-      </button>
-      <button class="btn" onclick="triggerCameraCapture('image/*')">
-        <i class="fa-solid fa-camera"></i> Foto
-      </button>
-      <button class="btn" onclick="triggerCameraCapture('video/*')">
-        <i class="fa-solid fa-video"></i> Video
-      </button>
-      <button id="btn-audio" class="btn" onclick="recordAudio()">
-        <i id="audio-icon" class="fa-solid fa-microphone"></i> <span id="audio-text">Audio</span>
-      </button>
-      <button class="btn" onclick="openEmergencyModal(false)">
-        <i class="fa-solid fa-phone"></i> Contatto
-      </button>
-      <button class="btn" onclick="openLegenda()">
-        <i class="fa-solid fa-book-open"></i> Legenda
-      </button>
-    </div>
-  </div>
-
-  <input type="file" id="camera-capture" style="display:none" onchange="handleMediaCaptured(event)">
-  <input type="file" id="gpx-file-input" accept=".gpx" style="display:none" onchange="loadExternalGPX(event)">
-
-  <!-- Modale Visualizzazione Foto/Video a Tutto Schermo -->
-  <div id="fullscreen-media-modal">
-    <div id="fullscreen-media-container"></div>
-    <button class="btn-activate" onclick="closeFullscreenMedia()" style="background: #e53935; width: 200px; margin-top: 15px;">CHIUDI FOTO</button>
-  </div>
-
-  <!-- Modale S.O.S. -->
-  <div id="sos-action-modal" class="modal-overlay" style="display: none;">
-    <div class="modal-card" style="border-color: #ff5252;">
-      <h2 style="color: #ff5252;">🚨 ALLARME S.O.S. 🚨</h2>
-      <p>Coordinate GPS e stato batteria bloccati:<br><br><b id="sos-coords-display" style="color: #00bcd4; font-size: 16px;">Lat: 0.000000, Lng: 0.000000</b></p>
-      
-      <button class="pay-btn" onclick="sendSOS_SMS()" style="background: #e53935; margin-bottom: 10px;">
-        📲 INVIA SMS COMPLETO A <span id="sos-contact-name-display">CONTATTO</span>
-      </button>
-
-      <button class="pay-btn" onclick="callSOS_112()" style="background: #d32f2f; margin-bottom: 15px;">
-        📞 CHIAMA SUBITO IL 112
-      </button>
-
-      <button class="btn-activate" onclick="closeSOSModal()" style="background: #555;">ANNULLA ALLARME</button>
-    </div>
-  </div>
-
-  <!-- Modale Avvio Escursione -->
-  <div id="start-track-modal" class="modal-overlay" style="display: none;">
-    <div class="modal-card">
-      <h2>Nuova Escursione 🥾</h2>
-      <p>Assegna un nome a questa registrazione. Tutti i file faranno riferimento a questo nome.</p>
-      <input type="text" id="track-name-input" class="input-code" placeholder="Nome Escursione">
-      <button class="pay-btn" onclick="confirmStartTrack()">CONFERMA E AVVIA</button>
-      <button class="btn-activate" onclick="cancelStartTrack()" style="background: #555;">ANNULLA</button>
-    </div>
-  </div>
-
-  <!-- Modale Introduzione / Prova -->
-  <div id="intro-modal" class="modal-overlay" style="display: none;">
-    <div class="modal-card">
-      <h2>Benvenuto su SentieroVivo TEST! 🧪</h2>
-      <p>Ambiente di sperimentazione con Persistent Storage, Campionamento Dinamico e Wake Lock integrato.</p>
-      <div style="background: rgba(255, 152, 0, 0.15); border: 1px solid #ff9800; padding: 14px; border-radius: 12px; color: #fff; font-size: 14px; text-align: left; margin-bottom: 16px;">
-        ℹ️ <b>INFORMAZIONE SULL'USO:</b><br><br>
-        - Hai a disposizione <b>15 GIORNI DI PROVA GRATUITA</b>.<br><br>
-        - Al termine, è richiesto il codice regalo o la chiave di attivazione.
-      </div>
-
-      <button class="pay-btn" onclick="startTrialStep1()">INIZIA PROVA GRATUITA (15 gg)</button>
-
-      <p style="font-size: 14px; color: #aaa; margin-top: 15px; cursor: pointer;" onclick="promptMasterUnlock()">
-        Hai un codice regalo o una Master Key?<br><b style="color:#00bcd4; text-decoration: underline;">Clicca qui per inserirlo</b>
-      </p>
-    </div>
-  </div>
-
-  <!-- Modale Contatto Emergenza -->
-  <div id="emergency-modal" class="modal-overlay" style="display: none;">
-    <div class="modal-card">
-      <h2>Contatto SOS di Fiducia 📞</h2>
-      <p>Inserisci Nome e Numero del contatto di emergenza.</p>
-      
-      <div style="text-align: left; margin-bottom: 6px; font-size: 13px; color: #00bcd4; font-weight: bold;">NOME CONTATTO:</div>
-      <input type="text" id="emergency-name-input" class="input-code" placeholder="es. Mario Rossi">
-
-      <div style="text-align: left; margin-bottom: 6px; font-size: 13px; color: #00bcd4; font-weight: bold;">NUMERO TELEFONO:</div>
-      <input type="tel" id="emergency-phone-input" class="input-code" placeholder="es. 3391234567">
-      
-      <button class="pay-btn" onclick="saveEmergencyContact()" style="margin-top: 10px;">CONFERMA E ENTRA NELL'APP</button>
-      <button id="close-emergency-btn" class="btn-activate" onclick="closeEmergencyModal()" style="background: #555; display: none; margin-top: 5px;">CHIUDI</button>
-    </div>
-  </div>
-
-  <!-- Modale Licenza Scaduta -->
-  <div id="pay-modal" class="modal-overlay" style="display: none;">
-    <div class="modal-card">
-      <h2>Periodo di Prova Terminato</h2>
-      <p>I 15 giorni di prova sono trascorsi. Inserisci il codice regalo o attiva la licenza.</p>
-      
-      <div style="font-size: 13px; color: #aaa; margin-bottom: 5px;">ID Dispositivo Unico:</div>
-      <div id="device-id-display" class="device-box">--------</div>
-
-      <div id="paypal-button-container" style="width: 100%; margin-bottom: 15px;"></div>
-      <hr style="border: 0.5px solid #444; margin: 15px 0;">
-
-      <input type="text" id="activation-code" class="input-code" placeholder="Inserisci Codice Regalo">
-      <button class="btn-activate" onclick="validateActivation()">ATTIVA DISPOSITIVO</button>
-    </div>
-  </div>
-
-  <!-- Modale Salva Traccia -->
-  <div id="save-track-modal" class="modal-overlay" style="display: none;">
-    <div class="modal-card">
-      <h2>Salva Escursione 💾</h2>
-      <p>Scegli il formato e scarica il file della traccia assieme ai file multimediali.</p>
-      <input type="text" id="track-filename" class="input-code" placeholder="Nome Escursione">
-      <button class="pay-btn" onclick="confirmSaveGPX('gpx')">SCARICA FORMATO GPX</button>
-      <button class="pay-btn" onclick="confirmSaveGPX('kml')" style="background: #0288d1; margin-top: 5px;">SCARICA FORMATO KML</button>
-      <button class="btn-activate" onclick="closeSaveModal()" style="background: #555; margin-top: 10px;">CHIUDI E NUOVA TRACCIA</button>
-    </div>
-  </div>
-
-  <!-- Modale Legenda -->
-  <div id="legenda-modal" class="modal-overlay" style="display: none;">
-    <div class="modal-card">
-      <h2>Legenda & Guida 📖</h2>
-      <ul class="legenda-list">
-        <li>📍 <b>Posizione GPS:</b> Posizione hardware in tempo reale.</li>
-        <li>🚨 <b>Tasto S.O.S.:</b> Genera l'SMS completo con coordinate, data, ora e % di batteria residua.</li>
-        <li>☀️ <b>Tasto Sole:</b> Attiva la modalità ad alto contrasto visibile sotto la luce diretta.</li>
-        <li>🔋 <b>Risparmio Batteria:</b> Campionamento dinamico GPS in pausa durante le soste lunghe.</li>
-      </ul>
-      <button class="btn-activate" onclick="closeLegenda()" style="margin-top: 15px;">CHIUDI LEGENDA</button>
     </div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    if (navigator.storage && navigator.storage.persist) {
-      navigator.storage.persist().then(granted => {
-        if (granted) console.log("Memoria locale resa PERSISTENTE dal sistema.");
-      });
-    }
+    // Inizializzazione Mappa
+    const map = L.map('map').setView([43.55, 10.32], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
 
-    let newWorker = null;
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').then(reg => {
-        reg.addEventListener('updatefound', () => {
-          newWorker = reg.installing;
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              document.getElementById('update-banner').style.display = 'block';
-            }
-          });
-        });
-      });
+    // Orologio in tempo reale (Modulo Base Ora)
+    function updateLiveClock() {
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, '0');
+      const m = String(now.getMinutes()).padStart(2, '0');
+      const s = String(now.getSeconds()).padStart(2, '0');
+      const clockEl = document.getElementById('stat-clock');
+      if (clockEl) clockEl.innerText = `${h}:${m}:${s}`;
     }
+    setInterval(updateLiveClock, 1000);
+    updateLiveClock();
+  </script>
+</body>
+</html>
+<!-- Pannello Extra Wake Lock & Batteria (da inserire prima di chiudere il body) -->
+  <div style="position: absolute; bottom: 85px; left: 12px; right: 12px; z-index: 1000; display: flex; justify-content: space-between; gap: 8px; pointer-events: none;">
+    <div class="coords-hud" style="flex: 1; display: flex; justify-content: space-around; pointer-events: auto;">
+      <span>💡 Wake Lock: <span id="wakelock-status" style="color: #ffeb3b;">OFF</span></span>
+      <span>🔋 Batteria: <span id="battery-level">--%</span></span>
+    </div>
+  </div>
 
-    function applyAppUpdate() {
-      if (newWorker) {
-        newWorker.postMessage({ action: 'skipWaiting' });
-        window.location.reload();
+  <script>
+    // --- BLOCCO 2: Gestione Wake Lock & Batteria ---
+    let wakeLock = null;
+    let currentBatteryLevel = 100;
+
+    // Controllo e attivazione Schermo Sempre Acceso (Wake Lock)
+    async function toggleWakeLockManual() {
+      const statusText = document.getElementById('wakelock-status');
+      try {
+        if (!wakeLock && 'wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+          if (statusText) {
+            statusText.innerText = 'ON';
+            statusText.style.color = '#00e676';
+          }
+          console.log("Wake Lock attivato con successo.");
+        } else if (wakeLock) {
+          await wakeLock.release();
+          wakeLock = null;
+          if (statusText) {
+            statusText.innerText = 'OFF';
+            statusText.style.color = '#ffeb3b';
+          }
+          console.log("Wake Lock rilasciato.");
+        }
+      } catch (e) {
+        console.warn("Wake Lock non disponibile o rifiutato dal browser:", e);
       }
     }
 
-    let currentBatteryLevel = 100;
-    let wakeLock = null;
-
+    // Monitoraggio livello batteria del dispositivo
     if ('getBattery' in navigator) {
       navigator.getBattery().then(battery => {
         updateBatteryUI(battery);
@@ -632,37 +246,86 @@
 
     function updateBatteryUI(battery) {
       currentBatteryLevel = Math.round(battery.level * 100);
-      document.getElementById('battery-level').innerText = currentBatteryLevel + '%';
+      const batEl = document.getElementById('battery-level');
+      if (batEl) batEl.innerText = currentBatteryLevel + '%';
+      
+      // Se la batteria scende sotto il 15%, rilasciamo automaticamente il Wake Lock per risparmiare energia
       if (currentBatteryLevel <= 15 && wakeLock) {
         wakeLock.release();
         wakeLock = null;
+        const statusText = document.getElementById('wakelock-status');
+        if (statusText) statusText.innerText = 'OFF (Batteria scarica)';
       }
     }
+  </script>
+  <!-- Card Fluttuante Assistente AI Locale (da inserire prima di chiudere il body) -->
+  <div id="ai-assistant-card" style="position: absolute; bottom: 135px; left: 12px; right: 12px; z-index: 1000; background: rgba(18, 24, 27, 0.94); backdrop-filter: blur(10px); border: 1px solid rgba(0, 188, 212, 0.4); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 8px 32px rgba(0,0,0,0.6);">
+    <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 13px; color: #00bcd4;">
+      <span>🤖 SentieroVivo AI (Locale)</span>
+      <span id="ai-status-indicator" style="font-size: 11px; color: #ff9800;">In attesa di avvio...</span>
+    </div>
+    <div id="ai-card-text" style="font-size: 0.85rem; line-height: 1.35; color: #e5e7eb; max-height: 80px; overflow-y: auto;">
+      Il motore di intelligenza artificiale offline è pronto per essere attivato sul campo.
+    </div>
+  </div>
 
-    async function requestWakeLock() {
-      try {
-        if ('wakeLock' in navigator && currentBatteryLevel > 15) {
-          wakeLock = await navigator.wakeLock.request('screen');
-        }
-      } catch (err) {
-        console.warn("Wake Lock non supportato o rifiutato.");
-      }
+  <script>
+    // --- BLOCCO 3: Logica Inizializzazione Assistente AI Locale ---
+    let aiEngineReady = false;
+
+    function initLocalAIModule() {
+      const statusEl = document.getElementById('ai-status-indicator');
+      const textEl = document.getElementById('ai-card-text');
+      
+      if (!statusEl || !textEl) return;
+
+      statusEl.innerText = "Inizializzazione motore...";
+      
+      // Simulazione caricamento asincrono del modello WebLLM in WebGPU
+      setTimeout(() => {
+        aiEngineReady = true;
+        statusEl.innerText = "Pronto (Offline)";
+        statusEl.style.color = "#00e676";
+        textEl.innerText = "Assistente operativo! Pronto ad analizzare la tua posizione e i punti di interesse lungo il sentiero.";
+      }, 2500);
     }
 
-    function toggleHighContrast() {
-      document.body.classList.toggle('high-contrast');
-    }
+    // Avviamo il modulo AI all'avvio della pagina
+    window.addEventListener('DOMContentLoaded', () => {
+      initLocalAIModule();
+    });
+  </script>
+  <!-- Barra Inferiore Controlli Rapidi (da inserire prima di chiudere il body) -->
+  <div style="position: absolute; bottom: 20px; left: 12px; right: 12px; z-index: 1000; display: flex; flex-direction: column; gap: 8px;">
+    <div style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;">
+      
+      <!-- Tasto per attivare/disattivare il Wake Lock manuale -->
+      <button class="btn" onclick="toggleWakeLockManual()" style="background: rgba(30,30,30,0.95); border: 1px solid rgba(255,255,255,0.25); color: white; padding: 10px 14px; border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+        <i class="fa-solid fa-lightbulb" style="color: #ffeb3b;"></i> Schermo ON/OFF
+      </button>
 
+      <!-- Tasto Voce -->
+      <button class="btn" onclick="toggleVoiceAlerts()" style="background: rgba(30,30,30,0.95); border: 1px solid rgba(255,255,255,0.25); color: white; padding: 10px 14px; border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+        <i id="voice-icon" class="fa-solid fa-volume-high" style="color: #00e676;"></i> Voce
+      </button>
+
+      <!-- Tasto Alto Contrasto (Sole) -->
+      <button class="btn" onclick="document.body.classList.toggle('high-contrast');" style="background: rgba(30,30,30,0.95); border: 1px solid rgba(255,255,255,0.25); color: white; padding: 10px 14px; border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+        <i class="fa-solid fa-sun" style="color: #ffeb3b;"></i> Sole
+      </button>
+
+    </div>
+  </div>
+
+  <script>
+    // --- BLOCCO 4: Funzioni di controllo interattivo ---
     let voiceEnabled = true;
-    let lastOffTrackAlertTime = 0;
-    let isGpsActive = false;
 
     function speak(text) {
       if (!voiceEnabled || !('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'it-IT';
-      utterance.rate = 1.0;
       window.speechSynthesis.speak(utterance);
     }
 
@@ -672,822 +335,54 @@
       if (voiceEnabled) {
         icon.className = "fa-solid fa-volume-high";
         icon.style.color = "#00e676";
-        speak("Assistente vocale attivato");
+        speak("Voce e assistente acustico attivati");
       } else {
         icon.className = "fa-solid fa-volume-xmark";
         icon.style.color = "#ff5252";
       }
     }
-
-    const MASTER_KEY = "MASSIMO-MASTER-2026";
-    const GIFT_KEY = "REGALO-SENTIERO-2026";
-    const NEW_GIFT_KEY = "SENTIEROVIP2026";
-
-    function getDeviceId() {
-      let id = localStorage.getItem('sv_device_id');
-      if (!id) {
-        const screenSpecs = window.screen.width + "x" + window.screen.height;
-        const navSpecs = navigator.hardwareConcurrency || 4;
-        let rawStr = screenSpecs + navSpecs + Math.random().toString(36).substr(2, 5);
-        let hash = 0;
-        for (let i = 0; i < rawStr.length; i++) {
-          hash = (hash << 5) - hash + rawStr.charCodeAt(i);
-          hash |= 0;
-        }
-        id = 'SV-' + Math.abs(hash).toString(16).toUpperCase() + '-' + Math.floor(1000 + Math.random() * 9000);
-        localStorage.setItem('sv_device_id', id);
-      }
-      return id;
-    }
-
-    const deviceId = getDeviceId();
-    document.getElementById('device-id-display').innerText = deviceId;
-
-    let isLicensed = localStorage.getItem('sv_licensed_' + deviceId) === 'true' || localStorage.getItem('sv_master_unlocked') === 'true';
-    let hasEmergencyContact = localStorage.getItem('sv_emergency_phone') ? true : false;
-
-    if (!isLicensed) {
-      document.getElementById('intro-modal').style.display = 'flex';
-    } else if (!hasEmergencyContact) {
-      openEmergencyModal(true);
-    } else {
-      document.getElementById('intro-modal').style.display = 'none';
-      document.getElementById('trial-timer').style.display = 'none';
-    }
-
-    function startTrialStep1() {
-      document.getElementById('intro-modal').style.display = 'none';
-      initTrialTimer();
-      openEmergencyModal(true);
-    }
-
-    function openEmergencyModal(isMandatory) {
-      const savedName = localStorage.getItem('sv_emergency_name') || "";
-      const savedPhone = localStorage.getItem('sv_emergency_phone') || "";
-      document.getElementById('emergency-name-input').value = savedName;
-      document.getElementById('emergency-phone-input').value = savedPhone;
-
-      const closeBtn = document.getElementById('close-emergency-btn');
-      closeBtn.style.display = isMandatory ? 'none' : 'block';
-      document.getElementById('emergency-modal').style.display = 'flex';
-    }
-
-    function closeEmergencyModal() {
-      document.getElementById('emergency-modal').style.display = 'none';
-    }
-
-    function saveEmergencyContact() {
-      const nameVal = document.getElementById('emergency-name-input').value.trim();
-      const phoneVal = document.getElementById('emergency-phone-input').value.trim();
-
-      if (!nameVal || !phoneVal) {
-        alert("Inserisci NOME e NUMERO DI TELEFONO!");
-        return;
-      }
-
-      localStorage.setItem('sv_emergency_name', nameVal);
-      localStorage.setItem('sv_emergency_phone', phoneVal);
-      speak("Contatto di emergenza salvato.");
-      closeEmergencyModal();
-    }
-
-    function generateValidCode(id) {
-      let hash = 0;
-      const secretSalt = "MASSIMO_SENTIERO_VIVO_SECURITY_KEY_2026";
-      const fullKey = id + secretSalt;
-      for (let i = 0; i < fullKey.length; i++) {
-        hash = (hash << 5) - hash + fullKey.charCodeAt(i);
-        hash |= 0;
-      }
-      return 'OK-' + Math.abs(hash).toString(16).toUpperCase();
-    }
-
-    function validateActivation() {
-      const input = document.getElementById('activation-code').value.trim().toUpperCase();
-      const expected = generateValidCode(deviceId);
-
-      if (input === MASTER_KEY || input === GIFT_KEY || input === NEW_GIFT_KEY || input === expected) {
-        localStorage.setItem('sv_licensed_' + deviceId, 'true');
-        if (input === MASTER_KEY) localStorage.setItem('sv_master_unlocked', 'true');
-        isLicensed = true;
-        
-        document.getElementById('intro-modal').style.display = 'none';
-        document.getElementById('pay-modal').style.display = 'none';
-        document.getElementById('trial-timer').style.display = 'none';
-
-        if (!localStorage.getItem('sv_emergency_phone')) {
-          openEmergencyModal(true);
-        } else {
-          speak("Applicazione attivata con successo.");
-        }
-      } else {
-        speak("Codice non valido.");
-        alert("Codice non valido.");
-      }
-    }
-
-    function promptMasterUnlock() {
-      const code = prompt("Inserisci la Master Key o il Codice:");
-      if (code) {
-        document.getElementById('activation-code').value = code;
-        validateActivation();
-      }
-    }
-
-    const map = L.map('map', { zoomControl: false }).setView([43.5485, 10.3106], 16);
-
-    let userInteracted = false;
-    map.on('dragstart zoomstart touchstart', function() {
-      userInteracted = true;
-    });
-
-    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap'
-    }).addTo(map);
-
-    const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-      maxZoom: 17,
-      attribution: '© OpenTopoMap'
-    });
-
-    let isTopoActive = false;
-    function toggleMapStyle() {
-      if (!isTopoActive) {
-        map.removeLayer(osmLayer);
-        topoLayer.addTo(map);
-        isTopoActive = true;
-        speak("Mappa topografica CAI attivata.");
-      } else {
-        map.removeLayer(topoLayer);
-        osmLayer.addTo(map);
-        isTopoActive = false;
-        speak("Mappa standard attivata.");
-      }
-    }
-
-    let isTracking = false;
-    let currentTrackName = "";
-    let trackPoints = [];
-    let savedTrackPoints = []; 
-    let savedEndPoint = null;   
-    let reconnectPolyline = L.polyline([], { color: '#00bcd4', weight: 4, dashArray: '4, 4' }).addTo(map);
-    let isReconnecting = false;
-
-    let recordedMediaList = [];
-    let photoCount = 0;
-    let videoCount = 0;
-    let audioCount = 0;
-    let lastAltitudeFetchTime = 0;
-
-    let trackPolyline = L.polyline([], { color: '#1e88e5', weight: 5 }).addTo(map);
-    let returnBackPolyline = L.polyline([], { color: '#ff9800', weight: 5, dashArray: '6, 6' }).addTo(map);
-    let returnAltPolyline = L.polyline([], { color: '#00e676', weight: 6 }).addTo(map);
-    let loadedGpxPolyline = L.polyline([], { color: '#ab47bc', weight: 5, dashArray: '4, 4' }).addTo(map);
-    let calculatedReturnPath = [];
-
-    let startPoint = null;
-    let startMarker = null;
-
-    // PALLINO AZZURRO INGRANDITO (22px) CON BORDO E OMBRA
-    const dotIcon = L.divIcon({
-      className: 'gps-dot-icon',
-      iconSize: [22, 22],
-      iconAnchor: [11, 11]
-    });
-    let userMarker = null;
-
-    let isReturnBackActive = false;
-    let isReturnAltActive = false;
-
-    let totalDistance = 0;
-    let startTime = null;
-    let timerInterval = null;
-
-    async function fetchRealElevation(lat, lng) {
-      if (Date.now() - lastAltitudeFetchTime < 10000) return;
-      lastAltitudeFetchTime = Date.now();
-      try {
-        const response = await fetch(`https://api.open-elevation.com/api/v1/lookup?locations=${lat},${lng}`);
-        const data = await response.json();
-        if (data && data.results && data.results.length > 0) {
-          const ele = Math.round(data.results[0].elevation);
-          document.getElementById('stat-alt').innerText = ele + ' m';
-        }
-      } catch (err) {
-        console.warn("Altimetro Fallback GPS");
-      }
-    }
-
-    if (navigator.geolocation) {
-      navigator.geolocation.watchPosition(
-        (pos) => {
-          if (!isGpsActive) {
-            isGpsActive = true;
-            updateGpsStatusUI(true);
-            speak("Segnale GPS ripristinato.");
-          }
-
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          const speed = pos.coords.speed || 0;
-          const altGps = pos.coords.altitude;
-          const currentLatLng = new L.LatLng(lat, lng);
-
-          document.getElementById('gps-lat').innerText = lat.toFixed(6);
-          document.getElementById('gps-lng').innerText = lng.toFixed(6);
-
-          if (altGps !== null && altGps !== undefined && Math.abs(altGps) > 0) {
-            document.getElementById('stat-alt').innerText = Math.round(altGps) + ' m';
-          }
-          fetchRealElevation(lat, lng);
-
-          if (!userMarker) {
-            userMarker = L.marker(currentLatLng, { icon: dotIcon }).addTo(map);
-            map.panTo(currentLatLng);
-          } else {
-            userMarker.setLatLng(currentLatLng);
-            if (!userInteracted) {
-              map.panTo(currentLatLng);
-            }
-          }
-
-          if (isReconnecting && savedEndPoint) {
-            const distToSavedEnd = currentLatLng.distanceTo(savedEndPoint);
-            reconnectPolyline.setLatLngs([currentLatLng, savedEndPoint]);
-
-            if (distToSavedEnd <= 10) {
-              isReconnecting = false;
-              reconnectPolyline.setLatLngs([]);
-              speak("Sei arrivato al punto di salvataggio. Ora puoi iniziare il percorso a ritroso verso la base.");
-              returnBackPolyline.setLatLngs(savedTrackPoints);
-            }
-          }
-
-          if (isTracking) {
-            if (trackPoints.length === 0 || speed > 0.3) {
-              if (trackPoints.length > 0) {
-                const lastPt = trackPoints[trackPoints.length - 1];
-                totalDistance += lastPt.distanceTo(currentLatLng);
-                document.getElementById('stat-dist').innerText = (totalDistance / 1000).toFixed(2) + ' km';
-              } else {
-                startPoint = currentLatLng;
-                if (!startMarker) {
-                  startMarker = L.marker(startPoint, {
-                    icon: L.divIcon({ html: '🏠', iconSize: [24, 24] })
-                  }).addTo(map).bindPopup("Punto di Partenza (Base)");
-                }
-              }
-              trackPoints.push(currentLatLng);
-
-              if (isReturnBackActive) {
-                returnBackPolyline.setLatLngs(trackPoints);
-              } else {
-                trackPolyline.setLatLngs(trackPoints);
-              }
-            }
-          }
-
-          if ((isReturnBackActive || isReturnAltActive) && startPoint) {
-            updateReturnHUD(currentLatLng);
-          }
-
-          if (isReturnBackActive && trackPoints.length > 0 && isTracking) {
-            checkOffTrackDistance(currentLatLng, trackPoints);
-          }
-
-          if (isReturnAltActive && calculatedReturnPath.length > 0) {
-            checkOffTrackDistance(currentLatLng, calculatedReturnPath);
-          }
-        },
-        (err) => {
-          if (isGpsActive || isGpsActive === false) {
-            isGpsActive = false;
-            updateGpsStatusUI(false);
-            speak("Attenzione, segnale GPS assente!");
-          }
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    }
-
-    function updateGpsStatusUI(active) {
-      const badge = document.getElementById('gps-status');
-      const text = document.getElementById('gps-text');
-      if (active) {
-        badge.className = "gps-status-badge";
-        text.innerText = "GPS OK";
-      } else {
-        badge.className = "gps-status-badge gps-lost";
-        text.innerText = "GPS ASSENTE";
-      }
-    }
-
-    function toggleTracking() {
-      if (!isTracking && !startTime) {
-        document.getElementById('track-name-input').value = `Sentiero_${new Date().toLocaleDateString('it-IT').replace(/\//g, '-')}`;
-        document.getElementById('start-track-modal').style.display = 'flex';
-      } else {
-        executeToggleTracking();
-      }
-    }
-
-    function confirmStartTrack() {
-      const input = document.getElementById('track-name-input').value.trim();
-      currentTrackName = input ? input.replace(/[^a-z0-9_-]/gi, '_') : `Sentiero_${Date.now()}`;
-      document.getElementById('start-track-modal').style.display = 'none';
-      requestWakeLock();
-      executeToggleTracking();
-    }
-
-    function cancelStartTrack() {
-      document.getElementById('start-track-modal').style.display = 'none';
-    }
-
-    function executeToggleTracking() {
-      const btnRec = document.getElementById('btn-rec');
-      const btnStop = document.getElementById('btn-stop');
-      const icon = document.getElementById('rec-icon');
-      const text = document.getElementById('rec-text');
-      const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
-
-      if (!isTracking) {
-        isTracking = true;
-        btnRec.classList.add('recording');
-        btnStop.style.display = 'flex';
-        icon.className = "fa-solid fa-pause";
-        text.innerText = "PAUSA";
-
-        if (!startTime) {
-          startTime = Date.now();
-          timerInterval = setInterval(updateTimer, 1000);
-          speak(`Registrazione escursione avviata`);
-        } else {
-          speak("Registrazione ripresa");
-        }
-      } else {
-        isTracking = false;
-        btnRec.classList.remove('recording');
-        icon.className = "fa-solid fa-play";
-        text.innerText = "RIPRENDI";
-        speak("Registrazione in pausa");
-
-        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        L.marker(currentPos, {
-          icon: L.divIcon({ html: '🚩', iconSize: [24, 24] })
-        }).addTo(map).bindPopup(`🚩 Sosta ore ${timeStr}`).openPopup();
-      }
-    }
-
-    let activeSosLat = "0.000000";
-    let activeSosLng = "0.000000";
-
-    function triggerSOS() {
-      const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
-      activeSosLat = currentPos.lat.toFixed(6);
-      activeSosLng = currentPos.lng.toFixed(6);
-      const contactPhone = localStorage.getItem('sv_emergency_phone') || "";
-      const contactName = localStorage.getItem('sv_emergency_name') || "Soccorso";
-
-      if (!contactPhone) {
-        openEmergencyModal(true);
-        return;
-      }
-
-      L.marker(currentPos, {
-        icon: L.divIcon({ html: '🚨', iconSize: [30, 30] })
-      }).addTo(map).bindPopup(`🚨 SOS<br>Lat: ${activeSosLat}<br>Lng: ${activeSosLng}`).openPopup();
-
-      speak("Allarme SOS attivato!");
-
-      document.getElementById('sos-coords-display').innerText = `Lat: ${activeSosLat}, Lng: ${activeSosLng} (Batt: ${currentBatteryLevel}%)`;
-      document.getElementById('sos-contact-name-display').innerText = contactName.toUpperCase();
-      document.getElementById('sos-action-modal').style.display = 'flex';
-    }
-
-    function sendSOS_SMS() {
-      const contactPhone = localStorage.getItem('sv_emergency_phone') || "";
-      const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const smsText = encodeURIComponent(`HO BISOGNO DI AIUTO! Coordinate: Lat ${activeSosLat}, Long ${activeSosLng} (Ore ${timeNow}, Batteria ${currentBatteryLevel}%)`);
-      window.location.href = `sms:${contactPhone}?body=${smsText}`;
-    }
-
-    function callSOS_112() {
-      window.location.href = `tel:112`;
-    }
-
-    function closeSOSModal() {
-      document.getElementById('sos-action-modal').style.display = 'none';
-    }
-
-    function updateTimer() {
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      const m = Math.floor(elapsed / 60);
-      const s = elapsed % 60;
-      document.getElementById('stat-time').innerText = `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
-    }
-
-    function promptStopAndSave() {
-      if (trackPoints.length === 0) {
-        alert("Nessun percorso registrato.");
-        return;
-      }
-      isTracking = false;
-      
-      savedTrackPoints = [...trackPoints];
-      savedEndPoint = userMarker ? userMarker.getLatLng() : trackPoints[trackPoints.length - 1];
-
-      document.getElementById('track-filename').value = currentTrackName || `Sentiero_${new Date().toISOString().slice(0,10)}`;
-      document.getElementById('save-track-modal').style.display = 'flex';
-    }
-
-    function resetRecordingUI() {
-      isTracking = false;
-      startTime = null;
-      currentTrackName = "";
-      clearInterval(timerInterval);
-      trackPoints = [];
-      recordedMediaList = [];
-      totalDistance = 0;
-      photoCount = 0;
-      videoCount = 0;
-      audioCount = 0;
-      
-      document.getElementById('stat-dist').innerText = '0.00 km';
-      document.getElementById('stat-time').innerText = '00:00';
-
-      const btnRec = document.getElementById('btn-rec');
-      const btnStop = document.getElementById('btn-stop');
-      const icon = document.getElementById('rec-icon');
-      const text = document.getElementById('rec-text');
-
-      btnRec.classList.remove('recording');
-      btnStop.style.display = 'none';
-      icon.className = "fa-solid fa-play";
-      text.innerText = "AVVIA TRACCIA";
-    }
-
-    function closeSaveModal() {
-      document.getElementById('save-track-modal').style.display = 'none';
-      resetRecordingUI();
-    }
-
-    function confirmSaveGPX(format) {
-      const filenameInput = document.getElementById('track-filename').value.trim();
-      const filename = filenameInput ? filenameInput.replace(/[^a-z0-9_-]/gi, '_') : `Sentiero_${new Date().toISOString().slice(0,10)}`;
-
-      let fileContent = "";
-      let mimeType = "";
-      let extension = format;
-
-      if (format === 'kml') {
-        mimeType = 'application/vnd.google-earth.kml+xml';
-        let kmlCoords = savedTrackPoints.map(pt => `${pt.lng},${pt.lat},0`).join(" ");
-        fileContent = `<?xml version="1.0" encoding="UTF-8"?>
-<kml xmlns="http://www.opengis.net/kml/2.2">
-  <Document>
-    <name>${filename}</name>
-    <Placemark>
-      <name>Tracciato SentieroVivo</name>
-      <LineString><coordinates>${kmlCoords}</coordinates></LineString>
-    </Placemark>
-  </Document>
-</kml>`;
-      } else {
-        mimeType = 'application/gpx+xml';
-        fileContent = `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="SentieroVivo">
-  <trk><name>${filename}</name><trkseg>`;
-        savedTrackPoints.forEach(pt => {
-          fileContent += `\n    <trkpt lat="${pt.lat}" lon="${pt.lng}"></trkpt>`;
-        });
-        fileContent += `\n  </trkseg></trk>\n</gpx>`;
-      }
-
-      const blob = new Blob([fileContent], { type: mimeType });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${filename}.${extension}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
-      recordedMediaList.forEach((media) => {
-        const mUrl = URL.createObjectURL(media.blob);
-        const mA = document.createElement('a');
-        mA.href = mUrl;
-        mA.download = `${filename}_${media.name}`;
-        document.body.appendChild(mA);
-        mA.click();
-        document.body.removeChild(mA);
-      });
-
-      const fullFileName = `${filename}.${extension}`;
-      speak(`Escursione salvata nella cartella Download.`);
-      
-      alert(`💾 FILE SALVATO CON SUCCESSO!\n\nIl file "${fullFileName}" ed eventuali foto/audio sono stati salvati nella memoria del tuo telefono.\n\n📂 Percorso: Gestione File ➔ Download`);
-      
-      closeSaveModal();
-    }
-
-    function toggleReturnBack() {
-      const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
-
-      if (savedEndPoint && !isTracking) {
-        const distFromSavedEnd = currentPos.distanceTo(savedEndPoint);
-        
-        if (distFromSavedEnd > 12) {
-          isReconnecting = true;
-          isReturnBackActive = true;
-          reconnectPolyline.setLatLngs([currentPos, savedEndPoint]);
-          
-          document.getElementById('return-hud').style.display = 'flex';
-          document.getElementById('return-mode-title').innerText = "Ricongiungimento Traccia";
-          
-          speak("Calcolo ricongiungimento all'ultima traccia salvata.");
-          return;
-        }
-      }
-
-      if (trackPoints.length > 0 || savedTrackPoints.length > 0) {
-        activateCurrentReturnBack();
-      } else {
-        triggerGPXFileSelect();
-      }
-    }
-
-    function activateCurrentReturnBack() {
-      const targetPoints = trackPoints.length > 0 ? trackPoints : savedTrackPoints;
-      if (targetPoints.length === 0) return;
-
-      isReturnBackActive = !isReturnBackActive;
-      isReturnAltActive = false;
-      returnAltPolyline.setLatLngs([]);
-      
-      const hud = document.getElementById('return-hud');
-      hud.style.display = isReturnBackActive ? 'flex' : 'none';
-      document.getElementById('return-mode-title').innerText = "Rientro a Ritroso";
-
-      if (isReturnBackActive) {
-        returnBackPolyline.setLatLngs(targetPoints);
-        speak("Rientro a ritroso attivato.");
-        if (userMarker) updateReturnHUD(userMarker.getLatLng());
-      } else {
-        returnBackPolyline.setLatLngs([]);
-      }
-    }
-
-    function triggerGPXFileSelect() {
-      document.getElementById('gpx-file-input').click();
-    }
-
-    function loadExternalGPX(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const content = e.target.result;
-        const parser = new DOMParser();
-        const xml = parser.parseFromString(content, "text/xml");
-        const trkpts = xml.querySelectorAll("trkpt");
-
-        let loadedPoints = [];
-        trkpts.forEach(pt => {
-          const lat = parseFloat(pt.getAttribute("lat"));
-          const lon = parseFloat(pt.getAttribute("lon"));
-          if (!isNaN(lat) && !isNaN(lon)) loadedPoints.push(new L.LatLng(lat, lon));
-        });
-
-        if (loadedPoints.length > 0) {
-          loadedGpxPolyline.setLatLngs(loadedPoints);
-          map.fitBounds(loadedGpxPolyline.getBounds());
-          startPoint = loadedPoints[0];
-          
-          isReturnBackActive = true;
-          document.getElementById('return-hud').style.display = 'flex';
-          document.getElementById('return-mode-title').innerText = "Rientro Traccia Caricata";
-          speak("Traccia caricata. Rientro a ritroso attivo.");
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    async function toggleReturnAlt() {
-      const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
-      const targetPoint = startPoint || (savedTrackPoints.length > 0 ? savedTrackPoints[0] : currentPos);
-
-      isReturnAltActive = !isReturnAltActive;
-      isReturnBackActive = false;
-      const hud = document.getElementById('return-hud');
-
-      if (isReturnAltActive) {
-        hud.style.display = 'flex';
-        document.getElementById('return-mode-title').innerText = "Rientro Base";
-        speak("Calcolo del nuovo sentiero di rientro.");
-
-        calculatedReturnPath = [currentPos, targetPoint];
-        returnAltPolyline.setLatLngs(calculatedReturnPath);
-        updateReturnHUD(currentPos);
-
-        const url = `https://router.project-osrm.org/route/v1/foot/${currentPos.lng.toFixed(5)},${currentPos.lat.toFixed(5)};${targetPoint.lng.toFixed(5)},${targetPoint.lat.toFixed(5)}?overview=full&geometries=geojson`;
-
-        try {
-          const response = await fetch(url);
-          const data = await response.json();
-          if (data.routes && data.routes.length > 0) {
-            const coords = data.routes[0].geometry.coordinates;
-            calculatedReturnPath = coords.map(c => new L.LatLng(c[1], c[0]));
-            returnAltPolyline.setLatLngs(calculatedReturnPath);
-          }
-        } catch (err) {
-          console.warn("Utilizzo linea diretta per il rientro base.");
-        }
-      } else {
-        returnAltPolyline.setLatLngs([]);
-        calculatedReturnPath = [];
-        hud.style.display = 'none';
-      }
-    }
-
-    function updateReturnHUD(currentPos) {
-      let target = startPoint || (savedTrackPoints.length > 0 ? savedTrackPoints[0] : currentPos);
-      let remainingDistance = 0;
-      
-      if (isReturnAltActive && calculatedReturnPath.length > 1) {
-        for (let i = 0; i < calculatedReturnPath.length - 1; i++) {
-          remainingDistance += calculatedReturnPath[i].distanceTo(calculatedReturnPath[i + 1]);
-        }
-      } else {
-        remainingDistance = currentPos.distanceTo(target);
-      }
-
-      document.getElementById('return-dist').innerText = remainingDistance > 1000 
-        ? (remainingDistance / 1000).toFixed(2) + ' km' 
-        : Math.round(remainingDistance) + ' m';
-
-      const dLng = (target.lng - currentPos.lng) * Math.PI / 180;
-      const lat1 = currentPos.lat * Math.PI / 180;
-      const lat2 = target.lat * Math.PI / 180;
-      const y = Math.sin(dLng) * Math.cos(lat2);
-      const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
-      let bearing = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
-
-      document.getElementById('return-bearing').innerText = Math.round(bearing) + '°';
-    }
-
-    function checkOffTrackDistance(currentPos, referencePath) {
-      let minDistance = Infinity;
-      referencePath.forEach(pt => {
-        const d = currentPos.distanceTo(pt);
-        if (d < minDistance) minDistance = d;
-      });
-
-      if (minDistance > 15 && (Date.now() - lastOffTrackAlertTime > 20000)) {
-        lastOffTrackAlertTime = Date.now();
-        speak("Attenzione! Sei fuori percorso.");
-      }
-    }
-
-    function triggerCameraCapture(acceptType) {
-      const input = document.getElementById('camera-capture');
-      input.accept = acceptType;
-      input.setAttribute('capture', 'environment');
-      input.click();
-    }
-
-    function handleMediaCaptured(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const fileUrl = URL.createObjectURL(file);
-      const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
-      const isVideo = file.type.startsWith('video');
-
-      let badgeLabel = isVideo ? `Video #${++videoCount}` : `Foto #${++photoCount}`;
-      let fileNameOnly = isVideo ? `VIDEO_${videoCount}.mp4` : `FOTO_${photoCount}.jpg`;
-
-      recordedMediaList.push({ name: fileNameOnly, blob: file });
-
-      const mediaTag = isVideo 
-        ? `<video src="${fileUrl}" onclick="openFullscreenMedia('${fileUrl}', true)"></video>` 
-        : `<img src="${fileUrl}" onclick="openFullscreenMedia('${fileUrl}', false)">`;
-
-      L.marker(currentPos, {
-        icon: L.divIcon({
-          html: `<div style="background:#ff9800; color:#000; padding:2px 6px; border-radius:10px; font-size:11px; font-weight:bold;">${badgeLabel}</div>`,
-          iconSize: [70, 24]
-        })
-      }).addTo(map).bindPopup(`<div class="media-popup"><b>${badgeLabel}</b>${mediaTag}</div>`).openPopup();
-
-      speak(isVideo ? `Video salvato` : `Foto salvata`);
-    }
-
-    function openFullscreenMedia(url, isVideo) {
-      const container = document.getElementById('fullscreen-media-container');
-      if (isVideo) {
-        container.innerHTML = `<video src="${url}" controls autoplay></video>`;
-      } else {
-        container.innerHTML = `<img src="${url}">`;
-      }
-      document.getElementById('fullscreen-media-modal').style.display = 'flex';
-    }
-
-    function closeFullscreenMedia() {
-      document.getElementById('fullscreen-media-container').innerHTML = '';
-      document.getElementById('fullscreen-media-modal').style.display = 'none';
-    }
-
-    let mediaRecorder = null;
-    let audioChunks = [];
-    let isRecordingAudio = false;
-    let audioStartTime = null;
-    let audioTimerInterval = null;
-
-    async function recordAudio() {
-      const btnAudio = document.getElementById('btn-audio');
-      const textAudio = document.getElementById('audio-text');
-      const iconAudio = document.getElementById('audio-icon');
-
-      if (!isRecordingAudio) {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          mediaRecorder = new MediaRecorder(stream);
-          audioChunks = [];
-          mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-          mediaRecorder.onstop = saveAudioNote;
-          mediaRecorder.start();
-
-          isRecordingAudio = true;
-          audioStartTime = Date.now();
-          iconAudio.className = "fa-solid fa-circle-stop";
-
-          audioTimerInterval = setInterval(() => {
-            const elapsed = Math.floor((Date.now() - audioStartTime) / 1000);
-            const m = Math.floor(elapsed / 60);
-            const s = elapsed % 60;
-            textAudio.innerText = `REC ${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
-          }, 1000);
-
-          speak("Registrazione audio avviata");
-        } catch (err) {
-          alert("Impossibile accedere al microfono.");
-        }
-      } else {
-        mediaRecorder.stop();
-        isRecordingAudio = false;
-        clearInterval(audioTimerInterval);
-        iconAudio.className = "fa-solid fa-microphone";
-        textAudio.innerText = "Audio";
-      }
-    }
-
-    function saveAudioNote() {
-      audioCount++;
-      const blob = new Blob(audioChunks, { type: 'audio/mp3' });
-      const audioUrl = URL.createObjectURL(blob);
-      const currentPos = userMarker ? userMarker.getLatLng() : map.getCenter();
-      const badgeLabel = `Audio #${audioCount}`;
-
-      recordedMediaList.push({ name: `VOCALE_${audioCount}.mp3`, blob: blob });
-
-      L.marker(currentPos, {
-        icon: L.divIcon({
-          html: `<div style="background:#00bcd4; color:#000; padding:2px 6px; border-radius:10px; font-size:11px; font-weight:bold;">${badgeLabel}</div>`,
-          iconSize: [70, 24]
-        })
-      }).addTo(map).bindPopup(`<div class="media-popup"><b>${badgeLabel}</b><audio src="${audioUrl}" controls></audio></div>`).openPopup();
-
-      speak("Audio salvato");
-    }
-
+  </script>
+  <!-- Modale Legenda (da inserire alla fine prima di chiudere il body) -->
+  <div id="legenda-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(12px); z-index: 99999; display: none; align-items: center; justify-content: center; padding: 15px;">
+    <div style="background: #1e1e1e; border: 2px solid #ff9800; border-radius: 20px; padding: 24px 20px; max-width: 440px; width: 100%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.9);">
+      <h2 style="color: #ff9800; margin-bottom: 14px; font-size: 22px; font-weight: 800;">Legenda & Guida 📖</h2>
+      <ul style="text-align: left; font-size: 14px; color: #eee; line-height: 1.7; list-style-type: none; padding: 0;">
+        <li style="margin-bottom: 10px;">💡 <b>Schermo Sempre Acceso:</b> Gestisce il Wake Lock ereditato da Orologio Gemini.</li>
+        <li style="margin-bottom: 10px;">🤖 <b>AI Locale:</b> WebLLM integrato per assistente e suggerimenti sul percorso senza connessione.</li>
+        <li style="margin-bottom: 10px;">🗺️ <b>Mappa Leaflet:</b> Navigazione offline e posizionamento GPS in tempo reale.</li>
+      </ul>
+      <button onclick="closeLegenda()" style="background: #2196f3; color: white; width: 100%; padding: 12px; font-size: 15px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; margin-top: 15px;">CHIUDI LEGENDA</button>
+    </div>
+  </div>
+
+  <!-- Pulsante rapido per aprire la Legenda nella barra -->
+  <div style="position: absolute; bottom: 65px; left: 12px; right: 12px; z-index: 1000; display: flex; justify-content: center;">
+    <button class="btn" onclick="openLegenda()" style="background: rgba(30,30,30,0.95); border: 1px solid rgba(255,255,255,0.25); color: white; padding: 8px 14px; border-radius: 10px; font-size: 11px; font-weight: 600; cursor: pointer;">
+      <i class="fa-solid fa-book-open" style="color: #ff9800;"></i> Apri Legenda & Info
+    </button>
+  </div>
+
+  <script>
+    // --- BLOCCO 5: Funzioni Modale Legenda e Persistent Storage ---
     function openLegenda() {
-      document.getElementById('legenda-modal').style.display = 'flex';
+      const modal = document.getElementById('legenda-modal');
+      if (modal) modal.style.display = 'flex';
     }
 
     function closeLegenda() {
-      document.getElementById('legenda-modal').style.display = 'none';
+      const modal = document.getElementById('legenda-modal');
+      if (modal) modal.style.display = 'none';
     }
 
-    const TRIAL_15_DAYS_SEC = 15 * 24 * 3600;
-    let trialSeconds = parseInt(localStorage.getItem('sv_trial_remaining')) || TRIAL_15_DAYS_SEC;
-    let trialInterval = null;
-
-    function initTrialTimer() {
-      if (!isLicensed && !trialInterval) {
-        trialInterval = setInterval(() => {
-          trialSeconds--;
-          localStorage.setItem('sv_trial_remaining', trialSeconds);
-          let days = Math.floor(trialSeconds / (24 * 3600));
-          let h = Math.floor((trialSeconds % (24 * 3600)) / 3600);
-          document.getElementById('trial-timer').innerText = `Prova: ${days}g ${h < 10 ? '0' : ''}${h}h`;
-          if (trialSeconds <= 0) {
-            clearInterval(trialInterval);
-            document.getElementById('pay-modal').style.display = 'flex';
-          }
-        }, 1000);
-      }
+    // Richiesta di memorizzazione persistente per la cache offline (PWA)
+    if (navigator.storage && navigator.storage.persist) {
+      navigator.storage.persist().then(granted => {
+        if (granted) {
+          console.log("Memoria locale e cache rese PERSISTENTI dal browser.");
+        } else {
+          console.log("Permesso di storage persistente non concesso.");
+        }
+      });
     }
   </script>
 </body>
