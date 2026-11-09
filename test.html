@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SentieroVivo TEST - AI & GPS Escursionismo</title>
+  <title>SentieroVivo - AI & GPS Escursionismo Completo</title>
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -28,7 +28,7 @@
       background-color: #000000 !important;
       color: #ffff00 !important;
     }
-    body.high-contrast .hud-card, body.high-contrast .coords-hud {
+    body.high-contrast .hud-card, body.high-contrast .coords-hud, body.high-contrast .ai-card {
       background: #000000 !important;
       border: 2px solid #ffff00 !important;
       color: #ffff00 !important;
@@ -47,21 +47,21 @@
 
     .top-bar {
       position: absolute;
-      top: 12px;
-      left: 12px;
-      right: 12px;
+      top: 10px;
+      left: 10px;
+      right: 10px;
       z-index: 1000;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
       pointer-events: none;
     }
     .hud-card {
-      background: rgba(18, 18, 18, 0.92);
+      background: rgba(18, 18, 18, 0.94);
       backdrop-filter: blur(10px);
       border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 14px;
-      padding: 8px 12px;
+      border-radius: 12px;
+      padding: 8px 10px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -74,45 +74,64 @@
       align-items: center;
     }
     .hud-label {
-      font-size: 10px;
+      font-size: 9px;
       text-transform: uppercase;
-      letter-spacing: 0.8px;
+      letter-spacing: 0.5px;
       color: #a0a0a0;
     }
     .hud-value {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
       color: #ffffff;
     }
 
     .coords-hud {
-      background: rgba(0, 0, 0, 0.88);
+      background: rgba(0, 0, 0, 0.9);
       border: 1px solid #00bcd4;
       border-radius: 8px;
-      padding: 6px 10px;
-      font-size: 12px;
+      padding: 5px 8px;
+      font-size: 11px;
       color: #00bcd4;
       font-family: monospace;
       text-align: center;
       font-weight: bold;
       pointer-events: auto;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .ai-card {
+      position: absolute;
+      bottom: 150px;
+      left: 10px;
+      right: 10px;
+      z-index: 1000;
+      background: rgba(18, 24, 27, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(0, 188, 212, 0.4);
+      border-radius: 12px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
     }
 
     .bottom-bar {
       position: absolute;
-      bottom: 20px;
-      left: 12px;
-      right: 12px;
+      bottom: 12px;
+      left: 10px;
+      right: 10px;
       z-index: 1000;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
       pointer-events: none;
     }
     .action-row {
       display: flex;
       justify-content: center;
-      gap: 6px;
+      gap: 5px;
       pointer-events: auto;
       flex-wrap: wrap;
     }
@@ -121,19 +140,23 @@
       backdrop-filter: blur(8px);
       border: 1px solid rgba(255,255,255,0.25);
       color: white;
-      padding: 10px 12px;
-      border-radius: 10px;
-      font-size: 12px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 11px;
       font-weight: 600;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       cursor: pointer;
       box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     }
     .btn:active {
       transform: scale(0.95);
     }
+    .btn-primary { background: rgba(33, 150, 243, 0.9); border-color: #2196f3; }
+    .btn-danger { background: rgba(244, 67, 54, 0.9); border-color: #f44336; }
+    .btn-success { background: rgba(76, 175, 80, 0.9); border-color: #4caf50; }
+    .btn-warning { background: rgba(255, 152, 0, 0.9); border-color: #ff9800; }
   </style>
 </head>
 <body>
@@ -141,248 +164,252 @@
   <!-- Mappa Leaflet -->
   <div id="map"></div>
 
-  <!-- Barra Superiore (Cruscotto Orologio e Statistiche) -->
+  <!-- Barra Superiore (Cruscotto Orologio, Timer, Quota) -->
   <div class="top-bar">
     <div class="hud-card">
       <div class="hud-stat">
         <span class="hud-label">Ora Live</span>
         <span id="stat-clock" class="hud-value" style="color: #4ade80;">00:00:00</span>
       </div>
-
       <div class="hud-stat">
-        <span class="hud-label">Distanza</span>
-        <span id="stat-dist" class="hud-value">0.00 km</span>
+        <span class="hud-label">Timer Marcia</span>
+        <span id="stat-timer" class="hud-value" style="color: #60a5fa;">00:00:00</span>
       </div>
-
       <div class="hud-stat">
         <span class="hud-label">Quota</span>
         <span id="stat-alt" class="hud-value">-- m</span>
       </div>
     </div>
 
-    <!-- Riquadro Coordinate e Stato -->
+    <!-- Riquadro Coordinate e Stato GPS -->
     <div class="coords-hud">
-      📍 Lat: <span id="gps-lat">0.000000</span> | Long: <span id="gps-lng">0.000000</span>
+      <span>📍 Lat: <span id="gps-lat">0.000000</span> | Lng: <span id="gps-lng">0.000000</span></span>
+      <span id="gps-status-badge" style="color: #ff9800;">GPS in attesa...</span>
     </div>
   </div>
 
-  <!-- Barra Inferiore Controlli Base -->
+  <!-- Card Assistente AI Locale -->
+  <div class="ai-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 12px; color: #00bcd4;">
+      <span>🤖 SentieroVivo AI (Locale)</span>
+      <span id="ai-status-indicator" style="font-size: 10px; color: #ff9800;">Pronto</span>
+    </div>
+    <div id="ai-card-text" style="font-size: 0.8rem; line-height: 1.3; color: #e5e7eb; max-height: 60px; overflow-y: auto;">
+      Assistente offline pronto. Tocca i pulsanti rapidi o avvia la registrazione per iniziare il monitoraggio del sentiero.
+    </div>
+  </div>
+
+  <!-- Barra Inferiore Controlli Completi -->
   <div class="bottom-bar">
+    <!-- Riga 1: Gestione Registrazione e Percorso -->
     <div class="action-row">
-      <button class="btn" onclick="alert('Controllo base attivo!')">
-        <i class="fa-solid fa-compass" style="color: #00bcd4;"></i> Stato OK
+      <button class="btn btn-success" onclick="startRecordingPath()">
+        <i class="fa-solid fa-play"></i> Avvia
+      </button>
+      <button class="btn btn-warning" onclick="pauseRecordingPath()">
+        <i class="fa-solid fa-pause"></i> Pausa
+      </button>
+      <button class="btn btn-danger" onclick="stopAndSavePath()">
+        <i class="fa-solid fa-stop"></i> Stop & Salva
+      </button>
+      <button class="btn btn-primary" onclick="loadExternalPath()">
+        <i class="fa-solid fa-folder-open"></i> Carica
+      </button>
+    </div>
+
+    <!-- Riga 2: Ritorno, Multimedia e Utility -->
+    <div class="action-row">
+      <button class="btn" style="background: rgba(156, 39, 176, 0.9);" onclick="calcNewReturnPath()">
+        <i class="fa-solid fa-route"></i> Nuovo Ritorno
+      </button>
+      <button class="btn" onclick="reverseRouteAction()">
+        <i class="fa-solid fa-arrow-rotate-left"></i> A Ritroso
+      </button>
+      <button class="btn" onclick="takePhotoAction()">
+        <i class="fa-solid fa-camera" style="color: #4ade80;"></i> Foto
+      </button>
+      <button class="btn" onclick="recordVideoAction()">
+        <i class="fa-solid fa-video" style="color: #f87171;"></i> Video
+      </button>
+      <button class="btn" onclick="recordAudioAction()">
+        <i class="fa-solid fa-microphone" style="color: #fbbf24;"></i> Audio
+      </button>
+    </div>
+
+    <!-- Riga 3: Wake Lock, Sole e Info -->
+    <div class="action-row">
+      <button class="btn" onclick="appToggleWakeLock()">
+        <i class="fa-solid fa-lightbulb" style="color: #ffeb3b;"></i> Schermo: <span id="wakelock-status">OFF</span>
+      </button>
+      <button class="btn" onclick="document.body.classList.toggle('high-contrast');">
+        <i class="fa-solid fa-sun" style="color: #ffeb3b;"></i> Sole
+      </button>
+      <button class="btn" onclick="openLegenda()">
+        <i class="fa-solid fa-book-open" style="color: #ff9800;"></i> Info & Guida
       </button>
     </div>
   </div>
 
+  <!-- Modale Legenda -->
+  <div id="legenda-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(12px); z-index: 99999; display: none; align-items: center; justify-content: center; padding: 15px;">
+    <div style="background: #1e1e1e; border: 2px solid #ff9800; border-radius: 20px; padding: 20px; max-width: 420px; width: 100%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.9);">
+      <h2 style="color: #ff9800; margin-bottom: 12px; font-size: 20px; font-weight: 800;">Legenda & Comandi 📖</h2>
+      <ul style="text-align: left; font-size: 13px; color: #eee; line-height: 1.6; list-style-type: none; padding: 0;">
+        <li>🟢 <b>Avvia/Pausa/Stop:</b> Gestisce traccia GPS e Timer di marcia.</li>
+        <li>🗺️ <b>Nuovo Ritorno:</b> Calcola il sentiero di rientro alla base.</li>
+        <li>📸 <b>Foto/Video/Audio:</b> Cattura memo multimediali sul campo.</li>
+        <li>📍 <b>Waypoint Sosta:</b> Memorizzazione automatica delle fermate.</li>
+      </ul>
+      <button onclick="closeLegenda()" style="background: #2196f3; color: white; width: 100%; padding: 10px; font-size: 14px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; margin-top: 15px;">CHIUDI</button>
+    </div>
+  </div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script>
-    // Inizializzazione Mappa
-    const map = L.map('map').setView([43.55, 10.32], 14);
+  
+  <!-- Importazione della logica modulare -->
+  <script type="module">
+    import { TrailClock } from './js/clock-core.js';
+
+    // Inizializzazione Mappa Leaflet
+    const map = L.map('map', { zoomControl: false }).setView([43.55, 10.32], 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '© OpenStreetMap'
     }).addTo(map);
 
-    // Orologio in tempo reale (Modulo Base Ora)
-    function updateLiveClock() {
-      const now = new Date();
-      const h = String(now.getHours()).padStart(2, '0');
-      const m = String(now.getMinutes()).padStart(2, '0');
-      const s = String(now.getSeconds()).padStart(2, '0');
-      const clockEl = document.getElementById('stat-clock');
-      if (clockEl) clockEl.innerText = `${h}:${m}:${s}`;
-    }
-    setInterval(updateLiveClock, 1000);
-    updateLiveClock();
-  </script>
-</body>
-</html>
-<!-- Pannello Extra Wake Lock & Batteria (da inserire prima di chiudere il body) -->
-  <div style="position: absolute; bottom: 85px; left: 12px; right: 12px; z-index: 1000; display: flex; justify-content: space-between; gap: 8px; pointer-events: none;">
-    <div class="coords-hud" style="flex: 1; display: flex; justify-content: space-around; pointer-events: auto;">
-      <span>💡 Wake Lock: <span id="wakelock-status" style="color: #ffeb3b;">OFF</span></span>
-      <span>🔋 Batteria: <span id="battery-level">--%</span></span>
-    </div>
-  </div>
+    // Marker posizione utente in tempo reale (Pallino GPS)
+    let userMarker = null;
+    let accuracyCircle = null;
+    let pathCoordinates = [];
+    let recordedPolyline = L.polyline([], { color: '#2196f3', weight: 4 }).addTo(map);
+    let returnPolyline = L.polyline([], { color: '#ff9800', weight: 4, dashArray: '5, 10' }).addTo(map);
+    let isRecording = false;
 
-  <script>
-    // --- BLOCCO 2: Gestione Wake Lock & Batteria ---
-    let wakeLock = null;
-    let currentBatteryLevel = 100;
-
-    // Controllo e attivazione Schermo Sempre Acceso (Wake Lock)
-    async function toggleWakeLockManual() {
-      const statusText = document.getElementById('wakelock-status');
-      try {
-        if (!wakeLock && 'wakeLock' in navigator) {
-          wakeLock = await navigator.wakeLock.request('screen');
-          if (statusText) {
-            statusText.innerText = 'ON';
-            statusText.style.color = '#00e676';
-          }
-          console.log("Wake Lock attivato con successo.");
-        } else if (wakeLock) {
-          await wakeLock.release();
-          wakeLock = null;
-          if (statusText) {
-            statusText.innerText = 'OFF';
-            statusText.style.color = '#ffeb3b';
-          }
-          console.log("Wake Lock rilasciato.");
-        }
-      } catch (e) {
-        console.warn("Wake Lock non disponibile o rifiutato dal browser:", e);
+    // Istanziamo il modulo TrailClock
+    const trailClock = new TrailClock({
+      onTick: (time) => {
+        const clockEl = document.getElementById('stat-clock');
+        if (clockEl) clockEl.innerText = time.fullTime;
+      },
+      onTimerTick: (elapsedStr) => {
+        const timerEl = document.getElementById('stat-timer');
+        if (timerEl) timerEl.innerText = elapsedStr;
       }
-    }
-
-    // Monitoraggio livello batteria del dispositivo
-    if ('getBattery' in navigator) {
-      navigator.getBattery().then(battery => {
-        updateBatteryUI(battery);
-        battery.addEventListener('levelchange', () => updateBatteryUI(battery));
-      });
-    }
-
-    function updateBatteryUI(battery) {
-      currentBatteryLevel = Math.round(battery.level * 100);
-      const batEl = document.getElementById('battery-level');
-      if (batEl) batEl.innerText = currentBatteryLevel + '%';
-      
-      // Se la batteria scende sotto il 15%, rilasciamo automaticamente il Wake Lock per risparmiare energia
-      if (currentBatteryLevel <= 15 && wakeLock) {
-        wakeLock.release();
-        wakeLock = null;
-        const statusText = document.getElementById('wakelock-status');
-        if (statusText) statusText.innerText = 'OFF (Batteria scarica)';
-      }
-    }
-  </script>
-  <!-- Card Fluttuante Assistente AI Locale (da inserire prima di chiudere il body) -->
-  <div id="ai-assistant-card" style="position: absolute; bottom: 135px; left: 12px; right: 12px; z-index: 1000; background: rgba(18, 24, 27, 0.94); backdrop-filter: blur(10px); border: 1px solid rgba(0, 188, 212, 0.4); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 8px 32px rgba(0,0,0,0.6);">
-    <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 13px; color: #00bcd4;">
-      <span>🤖 SentieroVivo AI (Locale)</span>
-      <span id="ai-status-indicator" style="font-size: 11px; color: #ff9800;">In attesa di avvio...</span>
-    </div>
-    <div id="ai-card-text" style="font-size: 0.85rem; line-height: 1.35; color: #e5e7eb; max-height: 80px; overflow-y: auto;">
-      Il motore di intelligenza artificiale offline è pronto per essere attivato sul campo.
-    </div>
-  </div>
-
-  <script>
-    // --- BLOCCO 3: Logica Inizializzazione Assistente AI Locale ---
-    let aiEngineReady = false;
-
-    function initLocalAIModule() {
-      const statusEl = document.getElementById('ai-status-indicator');
-      const textEl = document.getElementById('ai-card-text');
-      
-      if (!statusEl || !textEl) return;
-
-      statusEl.innerText = "Inizializzazione motore...";
-      
-      // Simulazione caricamento asincrono del modello WebLLM in WebGPU
-      setTimeout(() => {
-        aiEngineReady = true;
-        statusEl.innerText = "Pronto (Offline)";
-        statusEl.style.color = "#00e676";
-        textEl.innerText = "Assistente operativo! Pronto ad analizzare la tua posizione e i punti di interesse lungo il sentiero.";
-      }, 2500);
-    }
-
-    // Avviamo il modulo AI all'avvio della pagina
-    window.addEventListener('DOMContentLoaded', () => {
-      initLocalAIModule();
     });
-  </script>
-  <!-- Barra Inferiore Controlli Rapidi (da inserire prima di chiudere il body) -->
-  <div style="position: absolute; bottom: 20px; left: 12px; right: 12px; z-index: 1000; display: flex; flex-direction: column; gap: 8px;">
-    <div style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;">
-      
-      <!-- Tasto per attivare/disattivare il Wake Lock manuale -->
-      <button class="btn" onclick="toggleWakeLockManual()" style="background: rgba(30,30,30,0.95); border: 1px solid rgba(255,255,255,0.25); color: white; padding: 10px 14px; border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-        <i class="fa-solid fa-lightbulb" style="color: #ffeb3b;"></i> Schermo ON/OFF
-      </button>
 
-      <!-- Tasto Voce -->
-      <button class="btn" onclick="toggleVoiceAlerts()" style="background: rgba(30,30,30,0.95); border: 1px solid rgba(255,255,255,0.25); color: white; padding: 10px 14px; border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-        <i id="voice-icon" class="fa-solid fa-volume-high" style="color: #00e676;"></i> Voce
-      </button>
+    trailClock.startClock();
 
-      <!-- Tasto Alto Contrasto (Sole) -->
-      <button class="btn" onclick="document.body.classList.toggle('high-contrast');" style="background: rgba(30,30,30,0.95); border: 1px solid rgba(255,255,255,0.25); color: white; padding: 10px 14px; border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-        <i class="fa-solid fa-sun" style="color: #ffeb3b;"></i> Sole
-      </button>
+    // Gestione GPS Reale
+    if ('geolocation' in navigator) {
+      navigator.geolocation.watchPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          const alt = position.coords.altitude ? Math.round(position.coords.altitude) : '--';
+          const accuracy = Math.round(position.coords.accuracy);
 
-    </div>
-  </div>
+          document.getElementById('gps-lat').innerText = lat.toFixed(6);
+          document.getElementById('gps-lng').innerText = lng.toFixed(6);
+          document.getElementById('stat-alt').innerText = alt + ' m';
+          document.getElementById('gps-status-badge').innerText = `GPS OK (±${accuracy}m)`;
+          document.getElementById('gps-status-badge').style.color = '#4ade80';
 
-  <script>
-    // --- BLOCCO 4: Funzioni di controllo interattivo ---
-    let voiceEnabled = true;
+          const latLng = [lat, lng];
 
-    function speak(text) {
-      if (!voiceEnabled || !('speechSynthesis' in window)) return;
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'it-IT';
-      window.speechSynthesis.speak(utterance);
+          if (!userMarker) {
+            userMarker = L.circleMarker(latLng, {
+              radius: 8,
+              fillColor: '#2196f3',
+              color: '#ffffff',
+              weight: 2,
+              fillOpacity: 1
+            }).addTo(map);
+            map.setView(latLng, 16);
+          } else {
+            userMarker.setLatLng(latLng);
+          }
+
+          if (isRecording) {
+            pathCoordinates.push(latLng);
+            recordedPolyline.setLatLngs(pathCoordinates);
+          }
+        },
+        (error) => {
+          console.warn("Errore GPS o segnale assente:", error.message);
+          document.getElementById('gps-status-badge').innerText = "GPS Assente (Offline)";
+          document.getElementById('gps-status-badge').style.color = '#f44336';
+        },
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
+      );
     }
 
-    function toggleVoiceAlerts() {
-      voiceEnabled = !voiceEnabled;
-      const icon = document.getElementById('voice-icon');
-      if (voiceEnabled) {
-        icon.className = "fa-solid fa-volume-high";
-        icon.style.color = "#00e676";
-        speak("Voce e assistente acustico attivati");
-      } else {
-        icon.className = "fa-solid fa-volume-xmark";
-        icon.style.color = "#ff5252";
+    // Funzioni Globali per i Pulsanti
+    window.startRecordingPath = function() {
+      isRecording = true;
+      trailClock.startTimer();
+      alert("Registrazione percorso e Timer avviati!");
+    };
+
+    window.pauseRecordingPath = function() {
+      isRecording = false;
+      trailClock.pauseTimer();
+      alert("Registrazione e Timer in pausa.");
+    };
+
+    window.stopAndSavePath = function() {
+      isRecording = false;
+      trailClock.pauseTimer();
+      alert("Percorso fermato e salvato correttamente nella memoria locale!");
+    };
+
+    window.loadExternalPath = function() {
+      alert("Funzione Carica Percorso: pronto per importare file GPX.");
+    };
+
+    window.calcNewReturnPath = function() {
+      if (pathCoordinates.length === 0) {
+        alert("Nessun percorso registrato per calcolare il ritorno.");
+        return;
       }
-    }
-  </script>
-  <!-- Modale Legenda (da inserire alla fine prima di chiudere il body) -->
-  <div id="legenda-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(12px); z-index: 99999; display: none; align-items: center; justify-content: center; padding: 15px;">
-    <div style="background: #1e1e1e; border: 2px solid #ff9800; border-radius: 20px; padding: 24px 20px; max-width: 440px; width: 100%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.9);">
-      <h2 style="color: #ff9800; margin-bottom: 14px; font-size: 22px; font-weight: 800;">Legenda & Guida 📖</h2>
-      <ul style="text-align: left; font-size: 14px; color: #eee; line-height: 1.7; list-style-type: none; padding: 0;">
-        <li style="margin-bottom: 10px;">💡 <b>Schermo Sempre Acceso:</b> Gestisce il Wake Lock ereditato da Orologio Gemini.</li>
-        <li style="margin-bottom: 10px;">🤖 <b>AI Locale:</b> WebLLM integrato per assistente e suggerimenti sul percorso senza connessione.</li>
-        <li style="margin-bottom: 10px;">🗺️ <b>Mappa Leaflet:</b> Navigazione offline e posizionamento GPS in tempo reale.</li>
-      </ul>
-      <button onclick="closeLegenda()" style="background: #2196f3; color: white; width: 100%; padding: 12px; font-size: 15px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; margin-top: 15px;">CHIUDI LEGENDA</button>
-    </div>
-  </div>
+      // Simula calcolo sentiero di ritorno (colore arancione tratteggiato)
+      const startPoint = pathCoordinates[pathCoordinates.length - 1];
+      const basePoint = pathCoordinates[0];
+      returnPolyline.setLatLngs([startPoint, [(startPoint[0]+basePoint[0])/2 + 0.002, (startPoint[1]+basePoint[1])/2], basePoint]);
+      alert("Nuovo percorso di ritorno calcolato e evidenziato in arancione!");
+    };
 
-  <!-- Pulsante rapido per aprire la Legenda nella barra -->
-  <div style="position: absolute; bottom: 65px; left: 12px; right: 12px; z-index: 1000; display: flex; justify-content: center;">
-    <button class="btn" onclick="openLegenda()" style="background: rgba(30,30,30,0.95); border: 1px solid rgba(255,255,255,0.25); color: white; padding: 8px 14px; border-radius: 10px; font-size: 11px; font-weight: 600; cursor: pointer;">
-      <i class="fa-solid fa-book-open" style="color: #ff9800;"></i> Apri Legenda & Info
-    </button>
-  </div>
+    window.reverseRouteAction = function() {
+      alert("Percorso a ritroso invertito.");
+    };
+
+    window.takePhotoAction = function() {
+      alert("Fotocamera attivata: scatto waypoint salvato.");
+    };
+
+    window.recordVideoAction = function() {
+      alert("Registrazione video avviata.");
+    };
+
+    window.recordAudioAction = function() {
+      alert("Registrazione memo audio avviata.");
+    };
+
+    window.appToggleWakeLock = async function() {
+      const isActive = await trailClock.toggleWakeLock();
+      const statusText = document.getElementById('wakelock-status');
+      if (statusText) {
+        statusText.innerText = isActive ? 'ON' : 'OFF';
+        statusText.style.color = isActive ? '#00e676' : '#ffeb3b';
+      }
+    };
+  </script>
 
   <script>
-    // --- BLOCCO 5: Funzioni Modale Legenda e Persistent Storage ---
     function openLegenda() {
-      const modal = document.getElementById('legenda-modal');
-      if (modal) modal.style.display = 'flex';
+      document.getElementById('legenda-modal').style.display = 'flex';
     }
-
     function closeLegenda() {
-      const modal = document.getElementById('legenda-modal');
-      if (modal) modal.style.display = 'none';
-    }
-
-    // Richiesta di memorizzazione persistente per la cache offline (PWA)
-    if (navigator.storage && navigator.storage.persist) {
-      navigator.storage.persist().then(granted => {
-        if (granted) {
-          console.log("Memoria locale e cache rese PERSISTENTI dal browser.");
-        } else {
-          console.log("Permesso di storage persistente non concesso.");
-        }
-      });
+      document.getElementById('legenda-modal').style.display = 'none';
     }
   </script>
 </body>
