@@ -100,9 +100,10 @@
       justify-content: space-between;
     }
 
+    /* Card AI posizionata in alto/centro in modo da non essere mai coperta */
     .ai-card {
       position: absolute;
-      bottom: 150px;
+      top: 105px;
       left: 10px;
       right: 10px;
       z-index: 1000;
@@ -110,11 +111,12 @@
       backdrop-filter: blur(10px);
       border: 1px solid rgba(0, 188, 212, 0.4);
       border-radius: 12px;
-      padding: 10px;
+      padding: 8px 12px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
       box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+      pointer-events: auto;
     }
 
     .bottom-bar {
@@ -188,18 +190,22 @@
     </div>
   </div>
 
-  <!-- Card Assistente AI Locale -->
+  <!-- Card Assistente AI Locale (Spostata in alto, completamente libera e visibile) -->
   <div class="ai-card">
     <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 12px; color: #00bcd4;">
       <span>🤖 SentieroVivo AI (Locale)</span>
       <span id="ai-status-indicator" style="font-size: 10px; color: #ff9800;">Pronto</span>
     </div>
-    <div id="ai-card-text" style="font-size: 0.8rem; line-height: 1.3; color: #e5e7eb; max-height: 60px; overflow-y: auto;">
-      Assistente offline pronto. Tocca i pulsanti rapidi o avvia la registrazione per iniziare il monitoraggio del sentiero.
+    <div id="ai-card-text" style="font-size: 0.8rem; line-height: 1.3; color: #e5e7eb; max-height: 50px; overflow-y: auto;">
+      Assistente offline pronto. Sfrutta i comandi rapidi in basso per registrare il sentiero o catturare waypoint multimediali.
     </div>
   </div>
 
-  <!-- Barra Inferiore Controlli Completi -->
+  <!-- Input nascosti per attivare la fotocamera e videocamera nativa del telefono -->
+  <input type="file" id="camera-input" accept="image/*" capture="environment" style="display: none;" onchange="handlePhotoCapture(event)">
+  <input type="file" id="video-input" accept="video/*" capture="environment" style="display: none;" onchange="handleVideoCapture(event)">
+
+  <!-- Barra Inferiore Controlli (Ottimizzata e pulita) -->
   <div class="bottom-bar">
     <!-- Riga 1: Gestione Registrazione e Percorso -->
     <div class="action-row">
@@ -217,7 +223,7 @@
       </button>
     </div>
 
-    <!-- Riga 2: Ritorno, Multimedia e Utility -->
+    <!-- Riga 2: Ritorno e Multimedia (Foto, Video) -->
     <div class="action-row">
       <button class="btn" style="background: rgba(156, 39, 176, 0.9);" onclick="calcNewReturnPath()">
         <i class="fa-solid fa-route"></i> Nuovo Ritorno
@@ -225,19 +231,19 @@
       <button class="btn" onclick="reverseRouteAction()">
         <i class="fa-solid fa-arrow-rotate-left"></i> A Ritroso
       </button>
-      <button class="btn" onclick="takePhotoAction()">
+      <button class="btn" onclick="triggerPhotoCapture()">
         <i class="fa-solid fa-camera" style="color: #4ade80;"></i> Foto
       </button>
-      <button class="btn" onclick="recordVideoAction()">
+      <button class="btn" onclick="triggerVideoCapture()">
         <i class="fa-solid fa-video" style="color: #f87171;"></i> Video
-      </button>
-      <button class="btn" onclick="recordAudioAction()">
-        <i class="fa-solid fa-microphone" style="color: #fbbf24;"></i> Audio
       </button>
     </div>
 
-    <!-- Riga 3: Wake Lock, Sole e Info -->
+    <!-- Riga 3: Audio spostato qui, Wake Lock, Sole e Info -->
     <div class="action-row">
+      <button class="btn" onclick="toggleAudioRecording()" id="audio-btn">
+        <i class="fa-solid fa-microphone" style="color: #fbbf24;"></i> <span id="audio-txt">Audio</span>
+      </button>
       <button class="btn" onclick="appToggleWakeLock()">
         <i class="fa-solid fa-lightbulb" style="color: #ffeb3b;"></i> Schermo: <span id="wakelock-status">OFF</span>
       </button>
@@ -245,9 +251,18 @@
         <i class="fa-solid fa-sun" style="color: #ffeb3b;"></i> Sole
       </button>
       <button class="btn" onclick="openLegenda()">
-        <i class="fa-solid fa-book-open" style="color: #ff9800;"></i> Info & Guida
+        <i class="fa-solid fa-book-open" style="color: #ff9800;"></i> Info
       </button>
     </div>
+  </div>
+
+  <!-- Modale Immagine a Pieno Schermo (Zoommabile) -->
+  <div id="media-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(10px); z-index: 999999; display: none; align-items: center; justify-content: center; flex-direction: column; padding: 15px;">
+    <div style="position: relative; max-width: 100%; max-height: 85vh; display: flex; align-items: center; justify-content: center;">
+      <img id="modal-img-element" src="" style="max-width: 100%; max-height: 80vh; object-fit: contain; border-radius: 10px; border: 2px solid #00bcd4; display: none;">
+      <video id="modal-video-element" controls style="max-width: 100%; max-height: 80vh; border-radius: 10px; border: 2px solid #f87171; display: none;"></audio>
+    </div>
+    <button onclick="closeMediaModal()" style="background: #f44336; color: white; padding: 10px 25px; font-size: 15px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; margin-top: 15px;">CHIUDI</button>
   </div>
 
   <!-- Modale Legenda -->
@@ -255,10 +270,10 @@
     <div style="background: #1e1e1e; border: 2px solid #ff9800; border-radius: 20px; padding: 20px; max-width: 420px; width: 100%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.9);">
       <h2 style="color: #ff9800; margin-bottom: 12px; font-size: 20px; font-weight: 800;">Legenda & Comandi 📖</h2>
       <ul style="text-align: left; font-size: 13px; color: #eee; line-height: 1.6; list-style-type: none; padding: 0;">
-        <li>🟢 <b>Avvia/Pausa/Stop:</b> Gestisce traccia GPS e Timer di marcia.</li>
-        <li>🗺️ <b>Nuovo Ritorno:</b> Calcola il sentiero di rientro alla base.</li>
-        <li>📸 <b>Foto/Video/Audio:</b> Cattura memo multimediali sul campo.</li>
-        <li>📍 <b>Waypoint Sosta:</b> Memorizzazione automatica delle fermate.</li>
+        <li>🟢 <b>Avvia/Pausa/Stop:</b> Gestisce traccia GPS e Timer.</li>
+        <li>🗺️ <b>Nuovo Ritorno:</b> Calcola il sentiero di rientro.</li>
+        <li>📸 <b>Foto/Video:</b> Apre la fotocamera e posiziona la miniatura sulla mappa (cliccabile per ingrandire).</li>
+        <li>🎤 <b>Audio:</b> Registra memo vocali sul campo.</li>
       </ul>
       <button onclick="closeLegenda()" style="background: #2196f3; color: white; width: 100%; padding: 10px; font-size: 14px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; margin-top: 15px;">CHIUDI</button>
     </div>
@@ -277,13 +292,12 @@
       attribution: '© OpenStreetMap'
     }).addTo(map);
 
-    // Marker posizione utente in tempo reale (Pallino GPS)
     let userMarker = null;
-    let accuracyCircle = null;
     let pathCoordinates = [];
     let recordedPolyline = L.polyline([], { color: '#2196f3', weight: 4 }).addTo(map);
     let returnPolyline = L.polyline([], { color: '#ff9800', weight: 4, dashArray: '5, 10' }).addTo(map);
     let isRecording = false;
+    let lastLat = 43.55, lastLng = 10.32;
 
     // Istanziamo il modulo TrailClock
     const trailClock = new TrailClock({
@@ -307,6 +321,9 @@
           const lng = position.coords.longitude;
           const alt = position.coords.altitude ? Math.round(position.coords.altitude) : '--';
           const accuracy = Math.round(position.coords.accuracy);
+
+          lastLat = lat;
+          lastLng = lng;
 
           document.getElementById('gps-lat').innerText = lat.toFixed(6);
           document.getElementById('gps-lng').innerText = lng.toFixed(6);
@@ -335,7 +352,7 @@
           }
         },
         (error) => {
-          console.warn("Errore GPS o segnale assente:", error.message);
+          console.warn("Errore GPS:", error.message);
           document.getElementById('gps-status-badge').innerText = "GPS Assente (Offline)";
           document.getElementById('gps-status-badge').style.color = '#f44336';
         },
@@ -343,7 +360,101 @@
       );
     }
 
-    // Funzioni Globali per i Pulsanti
+    // --- GESTIONE MULTIMEDIALE REALE ---
+    window.triggerPhotoCapture = function() {
+      document.getElementById('camera-input').click();
+    };
+
+    window.handlePhotoCapture = function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const imageUrl = e.target.result;
+        addMediaMarker(lastLat, lastLng, 'photo', imageUrl);
+      };
+      reader.readAsDataURL(file);
+    };
+
+    window.triggerVideoCapture = function() {
+      document.getElementById('video-input').click();
+    };
+
+    window.handleVideoCapture = function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const videoUrl = URL.createObjectURL(file);
+      addMediaMarker(lastLat, lastLng, 'video', videoUrl);
+    };
+
+    // Registrazione Audio con MediaRecorder
+    let mediaRecorder;
+    let audioChunks = [];
+    let isRecordingAudio = false;
+
+    window.toggleAudioRecording = async function() {
+      const btnTxt = document.getElementById('audio-txt');
+      if (!isRecordingAudio) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          mediaRecorder = new MediaRecorder(stream);
+          audioChunks = [];
+          mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+          mediaRecorder.onstop = () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            addMediaMarker(lastLat, lastLng, 'audio', audioUrl);
+            alert("Memo audio salvato e posizionato sulla mappa!");
+          };
+          mediaRecorder.start();
+          isRecordingAudio = true;
+          btnTxt.innerText = "Stop Audio";
+          document.getElementById('audio-btn').style.background = "rgba(244, 67, 54, 0.9)";
+        } catch (err) {
+          alert("Impossibile accedere al microfono: " + err.message);
+        }
+      } else {
+        mediaRecorder.stop();
+        isRecordingAudio = false;
+        btnTxt.innerText = "Audio";
+        document.getElementById('audio-btn').style.background = "rgba(30, 30, 30, 0.95)";
+      }
+    };
+
+    // Aggiunge un waypoint multimediale sulla mappa Leaflet con miniatura
+    function addMediaMarker(lat, lng, type, url) {
+      let iconHtml = '';
+      if (type === 'photo') {
+        iconHtml = `<div style="width:36px; height:36px; border-radius:50%; border:2px solid #4ade80; overflow:hidden; background:#000;"><img src="${url}" style="width:100%; height:100%; object-fit:cover;"></div>`;
+      } else if (type === 'video') {
+        iconHtml = `<div style="width:36px; height:36px; border-radius:50%; border:2px solid #f87171; display:flex; align-items:center; justify-content:center; background:#222; color:#f87171;"><i class="fa-solid fa-video"></i></div>`;
+      } else if (type === 'audio') {
+        iconHtml = `<div style="width:36px; height:36px; border-radius:50%; border:2px solid #fbbf24; display:flex; align-items:center; justify-content:center; background:#222; color:#fbbf24;"><i class="fa-solid fa-microphone"></i></div>`;
+      }
+
+      const customIcon = L.divIcon({
+        className: 'custom-media-marker',
+        html: iconHtml,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
+      });
+
+      const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
+
+      marker.on('click', () => {
+        if (type === 'photo') {
+          openImageModal(url);
+        } else if (type === 'video') {
+          openVideoModal(url);
+        } else if (type === 'audio') {
+          const audio = new Audio(url);
+          audio.play();
+          alert("Riproduzione memo audio in corso...");
+        }
+      });
+    }
+
+    // Funzioni Globali per i Pulsanti di Tracciamento
     window.startRecordingPath = function() {
       isRecording = true;
       trailClock.startTimer();
@@ -359,7 +470,7 @@
     window.stopAndSavePath = function() {
       isRecording = false;
       trailClock.pauseTimer();
-      alert("Percorso fermato e salvato correttamente nella memoria locale!");
+      alert("Percorso fermato e salvato correttamente!");
     };
 
     window.loadExternalPath = function() {
@@ -368,10 +479,9 @@
 
     window.calcNewReturnPath = function() {
       if (pathCoordinates.length === 0) {
-        alert("Nessun percorso registrato per calcolare il ritorno.");
+        alert("Nessun percorso registrato.");
         return;
       }
-      // Simula calcolo sentiero di ritorno (colore arancione tratteggiato)
       const startPoint = pathCoordinates[pathCoordinates.length - 1];
       const basePoint = pathCoordinates[0];
       returnPolyline.setLatLngs([startPoint, [(startPoint[0]+basePoint[0])/2 + 0.002, (startPoint[1]+basePoint[1])/2], basePoint]);
@@ -380,18 +490,6 @@
 
     window.reverseRouteAction = function() {
       alert("Percorso a ritroso invertito.");
-    };
-
-    window.takePhotoAction = function() {
-      alert("Fotocamera attivata: scatto waypoint salvato.");
-    };
-
-    window.recordVideoAction = function() {
-      alert("Registrazione video avviata.");
-    };
-
-    window.recordAudioAction = function() {
-      alert("Registrazione memo audio avviata.");
     };
 
     window.appToggleWakeLock = async function() {
@@ -405,6 +503,32 @@
   </script>
 
   <script>
+    // Gestione Modali Foto/Video a Pieno Schermo
+    function openImageModal(url) {
+      const modal = document.getElementById('media-modal');
+      const img = document.getElementById('modal-img-element');
+      const vid = document.getElementById('modal-video-element');
+      vid.style.display = 'none';
+      img.src = url;
+      img.style.display = 'block';
+      modal.style.display = 'flex';
+    }
+
+    function openVideoModal(url) {
+      const modal = document.getElementById('media-modal');
+      const img = document.getElementById('modal-img-element');
+      const vid = document.getElementById('modal-video-element');
+      img.style.display = 'none';
+      vid.src = url;
+      vid.style.display = 'block';
+      modal.style.display = 'flex';
+    }
+
+    function closeMediaModal() {
+      document.getElementById('media-modal').style.display = 'none';
+      document.getElementById('modal-video-element').pause();
+    }
+
     function openLegenda() {
       document.getElementById('legenda-modal').style.display = 'flex';
     }
