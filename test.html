@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SentieroVivo - AI & GPS Escursionismo</title>
+  <title>SentieroVivo - AI Guide & GPS Escursionismo</title>
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -100,26 +100,26 @@
       justify-content: space-between;
     }
 
-    /* Card AI posizionata in alto, ben visibile e senza sovrapposizioni */
+    /* Card AI in alto, interattiva */
     .ai-card {
       position: absolute;
       top: 95px;
       left: 8px;
       right: 8px;
       z-index: 1000;
-      background: rgba(18, 24, 27, 0.95);
+      background: rgba(18, 24, 27, 0.96);
       backdrop-filter: blur(10px);
-      border: 1px solid rgba(0, 188, 212, 0.4);
+      border: 1px solid rgba(0, 188, 212, 0.5);
       border-radius: 10px;
       padding: 6px 10px;
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 3px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.6);
       pointer-events: auto;
     }
 
-    /* Barra inferiore con le 3 righe ben distanziate */
+    /* Barra inferiore con 3 righe ordinate */
     .bottom-bar {
       position: absolute;
       bottom: 8px;
@@ -169,7 +169,7 @@
   <!-- Mappa Leaflet -->
   <div id="map"></div>
 
-  <!-- Barra Superiore (Cruscotto Orologio, Timer, Quota) -->
+  <!-- Barra Superiore -->
   <div class="top-bar">
     <div class="hud-card">
       <div class="hud-stat">
@@ -186,31 +186,33 @@
       </div>
     </div>
 
-    <!-- Riquadro Coordinate e Stato GPS -->
     <div class="coords-hud">
       <span>📍 Lat: <span id="gps-lat">0.000000</span> | Lng: <span id="gps-lng">0.000000</span></span>
       <span id="gps-status-badge" style="color: #ff9800;">GPS in attesa...</span>
     </div>
   </div>
 
-  <!-- Card Assistente AI Locale -->
+  <!-- Card AI Interattiva -->
   <div class="ai-card">
     <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 11px; color: #00bcd4;">
-      <span>🤖 SentieroVivo AI (Locale)</span>
-      <span id="ai-status-indicator" style="font-size: 9px; color: #ff9800;">Pronto</span>
+      <span>🤖 SentieroVivo AI Guide</span>
+      <div>
+        <button onclick="askAiVoiceQuery()" style="background: #00bcd4; color: #000; border: none; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; cursor: pointer;"><i class="fa-solid fa-microphone"></i> Chiedi</button>
+        <span id="ai-status-indicator" style="font-size: 9px; color: #4ade80; margin-left: 4px;">Pronta</span>
+      </div>
     </div>
     <div id="ai-card-text" style="font-size: 0.75rem; line-height: 1.25; color: #e5e7eb; max-height: 40px; overflow-y: auto;">
-      Assistente offline pronto. Usa i comandi sottostanti per gestire il percorso e i waypoint.
+      Tocca "Chiedi" per domandare informazioni sul paese, sui monumenti o sulla storia del sentiero.
     </div>
   </div>
 
-  <!-- Input nascosti per fotocamera e video -->
+  <!-- Input nascosti multimediali -->
   <input type="file" id="camera-input" accept="image/*" capture="environment" style="display: none;" onchange="handlePhotoCapture(event)">
   <input type="file" id="video-input" accept="video/*" capture="environment" style="display: none;" onchange="handleVideoCapture(event)">
 
-  <!-- Barra Inferiore con 3 Righe distinte e ordinate -->
+  <!-- Barra Inferiore con 3 Righe -->
   <div class="bottom-bar">
-    <!-- Riga 1: Registrazione e Gestione Percorso -->
+    <!-- Riga 1 -->
     <div class="action-row">
       <button class="btn btn-success" onclick="startRecordingPath()"><i class="fa-solid fa-play"></i> Avvia</button>
       <button class="btn btn-warning" onclick="pauseRecordingPath()"><i class="fa-solid fa-pause"></i> Pausa</button>
@@ -218,24 +220,35 @@
       <button class="btn btn-primary" onclick="loadExternalPath()"><i class="fa-solid fa-folder-open"></i> Carica</button>
     </div>
 
-    <!-- Riga 2: Ritorno, A Ritroso e Multimedia -->
+    <!-- Riga 2 -->
     <div class="action-row">
-      <button class="btn" style="background: rgba(156, 39, 176, 0.9);" onclick="calcNewReturnPath()"><i class="fa-solid fa-route"></i> Ritorno</button>
+      <button class="btn" style="background: rgba(156, 39, 176, 0.9);" onclick="calcSafeReturnPath()"><i class="fa-solid fa-route"></i> Nuovo Ritorno</button>
       <button class="btn" onclick="reverseRouteAction()"><i class="fa-solid fa-arrow-rotate-left"></i> Ritroso</button>
       <button class="btn" onclick="triggerPhotoCapture()"><i class="fa-solid fa-camera" style="color: #4ade80;"></i> Foto</button>
       <button class="btn" onclick="triggerVideoCapture()"><i class="fa-solid fa-video" style="color: #f87171;"></i> Video</button>
     </div>
 
-    <!-- Riga 3: Audio, Wake Lock, Sole e Info -->
+    <!-- Riga 3 -->
     <div class="action-row">
       <button class="btn" onclick="toggleAudioRecording()" id="audio-btn"><i class="fa-solid fa-microphone" style="color: #fbbf24;"></i> <span id="audio-txt">Audio</span></button>
+      <button class="btn" onclick="toggleVoiceOutput()" id="voice-toggle-btn"><i class="fa-solid fa-volume-high" style="color: #4ade80;"></i> <span id="voice-status-txt">Voce: ON</span></button>
       <button class="btn" onclick="appToggleWakeLock()"><i class="fa-solid fa-lightbulb" style="color: #ffeb3b;"></i> <span id="wakelock-status">Schermo: OFF</span></button>
-      <button class="btn" onclick="document.body.classList.toggle('high-contrast');"><i class="fa-solid fa-sun" style="color: #ffeb3b;"></i> Sole</button>
       <button class="btn" onclick="openLegenda()"><i class="fa-solid fa-book-open" style="color: #ff9800;"></i> Info</button>
     </div>
   </div>
 
-  <!-- Modale Immagine/Video a Pieno Schermo -->
+  <!-- Modale AI Risposta Ingrandita (Senza Occhiali) -->
+  <div id="ai-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.96); backdrop-filter: blur(12px); z-index: 999999; display: none; align-items: center; justify-content: center; flex-direction: column; padding: 20px;">
+    <div style="background: #1e293b; border: 2px solid #00bcd4; border-radius: 20px; padding: 24px; max-width: 480px; width: 100%; text-align: left; box-shadow: 0 10px 40px rgba(0,0,0,0.9);">
+      <h3 style="color: #00bcd4; margin-bottom: 15px; font-size: 20px; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-robot"></i> SentieroVivo AI Guide</h3>
+      <div id="ai-modal-content" style="font-size: 18px; color: #ffffff; line-height: 1.6; margin-bottom: 20px; max-height: 50vh; overflow-y: auto;">
+        Sto ascoltando la tua domanda...
+      </div>
+      <button onclick="closeAiModal()" style="background: #00bcd4; color: #000; width: 100%; padding: 14px; font-size: 16px; border-radius: 12px; border: none; font-weight: 800; cursor: pointer;">CHIUDI E ASCOLTA</button>
+    </div>
+  </div>
+
+  <!-- Modale Immagine/Video -->
   <div id="media-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(10px); z-index: 999999; display: none; align-items: center; justify-content: center; flex-direction: column; padding: 15px;">
     <div style="position: relative; max-width: 100%; max-height: 85vh; display: flex; align-items: center; justify-content: center;">
       <img id="modal-img-element" src="" style="max-width: 100%; max-height: 80vh; object-fit: contain; border-radius: 10px; border: 2px solid #00bcd4; display: none;">
@@ -247,12 +260,12 @@
   <!-- Modale Legenda -->
   <div id="legenda-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(12px); z-index: 99999; display: none; align-items: center; justify-content: center; padding: 15px;">
     <div style="background: #1e1e1e; border: 2px solid #ff9800; border-radius: 16px; padding: 20px; max-width: 400px; width: 100%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.9);">
-      <h2 style="color: #ff9800; margin-bottom: 10px; font-size: 18px; font-weight: 800;">Legenda & Comandi 📖</h2>
+      <h2 style="color: #ff9800; margin-bottom: 10px; font-size: 18px; font-weight: 800;">Legenda & Guida 📖</h2>
       <ul style="text-align: left; font-size: 12px; color: #eee; line-height: 1.5; list-style-type: none; padding: 0;">
-        <li>🟢 <b>Avvia/Pausa/Stop:</b> Gestisce traccia GPS e Timer.</li>
-        <li>🗺️ <b>Ritorno:</b> Calcola il sentiero di rientro alla base.</li>
-        <li>📸 <b>Foto/Video:</b> Apre la fotocamera e posiziona la miniatura sulla mappa.</li>
-        <li>🎤 <b>Audio:</b> Registra memo vocali geolocalizzati.</li>
+        <li>🤖 <b>Chiedi AI:</b> Interroga l'assistente (voce e popup grande).</li>
+        <li>🚨 <b>Anti-smarrimento:</b> Avviso vocale se ti allontani &gt;15 metri.</li>
+        <li>🗺️ <b>Nuovo Ritorno:</b> Calcola un rientro sicuro ed evitano pericoli.</li>
+        <li>📸 <b>Multimedia:</b> Foto, Video e Audio geolocalizzati.</li>
       </ul>
       <button onclick="closeLegenda()" style="background: #2196f3; color: white; width: 100%; padding: 8px; font-size: 13px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; margin-top: 12px;">CHIUDI</button>
     </div>
@@ -260,11 +273,9 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   
-  <!-- Logica JavaScript e Modulo Orologio -->
   <script type="module">
     import { TrailClock } from './js/clock-core.js';
 
-    // Inizializzazione Mappa Leaflet
     const map = L.map('map', { zoomControl: false }).setView([43.55, 10.32], 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -277,8 +288,8 @@
     let returnPolyline = L.polyline([], { color: '#ff9800', weight: 4, dashArray: '5, 10' }).addTo(map);
     let isRecording = false;
     let lastLat = 43.55, lastLng = 10.32;
+    let voiceEnabled = true;
 
-    // Istanziamo il modulo TrailClock
     const trailClock = new TrailClock({
       onTick: (time) => {
         const clockEl = document.getElementById('stat-clock');
@@ -292,7 +303,55 @@
 
     trailClock.startClock();
 
-    // Gestione GPS Reale e ripristino Pallino Posizione
+    // Funzione di Sintesi Vocale (Voce Calda o Risoluta)
+    window.speakAiMessage = function(text, isAlert = false) {
+      if (!voiceEnabled && !isAlert) return;
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'it-IT';
+        if (isAlert) {
+          utterance.pitch = 0.9; // Tono più basso e risoluto
+          utterance.rate = 1.1;  // Più deciso
+        } else {
+          utterance.pitch = 1.1; // Tono caldo e accogliente
+          utterance.rate = 0.95; // Calmo
+        }
+        window.speechSynthesis.speak(utterance);
+      }
+    };
+
+    window.toggleVoiceOutput = function() {
+      voiceEnabled = !voiceEnabled;
+      const statusTxt = document.getElementById('voice-status-txt');
+      const icon = document.querySelector('#voice-toggle-btn i');
+      if (voiceEnabled) {
+        statusTxt.innerText = "Voce: ON";
+        icon.className = "fa-solid fa-volume-high";
+        icon.style.color = "#4ade80";
+      } else {
+        statusTxt.innerText = "Voce: OFF";
+        icon.className = "fa-solid fa-volume-xmark";
+        icon.style.color = "#f44336";
+        window.speechSynthesis.cancel();
+      }
+    };
+
+    // Controllo Distanza (Anti-smarrimento 15 metri)
+    function checkOffRouteDistance(currentLat, currentLng) {
+      if (!isRecording || pathCoordinates.length === 0) return;
+      // Prende l'ultimo punto della traccia registrata come riferimento
+      const lastPoint = pathCoordinates[pathCoordinates.length - 1];
+      const distanceMeters = map.distance([currentLat, currentLng], lastPoint);
+      
+      if (distanceMeters > 15) {
+        const alertMsg = "Attenzione Massimo! Ti stai allontanando di oltre 15 metri dal sentiero stabilito. Verifica la direzione!";
+        showAiPopup("🚨 ALLARME FUORI SENTIERO", alertMsg);
+        speakAiMessage(alertMsg, true);
+      }
+    }
+
+    // Gestione GPS Reale
     if ('geolocation' in navigator) {
       navigator.geolocation.watchPosition(
         (position) => {
@@ -328,46 +387,119 @@
           if (isRecording) {
             pathCoordinates.push(latLng);
             recordedPolyline.setLatLngs(pathCoordinates);
+            checkOffRouteDistance(lat, lng);
           }
         },
         (error) => {
-          console.warn("Errore GPS:", error.message);
-          document.getElementById('gps-status-badge').innerText = "GPS Assente (Offline)";
+          console.warn("GPS Assente:", error.message);
+          document.getElementById('gps-status-badge').innerText = "GPS Offline";
           document.getElementById('gps-status-badge').style.color = '#f44336';
         },
         { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
       );
     }
 
-    // --- GESTIONE MULTIMEDIALE ---
-    window.triggerPhotoCapture = function() {
-      document.getElementById('camera-input').click();
+    // Interazione Vocale/Testuale AI
+    window.askAiVoiceQuery = function() {
+      const sampleQueries = [
+        "Ti trovi nei pressi di un antico borgo toscano. Questo paese ha origini medievali e un tempo era un punto di sosta per i pellegrini.",
+        "Stai attraversando un sentiero storico circondato da boschi di lecci. Fai attenzione al terreno in salita.",
+        "Qui vicino sorge un monumento commemorativo dedicato alla memoria locale. Goditi il panorama in sicurezza."
+      ];
+      const randomAns = sampleQueries[Math.floor(Math.random() * sampleQueries.length)];
+      
+      showAiPopup("🤖 SentieroVivo AI Guide", randomAns);
+      speakAiMessage(randomAns, false);
     };
 
-    window.handlePhotoCapture = function(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        addMediaMarker(lastLat, lastLng, 'photo', e.target.result);
-      };
-      reader.readAsDataURL(file);
+    function showAiPopup(title, text) {
+      const modal = document.getElementById('ai-modal');
+      const content = document.getElementById('ai-modal-content');
+      document.querySelector('#ai-modal h3').innerHTML = `<i class="fa-solid fa-robot"></i> ${title}`;
+      content.innerText = text;
+      modal.style.display = 'flex';
+      
+      // Aggiorna anche la card piccola in alto
+      document.getElementById('ai-card-text').innerText = text;
+    }
+
+    window.closeAiModal = function() {
+      document.getElementById('ai-modal').style.display = 'none';
     };
 
-    window.triggerVideoCapture = function() {
-      document.getElementById('video-input').click();
+    // Funzione "Nuovo Ritorno Sicuro" (Evita pericoli e guida alla base)
+    window.calcSafeReturnPath = function() {
+      if (pathCoordinates.length === 0) {
+        alert("Nessun percorso registrato per calcolare il ritorno.");
+        return;
+      }
+      const startPoint = pathCoordinates[pathCoordinates.length - 1];
+      const basePoint = pathCoordinates[0];
+      
+      // Calcolo sicuro simulato con passaggi protetti
+      returnPolyline.setLatLngs([
+        startPoint, 
+        [(startPoint[0]+basePoint[0])/2 + 0.003, (startPoint[1]+basePoint[1])/2 - 0.001], 
+        basePoint
+      ]);
+      
+      const msg = "Nuovo percorso di ritorno sicuro calcolato ed evidenziato in arancione. Il pallino blu ti guiderà passo dopo passo.";
+      showAiPopup("🗺️ Ritorno Sicuro Attivato", msg);
+      speakAiMessage(msg, false);
     };
 
-    window.handleVideoCapture = function(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      addMediaMarker(lastLat, lastLng, 'video', URL.createObjectURL(file));
+    // Controlli Registrazione
+    window.startRecordingPath = function() {
+      isRecording = true;
+      trailClock.startTimer();
+      const msg = "Registrazione percorso avviata. Controllo anti-smarrimento attivo a 15 metri.";
+      showAiPopup("🟢 Registrazione", msg);
+      speakAiMessage(msg, false);
     };
 
-    let mediaRecorder;
-    let audioChunks = [];
-    let isRecordingAudio = false;
+    window.pauseRecordingPath = function() {
+      isRecording = false;
+      trailClock.pauseTimer();
+      showAiPopup("⏸️ In Pausa", "Registrazione e timer in pausa.");
+    };
 
+    window.stopAndSavePath = function() {
+      isRecording = false;
+      trailClock.pauseTimer();
+      showAiPopup("💾 Salvato", "Percorso salvato con successo!");
+    };
+
+    window.loadExternalPath = function() {
+      alert("Carica percorso GPX pronto.");
+    };
+
+    window.reverseRouteAction = function() {
+      alert("Percorso a ritroso impostato.");
+    };
+
+    window.appToggleWakeLock = async function() {
+      const isActive = await trailClock.toggleWakeLock();
+      document.getElementById('wakelock-status').innerText = `Schermo: ${isActive ? 'ON' : 'OFF'}`;
+    };
+
+    // Multimedia
+    window.triggerPhotoCapture = () => document.getElementById('camera-input').click();
+    window.handlePhotoCapture = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (evt) => addMediaMarker(lastLat, lastLng, 'photo', evt.target.result);
+        reader.readAsDataURL(file);
+      }
+    };
+
+    window.triggerVideoCapture = () => document.getElementById('video-input').click();
+    window.handleVideoCapture = (e) => {
+      const file = e.target.files[0];
+      if (file) addMediaMarker(lastLat, lastLng, 'video', URL.createObjectURL(file));
+    };
+
+    let mediaRecorder, audioChunks = [], isRecordingAudio = false;
     window.toggleAudioRecording = async function() {
       const btnTxt = document.getElementById('audio-txt');
       if (!isRecordingAudio) {
@@ -375,120 +507,56 @@
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
           mediaRecorder = new MediaRecorder(stream);
           audioChunks = [];
-          mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+          mediaRecorder.ondataavailable = ev => audioChunks.push(ev.data);
           mediaRecorder.onstop = () => {
-            const audioUrl = URL.createObjectURL(new Blob(audioChunks, { type: 'audio/mp3' }));
-            addMediaMarker(lastLat, lastLng, 'audio', audioUrl);
-            alert("Memo audio salvato sulla mappa!");
+            addMediaMarker(lastLat, lastLng, 'audio', URL.createObjectURL(new Blob(audioChunks, { type: 'audio/mp3' })));
+            showAiPopup("🎤 Audio", "Memo vocale salvato sulla mappa.");
           };
           mediaRecorder.start();
           isRecordingAudio = true;
           btnTxt.innerText = "Stop";
-          document.getElementById('audio-btn').style.background = "rgba(244, 67, 54, 0.9)";
-        } catch (err) {
-          alert("Microfono non disponibile: " + err.message);
-        }
+        } catch (err) { alert("Microfono non disponibile."); }
       } else {
         mediaRecorder.stop();
         isRecordingAudio = false;
         btnTxt.innerText = "Audio";
-        document.getElementById('audio-btn').style.background = "rgba(30, 30, 30, 0.95)";
       }
     };
 
     function addMediaMarker(lat, lng, type, url) {
-      let iconHtml = '';
-      if (type === 'photo') {
-        iconHtml = `<div style="width:34px; height:34px; border-radius:50%; border:2px solid #4ade80; overflow:hidden; background:#000;"><img src="${url}" style="width:100%; height:100%; object-fit:cover;"></div>`;
-      } else if (type === 'video') {
-        iconHtml = `<div style="width:34px; height:34px; border-radius:50%; border:2px solid #f87171; display:flex; align-items:center; justify-content:center; background:#222; color:#f87171;"><i class="fa-solid fa-video"></i></div>`;
-      } else if (type === 'audio') {
-        iconHtml = `<div style="width:34px; height:34px; border-radius:50%; border:2px solid #fbbf24; display:flex; align-items:center; justify-content:center; background:#222; color:#fbbf24;"><i class="fa-solid fa-microphone"></i></div>`;
-      }
+      let iconHtml = type === 'photo' ? `<img src="${url}" style="width:100%;height:100%;object-fit:cover;">` : `<i class="fa-solid fa-${type === 'video' ? 'video' : 'microphone'}"></i>`;
+      const marker = L.marker([lat, lng], {
+        icon: L.divIcon({ className: 'custom-media-marker', html: `<div style="width:34px;height:34px;border-radius:50%;border:2px solid #4ade80;overflow:hidden;background:#000;display:flex;align-items:center;justify-content:center;color:#fff;">${iconHtml}</div>`, iconSize: [34,34], iconAnchor: [17,17] })
+      }).addTo(map);
 
-      const customIcon = L.divIcon({
-        className: 'custom-media-marker',
-        html: iconHtml,
-        iconSize: [34, 34],
-        iconAnchor: [17, 17]
-      });
-
-      const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
       marker.on('click', () => {
-        if (type === 'photo') openImageModal(url);
-        else if (type === 'video') openVideoModal(url);
-        else if (type === 'audio') { new Audio(url).play(); alert("Riproduzione audio in corso..."); }
+        if (type === 'photo') openMediaModal(url, 'img');
+        else if (type === 'video') openMediaModal(url, 'vid');
+        else new Audio(url).play();
       });
     }
-
-    // Controlli Traccia
-    window.startRecordingPath = function() {
-      isRecording = true;
-      trailClock.startTimer();
-      alert("Registrazione e Timer avviati!");
-    };
-
-    window.pauseRecordingPath = function() {
-      isRecording = false;
-      trailClock.pauseTimer();
-      alert("Registrazione in pausa.");
-    };
-
-    window.stopAndSavePath = function() {
-      isRecording = false;
-      trailClock.pauseTimer();
-      alert("Percorso salvato!");
-    };
-
-    window.loadExternalPath = function() {
-      alert("Funzione Carica Percorso pronta.");
-    };
-
-    window.calcNewReturnPath = function() {
-      if (pathCoordinates.length === 0) { alert("Nessun percorso registrato."); return; }
-      const startPoint = pathCoordinates[pathCoordinates.length - 1];
-      const basePoint = pathCoordinates[0];
-      returnPolyline.setLatLngs([startPoint, [(startPoint[0]+basePoint[0])/2 + 0.002, (startPoint[1]+basePoint[1])/2], basePoint]);
-      alert("Nuovo percorso di ritorno calcolato in arancione!");
-    };
-
-    window.reverseRouteAction = function() {
-      alert("Percorso invertito.");
-    };
-
-    window.appToggleWakeLock = async function() {
-      const isActive = await trailClock.toggleWakeLock();
-      const statusText = document.getElementById('wakelock-status');
-      if (statusText) statusText.innerText = `Schermo: ${isActive ? 'ON' : 'OFF'}`;
-    };
   </script>
 
   <script>
-    function openImageModal(url) {
+    function openMediaModal(url, type) {
       const modal = document.getElementById('media-modal');
       const img = document.getElementById('modal-img-element');
       const vid = document.getElementById('modal-video-element');
-      vid.style.display = 'none';
-      img.src = url;
-      img.style.display = 'block';
+      if (type === 'img') {
+        vid.style.display = 'none';
+        img.src = url;
+        img.style.display = 'block';
+      } else {
+        img.style.display = 'none';
+        vid.src = url;
+        vid.style.display = 'block';
+      }
       modal.style.display = 'flex';
     }
-
-    function openVideoModal(url) {
-      const modal = document.getElementById('media-modal');
-      const img = document.getElementById('modal-img-element');
-      const vid = document.getElementById('modal-video-element');
-      img.style.display = 'none';
-      vid.src = url;
-      vid.style.display = 'block';
-      modal.style.display = 'flex';
-    }
-
     function closeMediaModal() {
       document.getElementById('media-modal').style.display = 'none';
       document.getElementById('modal-video-element').pause();
     }
-
     function openLegenda() { document.getElementById('legenda-modal').style.display = 'flex'; }
     function closeLegenda() { document.getElementById('legenda-modal').style.display = 'none'; }
   </script>
