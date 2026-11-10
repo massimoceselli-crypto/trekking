@@ -9,11 +9,11 @@
     <style>
         :root {
             --primary-color: #2e7d32;
-            --secondary-color: #388e3c;
             --accent-color: #ff8f00;
             --menu-color: #00838f;
+            --web-color: #0277bd;
             --bg-dark: #121212;
-            --panel-bg: rgba(18, 18, 18, 0.92);
+            --panel-bg: rgba(18, 18, 18, 0.94);
             --text-light: #f1f1f1;
         }
 
@@ -41,7 +41,7 @@
             z-index: 1;
         }
 
-        /* Plancia di comando posizionata in BASSO per perfetta ergonomia con una mano */
+        /* Plancia essenziale in BASSO: pulita, con soli 3 comandi chiave */
         .control-panel {
             position: absolute;
             bottom: 20px;
@@ -51,7 +51,7 @@
             background: var(--panel-bg);
             padding: 12px 15px;
             border-radius: 14px;
-            backdrop-filter: blur(8px);
+            backdrop-filter: blur(10px);
             box-shadow: 0 -4px 25px rgba(0,0,0,0.6);
             display: flex;
             flex-direction: column;
@@ -63,19 +63,19 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
 
         .btn {
             background-color: var(--primary-color);
             color: white;
             border: none;
-            padding: 10px 12px;
+            padding: 12px 14px;
             border-radius: 8px;
             font-weight: bold;
             font-size: 13px;
             cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
+            transition: transform 0.1s;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -87,13 +87,17 @@
             transform: scale(0.97);
         }
 
-        .btn-web { background-color: #0277bd; }
-        .btn-ai { background-color: #6a1b9a; }
+        .btn-web { background-color: var(--web-color); }
         .btn-menu { background-color: var(--menu-color); }
-        .btn-manual-wp { background-color: var(--accent-color); color: #000; font-weight: 800; }
-        .btn-stop { background-color: #c62828; }
+        .btn-manual-wp { 
+            background-color: var(--accent-color); 
+            color: #000; 
+            font-weight: 800; 
+            flex: 1.5; /* Leggermente più largo per risaltare al centro */
+            font-size: 14px;
+        }
 
-        /* Status bar e info testuali */
+        /* Status bar essenziale */
         .status-bar {
             font-size: 12px;
             color: #b0bec5;
@@ -105,33 +109,58 @@
             align-items: center;
         }
 
-        /* Finestra modale / Risposta AI diretta (in alto per non coprire i comandi in basso) */
-        .ai-response-box {
+        /* Finestra modale (Risposte Guide / Menu 12 tasti) */
+        .modal-box {
             position: absolute;
             top: 15px;
             left: 15px;
             right: 15px;
-            z-index: 10;
+            z-index: 20;
             background: var(--panel-bg);
-            padding: 15px;
-            border-radius: 12px;
-            backdrop-filter: blur(8px);
+            padding: 18px;
+            border-radius: 14px;
+            backdrop-filter: blur(10px);
             border-left: 4px solid var(--accent-color);
-            box-shadow: 0 6px 25px rgba(0,0,0,0.6);
+            box-shadow: 0 6px 25px rgba(0,0,0,0.7);
             display: none;
             font-size: 14px;
-            line-height: 1.4;
+            line-height: 1.5;
+            max-height: 80vh;
+            overflow-y: auto;
         }
 
-        .ai-response-title {
+        .modal-title {
             font-weight: bold;
             color: var(--accent-color);
-            margin-bottom: 4px;
+            margin-bottom: 8px;
             display: flex;
             justify-content: space-between;
+            font-size: 16px;
         }
 
-        /* Marker personalizzati mappa */
+        /* Griglia dei 12 tasti all'interno del menu */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .menu-grid-btn {
+            background: #212121;
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: left;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .menu-grid-btn:active {
+            background: #333;
+        }
+
         .leaflet-popup-content-wrapper, .leaflet-popup-tip {
             background: #212121;
             color: #fff;
@@ -144,29 +173,26 @@
     <!-- Mappa Leaflet -->
     <div id="map"></div>
 
-    <!-- Riquadro Risposta AI Diretto (Senza ripetizione query, posizionato in alto) -->
-    <div id="aiResponseBox" class="ai-response-box">
-        <div class="ai-response-title">
-            <span>SentieroVivo Guida</span>
-            <span style="cursor:pointer; color:#aaa;" onclick="closeAiBox()">✕</span>
+    <!-- Modale Unica per Guide e Menu dei 12 Comandi -->
+    <div id="modalBox" class="modal-box">
+        <div class="modal-title">
+            <span id="modalTitleText">SentieroVivo</span>
+            <span style="cursor:pointer; color:#aaa; font-size: 18px;" onclick="closeModal()">✕</span>
         </div>
-        <div id="aiResponseText">Elaborazione in corso...</div>
+        <div id="modalContentText">Contenuto...</div>
     </div>
 
-    <!-- Plancia Comandi Principale (Posizionata in BASSO) -->
+    <!-- Plancia Comandi Essenziale in BASSO -->
     <div class="control-panel">
         <div class="panel-row">
+            <!-- Sinistra: Info Web -->
             <button class="btn btn-web" onclick="triggerWebInfo()">🌐 Info Web</button>
-            <button class="btn btn-ai" onclick="askAiDestination()">🎙️ Chiedi AI</button>
+            
+            <!-- Centro: Tasto Rapido Waypoint Manuale (Filo di Arianna) -->
+            <button class="btn btn-manual-wp" onclick="markManualWaypoint()">📍 Waypoint (#<span id="wp-counter">0</span>)</button>
+            
+            <!-- Destra: Menu dei 12 comandi -->
             <button class="btn btn-menu" onclick="openCommandMenu()">📂 Menu (12)</button>
-        </div>
-
-        <!-- TASTO RAPIDO CENTRALE: Waypoint Manuale (Filo di Arianna) -->
-        <button class="btn btn-manual-wp" onclick="markManualWaypoint()">📍 Segna Waypoint Manuale (#<span id="wp-counter">0</span>)</button>
-
-        <div class="panel-row">
-            <button class="btn" onclick="startTracking()">▶ Avvia</button>
-            <button class="btn btn-stop" onclick="stopTracking()">⏹ Stop & Salva</button>
         </div>
 
         <div class="status-bar">
@@ -179,16 +205,14 @@
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Inizializzazione della mappa (Centrata su Livorno / area test o coordinate GPS)
+        // Inizializzazione della mappa (Centrata su Livorno / area test)
         const map = L.map('map', { zoomControl: false }).setView([43.5485, 10.3106], 15);
 
-        // Layer cartografico OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors | SentieroVivo'
         }).addTo(map);
 
-        // Controllo zoom in alto a destra per pulizia visiva
         L.control.zoom({ position: 'topright' }).addTo(map);
 
         let isTracking = false;
@@ -197,7 +221,7 @@
         let currentPositionMarker = null;
         let trackLine = L.polyline([], { color: '#2e7d32', weight: 4, opacity: 0.8 }).addTo(map);
 
-        // Sintesi Vocale Ottimizzata (Voce Femminile Naturale Italiana)
+        // Sintesi Vocale Voce Femminile Naturale
         function speakText(text) {
             if (!('speechSynthesis' in window)) return;
             window.speechSynthesis.cancel();
@@ -220,25 +244,14 @@
             window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
         }
 
-        // Funzione Guida Territoriale ("Informazioni Web")
+        // Tasto Sinistra: Info Web & Guida Territoriale
         function triggerWebInfo() {
-            showAiBox("Guida Territoriale", "Analisi della posizione corrente: ti trovi in un'area collinare protetta. A circa 800 metri verso nord si sviluppa un sentiero panoramico con vegetazione di macchia mediterranea e lecci.");
+            showModal("Guida Territoriale & Info Web", 
+                "Analisi della posizione corrente: ti trovi in un'area collinare protetta. A circa 800 metri verso nord si sviluppa un sentiero panoramico con vegetazione di macchia mediterranea e lecci.");
             speakText("Ti trovi in un'area protetta. A ottocento metri a nord si sviluppa un sentiero panoramico ideale per escursioni.");
         }
 
-        // Interrogazione AI Destinazione
-        function askAiDestination() {
-            showAiBox("Destinazione e Routing Misto", "Destinazione impostata: Eremo di Calomini. Avvicinamento veicolare consigliato fino al punto di sosta segnalato, seguito da tratto a piedi su mulattiera per 3.5 km.");
-            speakText("Destinazione Eremo di Calomini impostata. Avvicinamento in auto e proseguimento a piedi su mulattiera.");
-        }
-
-        // Apertura Menu Comandi (12 Scelte)
-        function openCommandMenu() {
-            showAiBox("Menu Comandi Avanzati", "Apertura del pannello con le opzioni di navigazione, gestione cartelle, filtri POI e impostazioni offline.");
-            speakText("Menu comandi aperto.");
-        }
-
-        // TASTO RAPIDO: Waypoint Manuale (Filo di Arianna)
+        // Tasto Centro: Waypoint Manuale (Filo di Arianna)
         function markManualWaypoint() {
             waypointCount++;
             document.getElementById('wp-counter').innerText = waypointCount;
@@ -252,35 +265,60 @@
                 fillOpacity: 1
             }).addTo(map);
 
-            marker.bindPopup(`<b>Waypoint Manuale #${waypointCount}</b><br>Registrato come boa di sicurezza.`);
+            marker.bindPopup(`<b>Waypoint Manuale #${waypointCount}</b><br>Boa di sicurezza registrata.`);
             waypointsList.push({ id: waypointCount, latlng: latlng });
 
             speakText(`Waypoint numero ${waypointCount} registrato.`);
         }
 
-        function startTracking() {
-            isTracking = true;
-            document.getElementById('track-status').innerText = 'Registrazione';
-            document.getElementById('track-status').style.color = '#66bb6a';
-            speakText("Registrazione del percorso avviata. Filo di Arianna attivo.");
+        // Tasto Destra: Apertura Menu dei 12 Comandi
+        function openCommandMenu() {
+            let menuHTML = `
+                <p>Seleziona una funzione avanzata:</p>
+                <div class="menu-grid">
+                    <button class="menu-grid-btn" onclick="runMenuAction('Avvia Percorso')">▶ 1. Avvia Tracciamento</button>
+                    <button class="menu-grid-btn" onclick="runMenuAction('Stop & Salva')">⏹ 2. Stop & Salva</button>
+                    <button class="menu-grid-btn" onclick="runMenuAction('Ritorno a Ritroso')">↩ 3. Ritorno (Backtrack)</button>
+                    <button class="menu-grid-btn" onclick="runMenuAction('Nuovo Anello')">🔄 4. Calcola Anello</button>
+                    <button class="menu-grid-btn" onclick="runMenuAction('Cerca Fontane POI')">💧 5. Cerca Acqua / POI</button>
+                    <button class="menu-grid-btn" onclick="runMenuAction('Esplora Sentiero')">🔍 6. Predici Sentiero</button>
+                    <button class="menu-grid-btn" onclick="runMenuAction('Gestione Cartelle')">📁 7. Cartelle Percorsi</button>
+                    <button class="menu-grid-btn" onclick="runMenuAction('Esportazione GPX')">💾 8. Esporta GPX</button>
+                    <button class="menu-grid-btn" onclick="runMenuAction('Note Vocali')">🎙️ 9. Registro Audio</button>
+                    <button class="menu-grid-btn" onclick="runMenuAction('Galleria Foto')">📷 10. Foto Waypoint</button>
+                    <button class="menu-grid-btn" onclick="runMenuAction('Stato GPS & Offline')">📶 11. Diagnostica GPS</button>
+                    <button class="menu-grid-btn" onclick="runMenuAction('Impostazioni Voce')">⚙️ 12. Impostazioni</button>
+                </div>
+            `;
+            showModal("Menu Comandi Avanzati (12 Scelte)", menuHTML);
+            speakText("Menu comandi aperto.");
         }
 
-        function stopTracking() {
-            isTracking = false;
-            document.getElementById('track-status').innerText = 'Salvato';
-            document.getElementById('track-status').style.color = '#ff8f00';
-            speakText("Percorso interrotto e salvato correttamente nella memoria del dispositivo.");
+        function runMenuAction(actionName) {
+            if (actionName.includes('Avvia')) {
+                isTracking = true;
+                document.getElementById('track-status').innerText = 'Registrazione';
+                document.getElementById('track-status').style.color = '#66bb6a';
+                speakText("Registrazione avviata.");
+            } else if (actionName.includes('Stop')) {
+                isTracking = false;
+                document.getElementById('track-status').innerText = 'Salvato';
+                document.getElementById('track-status').style.color = '#ff8f00';
+                speakText("Percorso salvato.");
+            }
+            closeModal();
+            // Mostra conferma rapida
+            showModal("Comando Eseguito", `Hai attivato: <b>${actionName}</b>`);
         }
 
-        function showAiBox(title, text) {
-            const box = document.getElementById('aiResponseBox');
-            document.querySelector('.ai-response-title span').innerText = title;
-            document.getElementById('aiResponseText').innerText = text;
-            box.style.display = 'block';
+        function showModal(title, htmlContent) {
+            document.getElementById('modalTitleText').innerText = title;
+            document.getElementById('modalContentText').innerHTML = htmlContent;
+            document.getElementById('modalBox').style.display = 'block';
         }
 
-        function closeAiBox() {
-            document.getElementById('aiResponseBox').style.display = 'none';
+        function closeModal() {
+            document.getElementById('modalBox').style.display = 'none';
         }
 
         // Simulatore GPS
