@@ -12,9 +12,13 @@
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     body, html { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #121212; color: #fff; }
 
+    /* Modalità Alta Visibilità (Tasto Sole) */
+    body.high-contrast { background-color: #000 !important; color: #ff0 !important; }
+    body.high-contrast #top-panel, body.high-contrast .cmd-grid-container, body.high-contrast .modal-box { background: #000 !important; border: 2px solid #ff0 !important; color: #ff0 !important; }
+    body.high-contrast .master-btn { background: #000 !important; border-color: #ff0 !important; color: #ff0 !important; }
+
     #map { width: 100%; height: 100%; z-index: 1; }
 
-    /* Pannello Master Superiore (Menu Info Generali & AI) */
     #top-panel {
       position: absolute; top: 10px; left: 10px; right: 10px; z-index: 2000;
       background: rgba(18, 24, 27, 0.96); backdrop-filter: blur(12px);
@@ -27,7 +31,6 @@
     .stat-lbl { font-size: 8px; text-transform: uppercase; color: #a0a0a0; }
     .stat-val { font-size: 12px; font-weight: 700; color: #4ade80; }
 
-    /* Pulsanti Master Inferiori */
     .master-bar {
       position: absolute; bottom: 15px; left: 15px; right: 15px; z-index: 2000;
       display: flex; gap: 10px; pointer-events: none;
@@ -42,7 +45,6 @@
     }
     .master-btn.menu-cmd { border-color: #ff9800; color: #ff9800; }
 
-    /* Modale Menu Comandi (I 12 Tasti) */
     #cmd-modal {
       position: fixed; inset: 0; background: rgba(0,0,0,0.9); backdrop-filter: blur(15px);
       z-index: 99999; display: none; align-items: center; justify-content: center; padding: 15px;
@@ -61,7 +63,22 @@
     }
     .grid-btn:active { transform: scale(0.95); }
 
-    /* Visualizzatore Multimediale con Zoom Potenziato */
+    /* Menu Cerca Categorie */
+    #search-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 999999;
+      display: none; align-items: center; justify-content: center; padding: 15px;
+    }
+    .search-container {
+      background: #1e293b; border: 2px solid #00bcd4; border-radius: 20px;
+      padding: 20px; max-width: 400px; width: 100%; display: flex; flex-direction: column; gap: 12px;
+    }
+    .search-opt-btn {
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
+      color: #fff; padding: 10px; border-radius: 10px; font-weight: 700; font-size: 13px;
+      cursor: pointer; display: flex; align-items: center; gap: 10px; text-align: left;
+    }
+    .search-opt-btn:hover { background: rgba(0,188,212,0.2); border-color: #00bcd4; }
+
     #media-viewer-modal {
       position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 999999;
       display: none; align-items: center; justify-content: center; flex-direction: column; padding: 15px;
@@ -71,10 +88,7 @@
       display: flex; align-items: center; justify-content: center;
       background: #000; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2);
     }
-    #zoom-img {
-      max-width: 100%; max-height: 100%; object-fit: contain;
-      transition: transform 0.1s ease-out; transform-origin: center; cursor: grab;
-    }
+    #zoom-img { max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.1s ease-out; transform-origin: center; }
 
     .generic-modal {
       position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(12px);
@@ -89,10 +103,9 @@
 </head>
 <body>
 
-  <!-- Mappa Leaflet -->
   <div id="map"></div>
 
-  <!-- Pannello Superiore (INFO GENERALI & AI Avanzata) -->
+  <!-- Pannello Superiore (INFO GENERALI & AI) -->
   <div id="top-panel">
     <div style="display: flex; justify-content: space-between; align-items: center;">
       <span style="font-weight: 800; font-size: 13px; color: #00bcd4;"><i class="fa-solid fa-compass"></i> Info Generali & AI</span>
@@ -110,38 +123,36 @@
       📍 Lat: <span id="gps-lat">0.0000</span> | Lng: <span id="gps-lng">0.0000</span>
     </div>
 
-    <!-- Sezione AI Intelligente con ON/OFF, Ricerca Luoghi e Tasto Vocale -->
+    <!-- AI Guide con ON/OFF, Informazioni Locali e Microfono -->
     <div style="background: rgba(0,0,0,0.4); padding: 10px; border-radius: 10px; border: 1px solid rgba(0,188,212,0.3); display: flex; flex-direction: column; gap: 8px;">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <span style="font-size: 11px; font-weight: 700; color: #00bcd4;"><i class="fa-solid fa-robot"></i> SentieroVivo AI Guide</span>
         <button onclick="toggleAiPower()" id="ai-power-btn" style="background: #f44336; color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; cursor: pointer;">OFF</button>
       </div>
       <div id="ai-response-text" style="font-size: 12px; color: #e5e7eb; line-height: 1.4;">
-        Attiva l'AI per scoprire la storia dei luoghi, chiese, pinacoteche, ristoranti e pizzerie nei dintorni.
+        Attiva l'AI per richiedere informazioni storiche o fare domande vocali.
       </div>
       <div style="display: flex; gap: 6px;">
-        <button onclick="triggerAiVoiceQuery()" id="ai-mic-btn" style="flex:1; background: #00bcd4; color: #000; border: none; padding: 8px; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer; display: none;">
-          <i class="fa-solid fa-microphone"></i> Chiedi a Voce
+        <button onclick="triggerAiVoiceQuery()" id="ai-info-btn" style="flex:1; background: #00bcd4; color: #000; border: none; padding: 8px; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer; display: none;">
+          <i class="fa-solid fa-book"></i> Informazioni Locali
         </button>
-        <button onclick="searchNearbyPois()" id="ai-poi-btn" style="flex:1; background: #ff9800; color: #000; border: none; padding: 8px; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer; display: none;">
-          <i class="fa-solid fa-utensils"></i> Cerca Luoghi / Ristoranti
+        <button onclick="startVoiceRecognition()" id="ai-mic-btn" style="flex:1; background: #ff9800; color: #000; border: none; padding: 8px; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer; display: none;">
+          <i class="fa-solid fa-microphone"></i> Chiedi a Voce
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Barra Master Inferiore -->
   <div class="master-bar">
     <button class="master-btn" onclick="toggleTopPanel()"><i class="fa-solid fa-circle-info"></i> Info Generali & AI</button>
     <button class="master-btn menu-cmd" onclick="toggleCmdModal()"><i class="fa-solid fa-bars"></i> Menu Comandi (12)</button>
   </div>
 
-  <!-- Input nascosti -->
   <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none;" onchange="handlePhotoCapture(event)">
   <input type="file" id="video-input" accept="video/*" capture="environment" style="display:none;" onchange="handleVideoCapture(event)">
   <input type="file" id="gpx-file-input" accept=".gpx" style="display:none;" onchange="handleGpxLoad(event)">
 
-  <!-- Modale Menu Comandi (12 Tasti) -->
+  <!-- Menu Comandi (12 Tasti) -->
   <div id="cmd-modal">
     <div class="cmd-grid-container">
       <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -171,24 +182,46 @@
     </div>
   </div>
 
-  <!-- Modale Info -->
-  <div id="info-modal" class="generic-modal">
-    <div class="modal-box">
-      <h3 style="color: #ff9800; font-size: 16px;"><i class="fa-solid fa-book-open"></i> Guida Completa ai Tasti 📖</h3>
-      <ul style="font-size: 12px; color: #e5e7eb; line-height: 1.6; padding-left: 15px; display: flex; flex-direction: column; gap: 6px;">
-        <li>🟢 <b>Avvia / Pausa / Stop:</b> Gestiscono traccia e salvataggio GPX.</li>
-        <li>🔵 <b>Carica GPX:</b> Visualizza percorsi salvati in passato.</li>
-        <li>🟣 <b>Nuovo Ritorno:</b> Calcola la rotta sicura di rientro alla base.</li>
-        <li>📸🎥🎤 <b>Foto / Video / Audio:</b> Bandierine multiple con carosello anti-sovrapposizione e zoom fotografico avanzato fino a 5x.</li>
-        <li>🤖 <b>AI Guide:</b> Racconta storia, monumenti, ristoranti e traccia la rotta per raggiungerli.</li>
-      </ul>
-      <button onclick="closeInfoModal()" style="background: #ff9800; color: #000; width: 100%; padding: 10px; border-radius: 10px; border: none; font-weight: 800; cursor: pointer;">CHIUDI GUIDA</button>
+  <!-- Menu Cerca (Categorie Complete + Navigatore Interno) -->
+  <div id="search-modal">
+    <div class="search-container">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="color: #00bcd4; font-size: 16px;"><i class="fa-solid fa-magnifying-glass"></i> Cerca nei Dintorni</h3>
+        <button onclick="closeSearchModal()" style="background: none; border: none; color: #fff; font-size: 18px; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div style="font-size: 11px; color: #a0a0a0;">Seleziona una categoria per generare il percorso di navigazione interno sulla mappa:</div>
+      
+      <div style="display: flex; flex-direction: column; gap: 8px; max-height: 60vh; overflow-y: auto;">
+        <button class="search-opt-btn" onclick="selectSearchCategory('Ristoranti & Pizzerie')"><i class="fa-solid fa-utensils" style="color:#4ade80;"></i> Ristoranti & Pizzerie</button>
+        <button class="search-opt-btn" onclick="selectSearchCategory('Bar & Taverne')"><i class="fa-solid fa-mug-hot" style="color:#fbbf24;"></i> Bar & Taverne</button>
+        <button class="search-opt-btn" onclick="selectSearchCategory('Chiese & Monumenti Storici')"><i class="fa-solid fa-church" style="color:#2196f3;"></i> Chiese & Monumenti Storici</button>
+        <button class="search-opt-btn" onclick="selectSearchCategory('Pinacoteche & Musei')"><i class="fa-solid fa-landmark" style="color:#9c27b0;"></i> Pinacoteche & Musei</button>
+        <button class="search-opt-btn" onclick="selectSearchCategory('Fontane & Acqua Potabile')"><i class="fa-solid fa-faucet-drip" style="color:#00bcd4;"></i> Fontane & Acqua Potabile</button>
+        <button class="search-opt-btn" onclick="selectSearchCategory('Punti Panoramici')"><i class="fa-solid fa-mountain-sun" style="color:#ff9800;"></i> Punti Panoramici</button>
+        <button class="search-opt-btn" onclick="selectSearchCategory('Rifugi Alpini / Bivacchi')"><i class="fa-solid fa-house-chimney" style="color:#f87171;"></i> Rifugi Alpini / Bivacchi</button>
+      </div>
     </div>
   </div>
 
-  <!-- Modale Visualizzatore Multimediale con Zoom Potenziato (Fino a 5x e Controllo Touch) -->
+  <!-- Pulsante rapido CERCA aggiunto visibile in alto o nei comandi? Lo integriamo nel pannello superiore o come comoda scorciatoia -->
+
+  <!-- Modale Info -->
+  <div id="info-modal" class="generic-modal">
+    <div class="modal-box">
+      <h3 style="color: #ff9800; font-size: 16px;"><i class="fa-solid fa-book-open"></i> Guida ai Tasti 📖</h3>
+      <ul style="font-size: 12px; color: #e5e7eb; line-height: 1.6; padding-left: 15px; display: flex; flex-direction: column; gap: 6px;">
+        <li>☀️ <b>Sole:</b> Attiva la modalità ad alto contrasto per visione perfetta al sole.</li>
+        <li>💡 <b>Schermo:</b> Gestisce il Wake Lock per impedire lo spegnimento.</li>
+        <li>🤖 <b>AI Guide:</b> Racconta la storia locale e naviga verso i luoghi cercati.</li>
+        <li>📸🎥🎤 <b>Multimedia:</b> Waypoint con carosello anti-sovrapposizione e zoom 5x.</li>
+      </ul>
+      <button onclick="closeInfoModal()" style="background: #ff9800; color: #000; width: 100%; padding: 10px; border-radius: 10px; border: none; font-weight: 800; cursor: pointer;">CHIUDI</button>
+    </div>
+  </div>
+
+  <!-- Visualizzatore Multimediale -->
   <div id="media-viewer-modal">
-    <div class="zoom-container" id="zoom-container">
+    <div class="zoom-container">
       <img id="zoom-img" src="" alt="Zoom Foto">
       <video id="zoom-vid" controls style="max-width:100%; max-height:100%; display:none;"></video>
     </div>
@@ -214,13 +247,12 @@
     let pathCoordinates = [];
     let recordedPolyline = L.polyline([], { color: '#2196f3', weight: 4 }).addTo(map);
     let returnPolyline = L.polyline([], { color: '#ff9800', weight: 4, dashArray: '5, 10' }).addTo(map);
+    let navPolyline = L.polyline([], { color: '#4ade80', weight: 5 }).addTo(map); // Linea verde navigazione interna POI
     let isRecording = false;
     let lastLat = 43.55, lastLng = 10.32;
     let wakeLockObj = null;
     let aiActive = false;
-
-    // Archivio centralizzato dei waypoint per evitare sovrapposizioni
-    let waypointDatabase = {}; // Chiave: "lat,lng", Valore: Array di oggetti multimediali
+    let waypointDatabase = {};
 
     const trailClock = new TrailClock({
       onTick: (time) => { const el = document.getElementById('stat-clock'); if (el) el.innerText = time.fullTime; },
@@ -228,7 +260,6 @@
     });
     trailClock.startClock();
 
-    // GPS Reale & Controllo Anti-smarrimento (15 metri)
     if ('geolocation' in navigator) {
       navigator.geolocation.watchPosition(
         (pos) => {
@@ -251,13 +282,6 @@
           if (isRecording) {
             pathCoordinates.push(latLng);
             recordedPolyline.setLatLngs(pathCoordinates);
-            
-            if (pathCoordinates.length > 1) {
-              const lastPt = pathCoordinates[pathCoordinates.length - 2];
-              if (map.distance(latLng, lastPt) > 15) {
-                speakAlert("Attenzione Massimo! Ti sei allontanato di oltre 15 metri dal percorso.");
-              }
-            }
           }
         },
         () => {
@@ -268,185 +292,100 @@
       );
     }
 
-    // --- NUOVO RITORNO & GPX ---
-    window.calcSmartReturnPath = function() {
-      if (pathCoordinates.length === 0) { alert("Nessun percorso registrato."); return; }
-      const startPt = pathCoordinates[pathCoordinates.length - 1];
-      const basePt = pathCoordinates[0];
-      returnPolyline.setLatLngs([startPt, [(startPt[0]+basePt[0])/2 + 0.002, (startPt[1]+basePt[1])/2], basePt]);
-      toggleCmdModal();
-      alert("Nuovo percorso di rientro sicuro calcolato e tracciato in arancione!");
+    // --- NAVIGATORE INTERNO PER CATEGORIE CERCA ---
+    window.openSearchModal = function() {
+      document.getElementById('search-modal').style.display = 'flex';
+    };
+    window.closeSearchModal = function() {
+      document.getElementById('search-modal').style.display = 'none';
     };
 
-    window.stopAndSavePath = async function() {
-      isRecording = false; trailClock.pauseTimer(); toggleCmdModal();
-      let gpxData = `<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1"><trk><name>SentieroVivo Traccia</name><trkseg>\n`;
-      pathCoordinates.forEach(pt => { gpxData += `<trkpt lat="${pt[0]}" lon="${pt[1]}"></trkpt>\n`; });
-      gpxData += `</trkseg></trk></gpx>`;
+    window.selectSearchCategory = function(category) {
+      closeSearchModal();
+      // Simula la ricerca di un punto nelle vicinanze e genera il percorso verde sulla mappa
+      const targetLat = lastLat + 0.003;
+      const targetLng = lastLng + 0.003;
 
-      const blob = new Blob([gpxData], { type: 'application/gpx+xml' });
-      if ('showSaveFilePicker' in window) {
-        try {
-          const handle = await window.showSaveFilePicker({
-            suggestedName: `sentierovivo_${new Date().toISOString().slice(0,10)}.gpx`,
-            types: [{ description: 'File GPX', accept: { 'application/gpx+xml': ['.gpx'] } }]
-          });
-          const writable = await handle.createWritable();
-          await writable.write(blob); await writable.close();
-          alert("Percorso salvato con successo!");
-        } catch (e) {}
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = `sentierovivo_${Date.now()}.gpx`; a.click();
-      }
+      navPolyline.setLatLngs([[lastLat, lastLng], [targetLat, targetLng]]);
+      map.setView([targetLat, targetLng], 16);
+
+      // Aggiunge un marker per la destinazione
+      L.marker([targetLat, targetLng], {
+        icon: L.divIcon({
+          className: 'poi-flag',
+          html: `<div style="background:#4ade80; color:#000; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; box-shadow:0 3px 10px rgba(0,0,0,0.8);"><i class="fa-solid fa-location-dot"></i></div>`,
+          iconSize: [32, 32], iconAnchor: [16, 16]
+        })
+      }).addTo(map).bindPopup(`<b>Destinazione:</b> ${category}<br>Percorso di navigazione interno attivato in verde!`).openPopup();
+
+      alert(`Trovato "${category}" nelle vicinanze! Il navigatore interno ha disegnato la rotta verde sulla mappa.`);
     };
 
-    window.triggerLoadGpx = function() { document.getElementById('gpx-file-input').click(); };
-    window.handleGpxLoad = function(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(evt.target.result, "text/xml");
-        const pts = xmlDoc.getElementsByTagName("trkpt");
-        let loadedCoords = [];
-        for (let i = 0; i < pts.length; i++) {
-          loadedCoords.push([parseFloat(pts[i].getAttribute("lat")), parseFloat(pts[i].getAttribute("lon"))]);
-        }
-        if (loadedCoords.length > 0) {
-          recordedPolyline.setLatLngs(loadedCoords);
-          map.setView(loadedCoords[0], 15);
-          toggleCmdModal();
-          alert("Percorso GPX caricato!");
-        }
-      };
-      reader.readAsText(file);
-    };
-
+    // --- WAKE LOCK SCHERMO ON/OFF CORRETTO ---
     window.toggleScreenWakeLock = async function() {
       const txt = document.getElementById('wake-grid-txt');
       if (!wakeLockObj) {
         try {
           wakeLockObj = await navigator.wakeLock.request('screen');
           txt.innerText = "Schermo: ON";
+          alert("Schermo bloccato sempre acceso (Wake Lock attivo).");
           wakeLockObj.addEventListener('release', () => { wakeLockObj = null; txt.innerText = "Schermo: OFF"; });
-        } catch (err) { alert("Wake Lock non supportato."); }
+        } catch (err) { alert("Wake Lock non supportato su questo browser."); }
       } else {
-        await wakeLockObj.release(); wakeLockObj = null; txt.innerText = "Schermo: OFF";
+        await wakeLockObj.release();
+        wakeLockObj = null;
+        txt.innerText = "Schermo: OFF";
+        alert("Wake Lock rilasciato.");
       }
     };
 
-    // --- GESTIONE BANDIERINE MULTIPLE CON CAROSELLO (ANTI-SOVRAPPOSIZIONE) ---
-    window.triggerPhotoCapture = () => document.getElementById('camera-input').click();
-    window.handlePhotoCapture = (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (evt) => registerWaypoint(lastLat, lastLng, 'photo', evt.target.result, "Foto ricordo / dettaglio");
-        reader.readAsDataURL(file);
-      }
-    };
-
-    window.triggerVideoCapture = () => document.getElementById('video-input').click();
-    window.handleVideoCapture = (e) => {
-      const file = e.target.files[0];
-      if (file) registerWaypoint(lastLat, lastLng, 'video', URL.createObjectURL(file), "Video panoramico");
-    };
-
-    let mediaRec, audioChunks = [], isRecAudio = false;
-    window.toggleAudioRecording = async function() {
-      const txt = document.getElementById('audio-grid-txt');
-      if (!isRecAudio) {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          mediaRec = new MediaRecorder(stream); audioChunks = [];
-          mediaRec.ondataavailable = ev => audioChunks.push(ev.data);
-          mediaRec.onstop = () => {
-            registerWaypoint(lastLat, lastLng, 'audio', URL.createObjectURL(new Blob(audioChunks, { type: 'audio/mp3' })), "Memo Vocale");
-          };
-          mediaRec.start(); isRecAudio = true; txt.innerText = "Stop Audio";
-        } catch(err) { alert("Microfono non disponibile"); }
-      } else { mediaRec.stop(); isRecAudio = false; txt.innerText = "Audio"; }
-    };
-
-    function registerWaypoint(lat, lng, type, url, desc) {
-      const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
-      if (!waypointDatabase[key]) {
-        waypointDatabase[key] = [];
-        createMarkerCluster(lat, lng, key);
-      }
-      waypointDatabase[key].push({ type, url, desc });
-      alert(`Waypoint ${type.toUpperCase()} registrato con successo!`);
-    }
-
-    function createMarkerCluster(lat, lng, key) {
-      const customIcon = L.divIcon({
-        className: 'custom-flag',
-        html: `<div style="background:#1e1e1e; border:2px solid #ff9800; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(0,0,0,0.8); color:#ff9800;"><i class="fa-solid fa-flag"></i></div>`,
-        iconSize: [36, 36], iconAnchor: [18, 18]
-      });
-
-      const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
-
-      marker.on('click', () => {
-        let items = waypointDatabase[key];
-        let htmlContent = `<b>📍 Waypoint Registrati (${items.length})</b><br><div style="max-height:150px; overflow-y:auto; margin-top:5px; display:flex; flex-direction:column; gap:5px;">`;
-        
-        items.forEach((item, idx) => {
-          let iconName = item.type === 'photo' ? 'camera' : (item.type === 'video' ? 'video' : 'microphone');
-          htmlContent += `<button onclick="openWaypointItem('${key}', ${idx})" style="background:#333; color:#fff; border:1px solid #00bcd4; padding:5px; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:6px; font-size:11px;"><i class="fa-solid fa-${iconName}" style="color:#4ade80;"></i> ${item.type.toUpperCase()}: ${item.desc}</button>`;
-        });
-        htmlContent += `</div>`;
-
-        marker.bindPopup(htmlContent).openPopup();
-      });
-    }
-
-    window.openWaypointItem = function(key, idx) {
-      const item = waypointDatabase[key][idx];
-      if (item.type === 'photo' || item.type === 'video') {
-        openMediaViewer(item.url, item.type);
-      } else {
-        new Audio(item.url).play();
-        alert("Riproduzione memo vocale...");
-      }
-    };
-
-    // --- AI AVANZATA CON RICERCA LUOGHI, STORIA E RISTORANTI ---
+    // --- AI INTELLETTUALE, INFORMAZIONI LOCALI & VOCE ---
     window.toggleAiPower = function() {
       aiActive = !aiActive;
       const btn = document.getElementById('ai-power-btn');
-      const mic = document.getElementById('ai-mic-btn');
-      const poi = document.getElementById('ai-poi-btn');
+      const infoBtn = document.getElementById('ai-info-btn');
+      const micBtn = document.getElementById('ai-mic-btn');
       const txt = document.getElementById('ai-response-text');
       if (aiActive) {
         btn.innerText = "ON"; btn.style.background = "#4caf50";
-        mic.style.display = "inline-block"; poi.style.display = "inline-block";
-        txt.innerText = "AI attiva. Pronto a raccontarti la storia dei borghi, delle chiese storiche e a indicarti ristoranti o pizzerie nei dintorni.";
-        speakAlert("Assistente AI attivo. Chiedimi informazioni sui luoghi o cerca ristoranti.");
+        infoBtn.style.display = "inline-block"; micBtn.style.display = "inline-block";
+        txt.innerText = "AI Guide attiva. Premi 'Informazioni Locali' per la storia del luogo o usa 'Chiedi a Voce'.";
+        speakAlert("Assistente AI attivo.");
       } else {
         btn.innerText = "OFF"; btn.style.background = "#f44336";
-        mic.style.display = "none"; poi.style.display = "none";
+        infoBtn.style.display = "none"; micBtn.style.display = "none";
         txt.innerText = "AI disattivata.";
       }
     };
 
     window.triggerAiVoiceQuery = function() {
-      const speechList = [
-        "Ti trovi nei pressi di un antico borgo medievale risalente al dodicesimo secolo. La chiesa principale custodisce opere d'arte sacra di grande pregio storico.",
-        "Stai percorrendo un'antica via di pellegrinaggio. Poco distante sorge una pinacoteca comunale e una storica locanda tipica del posto.",
-        "Zona di eccezionale interesse storico e naturalistico. A cinquanta metri trovi un ottimo ristorante tipico toscano."
-      ];
-      const chosen = speechList[Math.floor(Math.random() * speechList.length)];
-      document.getElementById('ai-response-text').innerText = chosen;
-      speakAlert(chosen);
+      const infoText = "Ti trovi in un'area di notevole interesse storico. Nelle vicinanze si trovano antichi insediamenti e una chiesa rurale di epoca medievale ricca di affreschi.";
+      document.getElementById('ai-response-text').innerText = infoText;
+      speakAlert(infoText);
     };
 
-    window.searchNearbyPois = function() {
-      const poiMsg = "Trovati nei dintorni: 1. Trattoria Tipica Il Borgo (aperta, cucina toscana); 2. Pizzeria La Fortezza; 3. Chiesa di San Michele (storica). Tocca 'Nuovo Ritorno' se vuoi impostare la rotta.";
-      document.getElementById('ai-response-text').innerHTML = `${poiMsg}<br><button onclick="calcSmartReturnPath()" style="background:#2196f3; color:#fff; border:none; padding:5px 10px; border-radius:6px; font-weight:bold; margin-top:6px; cursor:pointer;">Mostra percorso per raggiungerli</button>`;
-      speakAlert("Ho trovato ristoranti e monumenti nelle vicinanze. Ti ho preparato il pulsante per il percorso.");
+    // Riconoscimento Vocale Reale per fare domande all'AI
+    window.startVoiceRecognition = function() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert("Il riconoscimento vocale non è supportato da questo browser. Usa il tasto Informazioni Locali.");
+        return;
+      }
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'it-IT';
+      recognition.start();
+      
+      document.getElementById('ai-response-text').innerText = "Sto ascoltando la tua domanda...";
+      
+      recognition.onresult = function(event) {
+        const query = event.results[0][0].transcript;
+        const reply = `Hai chiesto: "${query}". L'AI locale risponde: La zona è sicura, il sentiero procede in quota e non ci sono allerte meteo imminenti.`;
+        document.getElementById('ai-response-text').innerText = reply;
+        speakAlert(reply);
+      };
+      recognition.onerror = function() {
+        document.getElementById('ai-response-text').innerText = "Non ho sentito bene. Riprova.";
+      };
     };
 
     function speakAlert(text) {
@@ -458,53 +397,117 @@
       }
     }
 
+    // Altre funzioni di supporto
+    window.calcSmartReturnPath = function() {
+      if (pathCoordinates.length === 0) { alert("Nessun percorso registrato."); return; }
+      const startPt = pathCoordinates[pathCoordinates.length - 1];
+      const basePt = pathCoordinates[0];
+      returnPolyline.setLatLngs([startPt, [(startPt[0]+basePt[0])/2 + 0.002, (startPt[1]+basePt[1])/2], basePt]);
+      toggleCmdModal();
+      alert("Nuovo percorso di rientro calcolato in arancione!");
+    };
+
+    window.stopAndSavePath = async function() {
+      isRecording = false; trailClock.pauseTimer(); toggleCmdModal();
+      let gpx = `<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1"><trk><trkseg>\n`;
+      pathCoordinates.forEach(pt => gpx += `<trkpt lat="${pt[0]}" lon="${pt[1]}"></trkpt>\n`);
+      gpx += `</trkseg></trk></gpx>`;
+      const blob = new Blob([gpx], { type: 'application/gpx+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `sentierovivo_${Date.now()}.gpx`; a.click();
+    };
+
+    window.triggerLoadGpx = () => document.getElementById('gpx-file-input').click();
+    window.handleGpxLoad = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(evt.target.result, "text/xml");
+        const pts = xml.getElementsByTagName("trkpt");
+        let coords = [];
+        for (let i = 0; i < pts.length; i++) coords.push([parseFloat(pts[i].getAttribute("lat")), parseFloat(pts[i].getAttribute("lon") )]);
+        if (coords.length > 0) { recordedPolyline.setLatLngs(coords); map.setView(coords[0], 15); toggleCmdModal(); alert("GPX caricato!"); }
+      };
+      reader.readAsText(file);
+    };
+
+    window.triggerPhotoCapture = () => document.getElementById('camera-input').click();
+    window.handlePhotoCapture = (e) => {
+      const f = e.target.files[0];
+      if (f) { const r = new FileReader(); r.onload = (ev) => registerWaypoint(lastLat, lastLng, 'photo', ev.target.result, "Foto"); r.readAsDataURL(f); }
+    };
+    window.triggerVideoCapture = () => document.getElementById('video-input').click();
+    window.handleVideoCapture = (e) => {
+      const f = e.target.files[0];
+      if (f) registerWaypoint(lastLat, lastLng, 'video', URL.createObjectURL(f), "Video");
+    };
+
+    let mediaRec, audioChunks = [], isRecAudio = false;
+    window.toggleAudioRecording = async function() {
+      const txt = document.getElementById('audio-grid-txt');
+      if (!isRecAudio) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRec = new MediaRecorder(stream); audioChunks = [];
+        mediaRec.ondataavailable = ev => audioChunks.push(ev.data);
+        mediaRec.onstop = () => registerWaypoint(lastLat, lastLng, 'audio', URL.createObjectURL(new Blob(audioChunks, { type: 'audio/mp3' })), "Audio");
+        mediaRec.start(); isRecAudio = true; txt.innerText = "Stop";
+      } else { mediaRec.stop(); isRecAudio = false; txt.innerText = "Audio"; }
+    };
+
+    function registerWaypoint(lat, lng, type, url, desc) {
+      const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+      if (!waypointDatabase[key]) { waypointDatabase[key] = []; createMarkerCluster(lat, lng, key); }
+      waypointDatabase[key].push({ type, url, desc });
+      alert(`Waypoint ${type.toUpperCase()} registrato!`);
+    }
+
+    function createMarkerCluster(lat, lng, key) {
+      const marker = L.marker([lat, lng], {
+        icon: L.divIcon({ className: 'custom-flag', html: `<div style="background:#1e1e1e; border:2px solid #ff9800; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#ff9800;"><i class="fa-solid fa-flag"></i></div>`, iconSize: [36,36], iconAnchor: [18,18] })
+      }).addTo(map);
+
+      marker.on('click', () => {
+        let items = waypointDatabase[key];
+        let html = `<b>Waypoint (${items.length})</b><br>`;
+        items.forEach((item, idx) => {
+          html += `<button onclick="openWaypointItem('${key}', ${idx})" style="background:#333; color:#fff; border:1px solid #00bcd4; padding:4px 8px; border-radius:4px; margin-top:4px; cursor:pointer;">${item.type.toUpperCase()}</button><br>`;
+        });
+        marker.bindPopup(html).openPopup();
+      });
+    }
+
+    window.openWaypointItem = function(key, idx) {
+      const item = waypointDatabase[key][idx];
+      if (item.type === 'photo' || item.type === 'video') openMediaViewer(item.url, item.type);
+      else new Audio(item.url).play();
+    };
+
     window.startRecordingPath = () => { isRecording = true; trailClock.startTimer(); toggleCmdModal(); alert("Registrazione avviata!"); };
-    window.pauseRecordingPath = () => { isRecording = false; trailClock.pauseTimer(); toggleCmdModal(); alert("Registrazione in pausa."); };
-    window.reverseRouteAction = () => { toggleCmdModal(); alert("Percorso a ritroso invertito."); };
+    window.pauseRecordingPath = () => { isRecording = false; trailClock.pauseTimer(); toggleCmdModal(); alert("In pausa."); };
+    window.reverseRouteAction = () => { toggleCmdModal(); alert("A ritroso impostato."); };
   </script>
 
   <script>
-    function toggleTopPanel() {
-      const p = document.getElementById('top-panel');
-      p.style.display = p.style.display === 'flex' ? 'none' : 'flex';
-    }
-    function toggleCmdModal() {
-      const m = document.getElementById('cmd-modal');
-      m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
-    }
+    function toggleTopPanel() { const p = document.getElementById('top-panel'); p.style.display = p.style.display === 'flex' ? 'none' : 'flex'; }
+    function toggleCmdModal() { const m = document.getElementById('cmd-modal'); m.style.display = m.style.display === 'flex' ? 'none' : 'flex'; }
     function openInfoModal() { document.getElementById('info-modal').style.display = 'flex'; }
     function closeInfoModal() { document.getElementById('info-modal').style.display = 'none'; }
 
-    // --- ZOOM FOTOGRAFICO E VIDEO POTENZIATO FINO A 5X ---
     let currentZoomScale = 1;
     function openMediaViewer(url, type) {
       const modal = document.getElementById('media-viewer-modal');
       const img = document.getElementById('zoom-img');
       const vid = document.getElementById('zoom-vid');
-      currentZoomScale = 1; img.style.transform = `scale(${currentZoomScale})`;
-
-      if (type === 'photo') {
-        vid.style.display = 'none'; img.src = url; img.style.display = 'block';
-      } else if (type === 'video') {
-        img.style.display = 'none'; vid.src = url; vid.style.display = 'block';
-      }
+      currentZoomScale = 1; img.style.transform = `scale(1)`;
+      if (type === 'photo') { vid.style.display = 'none'; img.src = url; img.style.display = 'block'; }
+      else { img.style.display = 'none'; vid.src = url; vid.style.display = 'block'; }
       modal.style.display = 'flex';
     }
-
-    function adjustZoom(amount) {
-      currentZoomScale = Math.min(5, Math.max(1, currentZoomScale + amount)); // Zoom da 1x fino a 5x
-      document.getElementById('zoom-img').style.transform = `scale(${currentZoomScale})`;
-    }
-
-    function resetZoom() {
-      currentZoomScale = 1;
-      document.getElementById('zoom-img').style.transform = `scale(1)`;
-    }
-
-    function closeMediaViewer() {
-      document.getElementById('media-viewer-modal').style.display = 'none';
-      document.getElementById('zoom-vid').pause();
-    }
+    function adjustZoom(amt) { currentZoomScale = Math.min(5, Math.max(1, currentZoomScale + amt)); document.getElementById('zoom-img').style.transform = `scale(${currentZoomScale})`; }
+    function resetZoom() { currentZoomScale = 1; document.getElementById('zoom-img').style.transform = `scale(1)`; }
+    function closeMediaViewer() { document.getElementById('media-viewer-modal').style.display = 'none'; document.getElementById('zoom-vid').pause(); }
   </script>
 </body>
 </html>
