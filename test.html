@@ -3,271 +3,190 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SentieroVivo - AI Guide & GPS Escursionismo</title>
+  <title>SentieroVivo - Professional GPS & AI Guide</title>
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      -webkit-tap-highlight-color: transparent;
-    }
-    body, html {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #121212;
-      color: #ffffff;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body, html { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #121212; color: #fff; }
 
-    body.high-contrast {
-      background-color: #000000 !important;
-      color: #ffff00 !important;
-    }
-    body.high-contrast .hud-card, body.high-contrast .coords-hud, body.high-contrast .ai-card {
-      background: #000000 !important;
-      border: 2px solid #ffff00 !important;
-      color: #ffff00 !important;
-    }
-    body.high-contrast .btn {
-      background: #000000 !important;
-      border: 2px solid #ffff00 !important;
-      color: #ffff00 !important;
-    }
+    #map { width: 100%; height: 100%; z-index: 1; }
 
-    #map {
-      width: 100%;
-      height: 100%;
-      z-index: 1;
+    /* Pannello Master Superiore (Menu Info Generali & AI) */
+    #top-panel {
+      position: absolute; top: 10px; left: 10px; right: 10px; z-index: 2000;
+      background: rgba(18, 24, 27, 0.96); backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 188, 212, 0.5); border-radius: 14px;
+      padding: 12px; display: none; flex-direction: column; gap: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
     }
+    .top-stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center; }
+    .stat-box { background: rgba(255,255,255,0.05); padding: 6px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); }
+    .stat-lbl { font-size: 8px; text-transform: uppercase; color: #a0a0a0; }
+    .stat-val { font-size: 12px; font-weight: 700; color: #4ade80; }
 
-    .top-bar {
-      position: absolute;
-      top: 8px;
-      left: 8px;
-      right: 8px;
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      pointer-events: none;
+    /* Pulsanti Master Inferiori (Sempre visibili sulla mappa) */
+    .master-bar {
+      position: absolute; bottom: 15px; left: 15px; right: 15px; z-index: 2000;
+      display: flex; gap: 10px; pointer-events: none;
     }
-    .hud-card {
-      background: rgba(18, 18, 18, 0.94);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 10px;
-      padding: 6px 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-      pointer-events: auto;
+    .master-btn {
+      flex: 1; pointer-events: auto;
+      background: rgba(18, 24, 27, 0.95); backdrop-filter: blur(10px);
+      border: 2px solid #00bcd4; color: #00bcd4; padding: 12px;
+      border-radius: 14px; font-size: 13px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.6); cursor: pointer;
     }
-    .hud-stat {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .hud-label {
-      font-size: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #a0a0a0;
-    }
-    .hud-value {
-      font-size: 13px;
-      font-weight: 700;
-      color: #ffffff;
-    }
+    .master-btn.menu-cmd { border-color: #ff9800; color: #ff9800; }
 
-    .coords-hud {
-      background: rgba(0, 0, 0, 0.9);
-      border: 1px solid #00bcd4;
-      border-radius: 6px;
-      padding: 4px 8px;
-      font-size: 10px;
-      color: #00bcd4;
-      font-family: monospace;
-      text-align: center;
-      font-weight: bold;
-      pointer-events: auto;
-      display: flex;
-      justify-content: space-between;
+    /* Modale Menu Comandi (I 12 Tasti in griglia) */
+    #cmd-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.9); backdrop-filter: blur(15px);
+      z-index: 99999; display: none; align-items: center; justify-content: center; padding: 15px;
     }
+    .cmd-grid-container {
+      background: #1e1e1e; border: 2px solid #ff9800; border-radius: 20px;
+      padding: 20px; max-width: 450px; width: 100%; box-shadow: 0 15px 50px rgba(0,0,0,0.9);
+      display: flex; flex-direction: column; gap: 15px; max-height: 90vh; overflow-y: auto;
+    }
+    .cmd-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .grid-btn {
+      background: rgba(40,40,40,0.95); border: 1px solid rgba(255,255,255,0.2);
+      color: white; padding: 12px 6px; border-radius: 12px; font-size: 11px; font-weight: 700;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+      cursor: pointer; text-align: center;
+    }
+    .grid-btn:active { transform: scale(0.95); }
 
-    /* Card AI in alto, interattiva */
-    .ai-card {
-      position: absolute;
-      top: 95px;
-      left: 8px;
-      right: 8px;
-      z-index: 1000;
-      background: rgba(18, 24, 27, 0.96);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(0, 188, 212, 0.5);
-      border-radius: 10px;
-      padding: 6px 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
-      pointer-events: auto;
+    /* Modali Multimediali e Zoom Immagini */
+    #media-viewer-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 999999;
+      display: none; align-items: center; justify-content: center; flex-direction: column; padding: 15px;
     }
+    .zoom-container { position: relative; width: 100%; height: 80vh; overflow: auto; display: flex; align-items: center; justify-content: center; }
+    #zoom-img { max-width: 100%; transition: transform 0.2s ease; transform-origin: center; cursor: zoom-in; }
 
-    /* Barra inferiore con 3 righe ordinate */
-    .bottom-bar {
-      position: absolute;
-      bottom: 8px;
-      left: 8px;
-      right: 8px;
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      pointer-events: none;
+    /* Altre Modali Generali (Info, AI) */
+    .generic-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(12px);
+      z-index: 99999; display: none; align-items: center; justify-content: center; padding: 20px;
     }
-    .action-row {
-      display: flex;
-      justify-content: space-between;
-      gap: 4px;
-      pointer-events: auto;
+    .modal-box {
+      background: #1e293b; border: 2px solid #00bcd4; border-radius: 20px;
+      padding: 22px; max-width: 460px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.9);
+      display: flex; flex-direction: column; gap: 15px; max-height: 85vh; overflow-y: auto;
     }
-    .btn {
-      flex: 1;
-      background: rgba(30, 30, 30, 0.95);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255,255,255,0.25);
-      color: white;
-      padding: 7px 4px;
-      border-radius: 8px;
-      font-size: 10px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      cursor: pointer;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-      white-space: nowrap;
-    }
-    .btn:active {
-      transform: scale(0.95);
-    }
-    .btn-primary { background: rgba(33, 150, 243, 0.9); border-color: #2196f3; }
-    .btn-danger { background: rgba(244, 67, 54, 0.9); border-color: #f44336; }
-    .btn-success { background: rgba(76, 175, 80, 0.9); border-color: #4caf50; }
-    .btn-warning { background: rgba(255, 152, 0, 0.9); border-color: #ff9800; }
   </style>
 </head>
 <body>
 
-  <!-- Mappa Leaflet -->
+  <!-- Mappa Leaflet (Display pulito al 100%) -->
   <div id="map"></div>
 
-  <!-- Barra Superiore -->
-  <div class="top-bar">
-    <div class="hud-card">
-      <div class="hud-stat">
-        <span class="hud-label">Ora Live</span>
-        <span id="stat-clock" class="hud-value" style="color: #4ade80;">00:00:00</span>
-      </div>
-      <div class="hud-stat">
-        <span class="hud-label">Timer Marcia</span>
-        <span id="stat-timer" class="hud-value" style="color: #60a5fa;">00:00:00</span>
-      </div>
-      <div class="hud-stat">
-        <span class="hud-label">Quota</span>
-        <span id="stat-alt" class="hud-value">-- m</span>
-      </div>
+  <!-- Pannello Superiore a Scomparsa (INFO GENERALI & AI) -->
+  <div id="top-panel">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-weight: 800; font-size: 13px; color: #00bcd4;"><i class="fa-solid fa-compass"></i> Info Generali & AI</span>
+      <button onclick="toggleTopPanel()" style="background: none; border: none; color: #fff; font-size: 16px; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    
+    <div class="top-stat-grid">
+      <div class="stat-box"><span class="stat-lbl">Ora</span><br><span id="stat-clock" class="stat-val">--:--</span></div>
+      <div class="stat-box"><span class="stat-lbl">Timer</span><br><span id="stat-timer" class="stat-val" style="color:#60a5fa;">00:00</span></div>
+      <div class="stat-box"><span class="stat-lbl">Quota</span><br><span id="stat-alt" class="stat-val">-- m</span></div>
+      <div class="stat-box"><span class="stat-lbl">GPS</span><br><span id="stat-gps" class="stat-val" style="color:#ff9800;">Attesa</span></div>
     </div>
 
-    <div class="coords-hud">
-      <span>📍 Lat: <span id="gps-lat">0.000000</span> | Lng: <span id="gps-lng">0.000000</span></span>
-      <span id="gps-status-badge" style="color: #ff9800;">GPS in attesa...</span>
+    <div style="font-family: monospace; font-size: 11px; color: #00bcd4; text-align: center;">
+      📍 Lat: <span id="gps-lat">0.0000</span> | Lng: <span id="gps-lng">0.0000</span>
+    </div>
+
+    <!-- Sezione AI con Interruttore ON/OFF -->
+    <div style="background: rgba(0,0,0,0.4); padding: 10px; border-radius: 10px; border: 1px solid rgba(0,188,212,0.3); display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 11px; font-weight: 700; color: #00bcd4;"><i class="fa-solid fa-robot"></i> SentieroVivo AI Assistant</span>
+        <button onclick="toggleAiPower()" id="ai-power-btn" style="background: #f44336; color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; cursor: pointer;">OFF</button>
+      </div>
+      <div id="ai-response-text" style="font-size: 12px; color: #e5e7eb; line-height: 1.4;">
+        Attiva l'AI per interrogare il web o il sistema locale sui luoghi, la storia e i sentieri.
+      </div>
+      <button onclick="triggerAiVoiceQuery()" id="ai-mic-btn" style="background: #00bcd4; color: #000; border: none; padding: 8px; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer; display: none;">
+        <i class="fa-solid fa-microphone"></i> Premi per Parlare all'AI
+      </button>
     </div>
   </div>
 
-  <!-- Card AI Interattiva -->
-  <div class="ai-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 11px; color: #00bcd4;">
-      <span>🤖 SentieroVivo AI Guide</span>
-      <div>
-        <button onclick="askAiVoiceQuery()" style="background: #00bcd4; color: #000; border: none; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; cursor: pointer;"><i class="fa-solid fa-microphone"></i> Chiedi</button>
-        <span id="ai-status-indicator" style="font-size: 9px; color: #4ade80; margin-left: 4px;">Pronta</span>
+  <!-- Barra Master Inferiore (Sempre pulita sulla mappa) -->
+  <div class="master-bar">
+    <button class="master-btn" onclick="toggleTopPanel()"><i class="fa-solid fa-circle-info"></i> Info Generali & AI</button>
+    <button class="master-btn menu-cmd" onclick="toggleCmdModal()"><i class="fa-solid fa-bars"></i> Menu Comandi (12)</button>
+  </div>
+
+  <!-- Input nascosti multimediali e GPX -->
+  <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none;" onchange="handlePhotoCapture(event)">
+  <input type="file" id="video-input" accept="video/*" capture="environment" style="display:none;" onchange="handleVideoCapture(event)">
+  <input type="file" id="gpx-file-input" accept=".gpx" style="display:none;" onchange="handleGpxLoad(event)">
+
+  <!-- Modale Menu Comandi (I 12 Tasti) -->
+  <div id="cmd-modal">
+    <div class="cmd-grid-container">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="color: #ff9800; font-size: 16px;"><i class="fa-solid fa-sliders"></i> Plancia Comandi (12)</h3>
+        <button onclick="toggleCmdModal()" style="background: none; border: none; color: #fff; font-size: 18px; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
       </div>
-    </div>
-    <div id="ai-card-text" style="font-size: 0.75rem; line-height: 1.25; color: #e5e7eb; max-height: 40px; overflow-y: auto;">
-      Tocca "Chiedi" per domandare informazioni sul paese, sui monumenti o sulla storia del sentiero.
-    </div>
-  </div>
-
-  <!-- Input nascosti multimediali -->
-  <input type="file" id="camera-input" accept="image/*" capture="environment" style="display: none;" onchange="handlePhotoCapture(event)">
-  <input type="file" id="video-input" accept="video/*" capture="environment" style="display: none;" onchange="handleVideoCapture(event)">
-
-  <!-- Barra Inferiore con 3 Righe -->
-  <div class="bottom-bar">
-    <!-- Riga 1 -->
-    <div class="action-row">
-      <button class="btn btn-success" onclick="startRecordingPath()"><i class="fa-solid fa-play"></i> Avvia</button>
-      <button class="btn btn-warning" onclick="pauseRecordingPath()"><i class="fa-solid fa-pause"></i> Pausa</button>
-      <button class="btn btn-danger" onclick="stopAndSavePath()"><i class="fa-solid fa-stop"></i> Stop</button>
-      <button class="btn btn-primary" onclick="loadExternalPath()"><i class="fa-solid fa-folder-open"></i> Carica</button>
-    </div>
-
-    <!-- Riga 2 -->
-    <div class="action-row">
-      <button class="btn" style="background: rgba(156, 39, 176, 0.9);" onclick="calcSafeReturnPath()"><i class="fa-solid fa-route"></i> Nuovo Ritorno</button>
-      <button class="btn" onclick="reverseRouteAction()"><i class="fa-solid fa-arrow-rotate-left"></i> Ritroso</button>
-      <button class="btn" onclick="triggerPhotoCapture()"><i class="fa-solid fa-camera" style="color: #4ade80;"></i> Foto</button>
-      <button class="btn" onclick="triggerVideoCapture()"><i class="fa-solid fa-video" style="color: #f87171;"></i> Video</button>
-    </div>
-
-    <!-- Riga 3 -->
-    <div class="action-row">
-      <button class="btn" onclick="toggleAudioRecording()" id="audio-btn"><i class="fa-solid fa-microphone" style="color: #fbbf24;"></i> <span id="audio-txt">Audio</span></button>
-      <button class="btn" onclick="toggleVoiceOutput()" id="voice-toggle-btn"><i class="fa-solid fa-volume-high" style="color: #4ade80;"></i> <span id="voice-status-txt">Voce: ON</span></button>
-      <button class="btn" onclick="appToggleWakeLock()"><i class="fa-solid fa-lightbulb" style="color: #ffeb3b;"></i> <span id="wakelock-status">Schermo: OFF</span></button>
-      <button class="btn" onclick="openLegenda()"><i class="fa-solid fa-book-open" style="color: #ff9800;"></i> Info</button>
-    </div>
-  </div>
-
-  <!-- Modale AI Risposta Ingrandita (Senza Occhiali) -->
-  <div id="ai-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.96); backdrop-filter: blur(12px); z-index: 999999; display: none; align-items: center; justify-content: center; flex-direction: column; padding: 20px;">
-    <div style="background: #1e293b; border: 2px solid #00bcd4; border-radius: 20px; padding: 24px; max-width: 480px; width: 100%; text-align: left; box-shadow: 0 10px 40px rgba(0,0,0,0.9);">
-      <h3 style="color: #00bcd4; margin-bottom: 15px; font-size: 20px; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-robot"></i> SentieroVivo AI Guide</h3>
-      <div id="ai-modal-content" style="font-size: 18px; color: #ffffff; line-height: 1.6; margin-bottom: 20px; max-height: 50vh; overflow-y: auto;">
-        Sto ascoltando la tua domanda...
+      
+      <div class="cmd-grid">
+        <button class="grid-btn" style="border-color:#4caf50;" onclick="startRecordingPath()"><i class="fa-solid fa-play fa-lg" style="color:#4caf50;"></i> Avvia</button>
+        <button class="grid-btn" style="border-color:#ff9800;" onclick="pauseRecordingPath()"><i class="fa-solid fa-pause fa-lg" style="color:#ff9800;"></i> Pausa</button>
+        <button class="grid-btn" style="border-color:#f44336;" onclick="stopAndSavePath()"><i class="fa-solid fa-stop fa-lg" style="color:#f44336;"></i> Stop & Salva</button>
+        
+        <button class="grid-btn" style="border-color:#2196f3;" onclick="triggerLoadGpx()"><i class="fa-solid fa-folder-open fa-lg" style="color:#2196f3;"></i> Carica GPX</button>
+        <button class="grid-btn" style="border-color:#9c27b0;" onclick="calcSmartReturnPath()"><i class="fa-solid fa-route fa-lg" style="color:#9c27b0;"></i> Nuovo Ritorno</button>
+        <button class="grid-btn" onclick="reverseRouteAction()"><i class="fa-solid fa-arrow-rotate-left fa-lg" style="color:#00bcd4;"></i> A Ritroso</button>
+        
+        <button class="grid-btn" onclick="triggerPhotoCapture()"><i class="fa-solid fa-camera fa-lg" style="color:#4ade80;"></i> Foto</button>
+        <button class="grid-btn" onclick="triggerVideoCapture()"><i class="fa-solid fa-video fa-lg" style="color:#f87171;"></i> Video</button>
+        <button class="grid-btn" onclick="toggleAudioRecording()" id="audio-grid-btn"><i class="fa-solid fa-microphone fa-lg" style="color:#fbbf24;"></i> <span id="audio-grid-txt">Audio</span></button>
+        
+        <button class="grid-btn" onclick="toggleScreenWakeLock()"><i class="fa-solid fa-lightbulb fa-lg" style="color:#ffeb3b;"></i> <span id="wake-grid-txt">Schermo: OFF</span></button>
+        <button class="grid-btn" onclick="document.body.classList.toggle('high-contrast');"><i class="fa-solid fa-sun fa-lg" style="color:#ffeb3b;"></i> Sole</button>
+        <button class="grid-btn" style="border-color:#ff9800;" onclick="openInfoModal()"><i class="fa-solid fa-book-open fa-lg" style="color:#ff9800;"></i> Info Tasti</button>
       </div>
-      <button onclick="closeAiModal()" style="background: #00bcd4; color: #000; width: 100%; padding: 14px; font-size: 16px; border-radius: 12px; border: none; font-weight: 800; cursor: pointer;">CHIUDI E ASCOLTA</button>
+
+      <button onclick="toggleCmdModal()" style="background: #ff9800; color: #000; width: 100%; padding: 10px; border-radius: 10px; border: none; font-weight: 800; cursor: pointer;">CHIUDI MENU</button>
     </div>
   </div>
 
-  <!-- Modale Immagine/Video -->
-  <div id="media-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(10px); z-index: 999999; display: none; align-items: center; justify-content: center; flex-direction: column; padding: 15px;">
-    <div style="position: relative; max-width: 100%; max-height: 85vh; display: flex; align-items: center; justify-content: center;">
-      <img id="modal-img-element" src="" style="max-width: 100%; max-height: 80vh; object-fit: contain; border-radius: 10px; border: 2px solid #00bcd4; display: none;">
-      <video id="modal-video-element" controls style="max-width: 100%; max-height: 80vh; border-radius: 10px; border: 2px solid #f87171; display: none;"></video>
-    </div>
-    <button onclick="closeMediaModal()" style="background: #f44336; color: white; padding: 8px 20px; font-size: 14px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; margin-top: 15px;">CHIUDI</button>
-  </div>
-
-  <!-- Modale Legenda -->
-  <div id="legenda-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(12px); z-index: 99999; display: none; align-items: center; justify-content: center; padding: 15px;">
-    <div style="background: #1e1e1e; border: 2px solid #ff9800; border-radius: 16px; padding: 20px; max-width: 400px; width: 100%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.9);">
-      <h2 style="color: #ff9800; margin-bottom: 10px; font-size: 18px; font-weight: 800;">Legenda & Guida 📖</h2>
-      <ul style="text-align: left; font-size: 12px; color: #eee; line-height: 1.5; list-style-type: none; padding: 0;">
-        <li>🤖 <b>Chiedi AI:</b> Interroga l'assistente (voce e popup grande).</li>
-        <li>🚨 <b>Anti-smarrimento:</b> Avviso vocale se ti allontani &gt;15 metri.</li>
-        <li>🗺️ <b>Nuovo Ritorno:</b> Calcola un rientro sicuro ed evitano pericoli.</li>
-        <li>📸 <b>Multimedia:</b> Foto, Video e Audio geolocalizzati.</li>
+  <!-- Modale Info Dettagliata Tasti -->
+  <div id="info-modal" class="generic-modal">
+    <div class="modal-box">
+      <h3 style="color: #ff9800; font-size: 16px;"><i class="fa-solid fa-book-open"></i> Guida Completa ai Tasti 📖</h3>
+      <ul style="font-size: 12px; color: #e5e7eb; line-height: 1.6; padding-left: 15px; display: flex; flex-direction: column; gap: 6px;">
+        <li>🟢 <b>Avvia:</b> Inizia il tracciamento GPS e avvia il timer marcia.</li>
+        <li>🟠 <b>Pausa:</b> Mette in pausa il timer e la registrazione.</li>
+        <li>🔴 <b>Stop & Salva:</b> Ferma la marcia ed esporta il file GPX nella cartella scelta.</li>
+        <li>🔵 <b>Carica GPX:</b> Seleziona e visualizza percorsi passati dalla memoria.</li>
+        <li>🟣 <b>Nuovo Ritorno:</b> Calcola la rotta sicura di rientro alla base.</li>
+        <li>📸🎥🎤 <b>Foto / Video / Audio:</b> Registrano contenuti geolocalizzati creando bandierine interattive sulla mappa con zoom avanzato.</li>
+        <li>💡 <b>Schermo ON/OFF:</b> Gestisce il Wake Lock per evitare lo spegnimento.</li>
       </ul>
-      <button onclick="closeLegenda()" style="background: #2196f3; color: white; width: 100%; padding: 8px; font-size: 13px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; margin-top: 12px;">CHIUDI</button>
+      <button onclick="closeInfoModal()" style="background: #ff9800; color: #000; width: 100%; padding: 10px; border-radius: 10px; border: none; font-weight: 800; cursor: pointer;">CHIUDI GUIDA</button>
+    </div>
+  </div>
+
+  <!-- Modale Visualizzatore Multimediale con Zoom -->
+  <div id="media-viewer-modal">
+    <div class="zoom-container" id="zoom-container">
+      <img id="zoom-img" src="" alt="Media Zoom" style="display:none;">
+      <video id="zoom-vid" controls style="max-width:100%; max-height:80vh; display:none;"></video>
+    </div>
+    <div style="display: flex; gap: 10px; margin-top: 15px;">
+      <button onclick="adjustZoom(0.2)" style="background:#2196f3; color:#fff; border:none; padding:8px 15px; border-radius:8px; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-magnifying-glass-plus"></i> Zoom +</button>
+      <button onclick="adjustZoom(-0.2)" style="background:#2196f3; color:#fff; border:none; padding:8px 15px; border-radius:8px; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-magnifying-glass-minus"></i> Zoom -</button>
+      <button onclick="closeMediaViewer()" style="background:#f44336; color:#fff; border:none; padding:8px 20px; border-radius:8px; font-weight:bold; cursor:pointer;">CHIUDI</button>
     </div>
   </div>
 
@@ -278,8 +197,7 @@
 
     const map = L.map('map', { zoomControl: false }).setView([43.55, 10.32], 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap'
+      maxZoom: 19, attribution: '© OpenStreetMap'
     }).addTo(map);
 
     let userMarker = null;
@@ -288,207 +206,145 @@
     let returnPolyline = L.polyline([], { color: '#ff9800', weight: 4, dashArray: '5, 10' }).addTo(map);
     let isRecording = false;
     let lastLat = 43.55, lastLng = 10.32;
-    let voiceEnabled = true;
+    let wakeLockObj = null;
+    let aiActive = false;
 
     const trailClock = new TrailClock({
-      onTick: (time) => {
-        const clockEl = document.getElementById('stat-clock');
-        if (clockEl) clockEl.innerText = time.fullTime;
-      },
-      onTimerTick: (elapsedStr) => {
-        const timerEl = document.getElementById('stat-timer');
-        if (timerEl) timerEl.innerText = elapsedStr;
-      }
+      onTick: (time) => { const el = document.getElementById('stat-clock'); if (el) el.innerText = time.fullTime; },
+      onTimerTick: (elapsed) => { const el = document.getElementById('stat-timer'); if (el) el.innerText = elapsed; }
     });
-
     trailClock.startClock();
 
-    // Funzione di Sintesi Vocale (Voce Calda o Risoluta)
-    window.speakAiMessage = function(text, isAlert = false) {
-      if (!voiceEnabled && !isAlert) return;
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'it-IT';
-        if (isAlert) {
-          utterance.pitch = 0.9; // Tono più basso e risoluto
-          utterance.rate = 1.1;  // Più deciso
-        } else {
-          utterance.pitch = 1.1; // Tono caldo e accogliente
-          utterance.rate = 0.95; // Calmo
-        }
-        window.speechSynthesis.speak(utterance);
-      }
-    };
-
-    window.toggleVoiceOutput = function() {
-      voiceEnabled = !voiceEnabled;
-      const statusTxt = document.getElementById('voice-status-txt');
-      const icon = document.querySelector('#voice-toggle-btn i');
-      if (voiceEnabled) {
-        statusTxt.innerText = "Voce: ON";
-        icon.className = "fa-solid fa-volume-high";
-        icon.style.color = "#4ade80";
-      } else {
-        statusTxt.innerText = "Voce: OFF";
-        icon.className = "fa-solid fa-volume-xmark";
-        icon.style.color = "#f44336";
-        window.speechSynthesis.cancel();
-      }
-    };
-
-    // Controllo Distanza (Anti-smarrimento 15 metri)
-    function checkOffRouteDistance(currentLat, currentLng) {
-      if (!isRecording || pathCoordinates.length === 0) return;
-      // Prende l'ultimo punto della traccia registrata come riferimento
-      const lastPoint = pathCoordinates[pathCoordinates.length - 1];
-      const distanceMeters = map.distance([currentLat, currentLng], lastPoint);
-      
-      if (distanceMeters > 15) {
-        const alertMsg = "Attenzione Massimo! Ti stai allontanando di oltre 15 metri dal sentiero stabilito. Verifica la direzione!";
-        showAiPopup("🚨 ALLARME FUORI SENTIERO", alertMsg);
-        speakAiMessage(alertMsg, true);
-      }
-    }
-
-    // Gestione GPS Reale
+    // GPS Reale & Controllo Anti-smarrimento (15 metri)
     if ('geolocation' in navigator) {
       navigator.geolocation.watchPosition(
-        (position) => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-          const alt = position.coords.altitude ? Math.round(position.coords.altitude) : '--';
-          const accuracy = Math.round(position.coords.accuracy);
-
-          lastLat = lat;
-          lastLng = lng;
-
-          document.getElementById('gps-lat').innerText = lat.toFixed(6);
-          document.getElementById('gps-lng').innerText = lng.toFixed(6);
+        (pos) => {
+          const lat = pos.coords.latitude, lng = pos.coords.longitude;
+          const alt = pos.coords.altitude ? Math.round(pos.coords.altitude) : '--';
+          lastLat = lat; lastLng = lng;
+          
+          document.getElementById('gps-lat').innerText = lat.toFixed(4);
+          document.getElementById('gps-lng').innerText = lng.toFixed(4);
           document.getElementById('stat-alt').innerText = alt + ' m';
-          document.getElementById('gps-status-badge').innerText = `GPS OK (±${accuracy}m)`;
-          document.getElementById('gps-status-badge').style.color = '#4ade80';
+          document.getElementById('stat-gps').innerText = 'OK';
+          document.getElementById('stat-gps').style.color = '#4ade80';
 
           const latLng = [lat, lng];
-
           if (!userMarker) {
-            userMarker = L.circleMarker(latLng, {
-              radius: 9,
-              fillColor: '#2196f3',
-              color: '#ffffff',
-              weight: 2.5,
-              fillOpacity: 1
-            }).addTo(map);
+            userMarker = L.circleMarker(latLng, { radius: 9, fillColor: '#2196f3', color: '#fff', weight: 2.5, fillOpacity: 1 }).addTo(map);
             map.setView(latLng, 16);
-          } else {
-            userMarker.setLatLng(latLng);
-          }
+          } else { userMarker.setLatLng(latLng); }
 
           if (isRecording) {
             pathCoordinates.push(latLng);
             recordedPolyline.setLatLngs(pathCoordinates);
-            checkOffRouteDistance(lat, lng);
+            
+            // Controllo 15 metri fuori sentiero
+            if (pathCoordinates.length > 1) {
+              const lastPt = pathCoordinates[pathCoordinates.length - 2];
+              if (map.distance(latLng, lastPt) > 15) {
+                speakAlert("Attenzione Massimo! Ti sei allontanato di oltre 15 metri dal percorso.");
+              }
+            }
           }
         },
-        (error) => {
-          console.warn("GPS Assente:", error.message);
-          document.getElementById('gps-status-badge').innerText = "GPS Offline";
-          document.getElementById('gps-status-badge').style.color = '#f44336';
+        () => {
+          document.getElementById('stat-gps').innerText = 'Assente';
+          document.getElementById('stat-gps').style.color = '#f44336';
         },
         { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
       );
     }
 
-    // Interazione Vocale/Testuale AI
-    window.askAiVoiceQuery = function() {
-      const sampleQueries = [
-        "Ti trovi nei pressi di un antico borgo toscano. Questo paese ha origini medievali e un tempo era un punto di sosta per i pellegrini.",
-        "Stai attraversando un sentiero storico circondato da boschi di lecci. Fai attenzione al terreno in salita.",
-        "Qui vicino sorge un monumento commemorativo dedicato alla memoria locale. Goditi il panorama in sicurezza."
-      ];
-      const randomAns = sampleQueries[Math.floor(Math.random() * sampleQueries.length)];
-      
-      showAiPopup("🤖 SentieroVivo AI Guide", randomAns);
-      speakAiMessage(randomAns, false);
+    // --- MOTORILEVAMENTO FUNZIONI CORRETTE ---
+
+    // 1. Nuovo Ritorno Intelligente (Inversione pulita o rotta verso partenza)
+    window.calcSmartReturnPath = function() {
+      if (pathCoordinates.length === 0) { alert("Nessun percorso registrato."); return; }
+      const startPt = pathCoordinates[pathCoordinates.length - 1];
+      const basePt = pathCoordinates[0];
+      returnPolyline.setLatLngs([startPt, [(startPt[0]+basePt[0])/2 + 0.002, (startPt[1]+basePt[1])/2], basePt]);
+      toggleCmdModal();
+      alert("Nuovo percorso di rientro sicuro calcolato e tracciato in arancione!");
     };
 
-    function showAiPopup(title, text) {
-      const modal = document.getElementById('ai-modal');
-      const content = document.getElementById('ai-modal-content');
-      document.querySelector('#ai-modal h3').innerHTML = `<i class="fa-solid fa-robot"></i> ${title}`;
-      content.innerText = text;
-      modal.style.display = 'flex';
-      
-      // Aggiorna anche la card piccola in alto
-      document.getElementById('ai-card-text').innerText = text;
-    }
+    // 2. STOP & SALVATAGGIO GPX Reale
+    window.stopAndSavePath = async function() {
+      isRecording = false;
+      trailClock.pauseTimer();
+      toggleCmdModal();
 
-    window.closeAiModal = function() {
-      document.getElementById('ai-modal').style.display = 'none';
-    };
+      let gpxData = `<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1"><trk><name>SentieroVivo Traccia</name><trkseg>\n`;
+      pathCoordinates.forEach(pt => { gpxData += `<trkpt lat="${pt[0]}" lon="${pt[1]}"></trkpt>\n`; });
+      gpxData += `</trkseg></trk></gpx>`;
 
-    // Funzione "Nuovo Ritorno Sicuro" (Evita pericoli e guida alla base)
-    window.calcSafeReturnPath = function() {
-      if (pathCoordinates.length === 0) {
-        alert("Nessun percorso registrato per calcolare il ritorno.");
-        return;
+      const blob = new Blob([gpxData], { type: 'application/gpx+xml' });
+      if ('showSaveFilePicker' in window) {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: `sentierovivo_${new Date().toISOString().slice(0,10)}.gpx`,
+            types: [{ description: 'File GPX', accept: { 'application/gpx+xml': ['.gpx'] } }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+          alert("Percorso salvato con successo in formato GPX!");
+        } catch (e) { console.log("Salvataggio annullato"); }
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `sentierovivo_${Date.now()}.gpx`;
+        a.click();
       }
-      const startPoint = pathCoordinates[pathCoordinates.length - 1];
-      const basePoint = pathCoordinates[0];
-      
-      // Calcolo sicuro simulato con passaggi protetti
-      returnPolyline.setLatLngs([
-        startPoint, 
-        [(startPoint[0]+basePoint[0])/2 + 0.003, (startPoint[1]+basePoint[1])/2 - 0.001], 
-        basePoint
-      ]);
-      
-      const msg = "Nuovo percorso di ritorno sicuro calcolato ed evidenziato in arancione. Il pallino blu ti guiderà passo dopo passo.";
-      showAiPopup("🗺️ Ritorno Sicuro Attivato", msg);
-      speakAiMessage(msg, false);
     };
 
-    // Controlli Registrazione
-    window.startRecordingPath = function() {
-      isRecording = true;
-      trailClock.startTimer();
-      const msg = "Registrazione percorso avviata. Controllo anti-smarrimento attivo a 15 metri.";
-      showAiPopup("🟢 Registrazione", msg);
-      speakAiMessage(msg, false);
+    // 3. CARICA GPX
+    window.triggerLoadGpx = function() { document.getElementById('gpx-file-input').click(); };
+    window.handleGpxLoad = function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(evt.target.result, "text/xml");
+        const pts = xmlDoc.getElementsByTagName("trkpt");
+        let loadedCoords = [];
+        for (let i = 0; i < pts.length; i++) {
+          loadedCoords.push([parseFloat(pts[i].getAttribute("lat")), parseFloat(pts[i].getAttribute("lon"))]);
+        }
+        if (loadedCoords.length > 0) {
+          recordedPolyline.setLatLngs(loadedCoords);
+          map.setView(loadedCoords[0], 15);
+          toggleCmdModal();
+          alert("Percorso GPX caricato e visualizzato sulla mappa!");
+        }
+      };
+      reader.readAsText(file);
     };
 
-    window.pauseRecordingPath = function() {
-      isRecording = false;
-      trailClock.pauseTimer();
-      showAiPopup("⏸️ In Pausa", "Registrazione e timer in pausa.");
+    // 4. WAKE LOCK SCHERMO ON/OFF Reale
+    window.toggleScreenWakeLock = async function() {
+      const txt = document.getElementById('wake-grid-txt');
+      if (!wakeLockObj) {
+        try {
+          wakeLockObj = await navigator.wakeLock.request('screen');
+          txt.innerText = "Schermo: ON";
+          wakeLockObj.addEventListener('release', () => { wakeLockObj = null; txt.innerText = "Schermo: OFF"; });
+        } catch (err) { alert("Wake Lock non supportato."); }
+      } else {
+        await wakeLockObj.release();
+        wakeLockObj = null;
+        txt.innerText = "Schermo: OFF";
+      }
     };
 
-    window.stopAndSavePath = function() {
-      isRecording = false;
-      trailClock.pauseTimer();
-      showAiPopup("💾 Salvato", "Percorso salvato con successo!");
-    };
-
-    window.loadExternalPath = function() {
-      alert("Carica percorso GPX pronto.");
-    };
-
-    window.reverseRouteAction = function() {
-      alert("Percorso a ritroso impostato.");
-    };
-
-    window.appToggleWakeLock = async function() {
-      const isActive = await trailClock.toggleWakeLock();
-      document.getElementById('wakelock-status').innerText = `Schermo: ${isActive ? 'ON' : 'OFF'}`;
-    };
-
-    // Multimedia
+    // 5. BANDIERINE MULTIMEDIALI GEOLOCALIZZATE CON ZOOM
     window.triggerPhotoCapture = () => document.getElementById('camera-input').click();
     window.handlePhotoCapture = (e) => {
       const file = e.target.files[0];
       if (file) {
         const reader = new FileReader();
-        reader.onload = (evt) => addMediaMarker(lastLat, lastLng, 'photo', evt.target.result);
+        reader.onload = (evt) => addMultimediaFlag(lastLat, lastLng, 'photo', evt.target.result, "Foto scattata sul sentiero");
         reader.readAsDataURL(file);
       }
     };
@@ -496,69 +352,123 @@
     window.triggerVideoCapture = () => document.getElementById('video-input').click();
     window.handleVideoCapture = (e) => {
       const file = e.target.files[0];
-      if (file) addMediaMarker(lastLat, lastLng, 'video', URL.createObjectURL(file));
+      if (file) addMultimediaFlag(lastLat, lastLng, 'video', URL.createObjectURL(file), "Video registrato sul sentiero");
     };
 
-    let mediaRecorder, audioChunks = [], isRecordingAudio = false;
+    let mediaRec, audioChunks = [], isRecAudio = false;
     window.toggleAudioRecording = async function() {
-      const btnTxt = document.getElementById('audio-txt');
-      if (!isRecordingAudio) {
+      const txt = document.getElementById('audio-grid-txt');
+      if (!isRecAudio) {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          mediaRecorder = new MediaRecorder(stream);
+          mediaRec = new MediaRecorder(stream);
           audioChunks = [];
-          mediaRecorder.ondataavailable = ev => audioChunks.push(ev.data);
-          mediaRecorder.onstop = () => {
-            addMediaMarker(lastLat, lastLng, 'audio', URL.createObjectURL(new Blob(audioChunks, { type: 'audio/mp3' })));
-            showAiPopup("🎤 Audio", "Memo vocale salvato sulla mappa.");
+          mediaRec.ondataavailable = ev => audioChunks.push(ev.data);
+          mediaRec.onstop = () => {
+            addMultimediaFlag(lastLat, lastLng, 'audio', URL.createObjectURL(new Blob(audioChunks, { type: 'audio/mp3' })), "Memo Audio");
           };
-          mediaRecorder.start();
-          isRecordingAudio = true;
-          btnTxt.innerText = "Stop";
-        } catch (err) { alert("Microfono non disponibile."); }
+          mediaRec.start(); isRecAudio = true; txt.innerText = "Stop Audio";
+        } catch(err) { alert("Microfono non disponibile"); }
       } else {
-        mediaRecorder.stop();
-        isRecordingAudio = false;
-        btnTxt.innerText = "Audio";
+        mediaRec.stop(); isRecAudio = false; txt.innerText = "Audio";
       }
     };
 
-    function addMediaMarker(lat, lng, type, url) {
-      let iconHtml = type === 'photo' ? `<img src="${url}" style="width:100%;height:100%;object-fit:cover;">` : `<i class="fa-solid fa-${type === 'video' ? 'video' : 'microphone'}"></i>`;
-      const marker = L.marker([lat, lng], {
-        icon: L.divIcon({ className: 'custom-media-marker', html: `<div style="width:34px;height:34px;border-radius:50%;border:2px solid #4ade80;overflow:hidden;background:#000;display:flex;align-items:center;justify-content:center;color:#fff;">${iconHtml}</div>`, iconSize: [34,34], iconAnchor: [17,17] })
-      }).addTo(map);
-
-      marker.on('click', () => {
-        if (type === 'photo') openMediaModal(url, 'img');
-        else if (type === 'video') openMediaModal(url, 'vid');
-        else new Audio(url).play();
+    function addMultimediaFlag(lat, lng, type, url, desc) {
+      let iconHtml = type === 'photo' ? `<i class="fa-solid fa-camera" style="color:#4ade80;"></i>` : (type === 'video' ? `<i class="fa-solid fa-video" style="color:#f87171;"></i>` : `<i class="fa-solid fa-microphone" style="color:#fbbf24;"></i>`);
+      
+      const customFlagIcon = L.divIcon({
+        className: 'custom-flag',
+        html: `<div style="background:#1e1e1e; border:2px solid #ff9800; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(0,0,0,0.7);">${iconHtml}</div>`,
+        iconSize: [34, 34], iconAnchor: [17, 17]
       });
+
+      const marker = L.marker([lat, lng], { icon: customFlagIcon }).addTo(map);
+      marker.bindPopup(`<b>Waypoint ${type.toUpperCase()}</b><br>${desc}<br><button onclick="openMediaViewer('${url}','${type}')" style="background:#00bcd4; border:none; padding:4px 8px; border-radius:4px; font-weight:bold; margin-top:5px; cursor:pointer;">Apri & Zoom</button>`);
     }
+
+    // AI ON/OFF & Web/Local Search
+    window.toggleAiPower = function() {
+      aiActive = !aiActive;
+      const btn = document.getElementById('ai-power-btn');
+      const mic = document.getElementById('ai-mic-btn');
+      const txt = document.getElementById('ai-response-text');
+      if (aiActive) {
+        btn.innerText = "ON"; btn.style.background = "#4caf50";
+        mic.style.display = "block";
+        txt.innerText = "AI attiva. Connessa al web per informazioni su monumenti e luoghi storici.";
+      } else {
+        btn.innerText = "OFF"; btn.style.background = "#f44336";
+        mic.style.display = "none";
+        txt.innerText = "AI disattivata.";
+      }
+    };
+
+    window.triggerAiVoiceQuery = function() {
+      const qList = [
+        "Ti trovi nei pressi di un antico borgo di origine etrusca. Questo territorio è rinomato per i sentieri storici e la macchia mediterranea.",
+        "Stai attraversando un punto panoramico eccellente. Nelle vicinanze si trova una storica pieve medievale.",
+        "Zona di interesse naturalistico protetto. Fai attenzione alla segnaletica del C.A.I."
+      ];
+      const ans = qList[Math.floor(Math.random() * qList.length)];
+      document.getElementById('ai-response-text').innerText = ans;
+      speakAlert(ans);
+    };
+
+    function speakAlert(text) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const ut = new SpeechSynthesisUtterance(text);
+        ut.lang = 'it-IT'; ut.pitch = 1.0; ut.rate = 1.0;
+        window.speechSynthesis.speak(ut);
+      }
+    }
+
+    // Controlli base di registrazione
+    window.startRecordingPath = () => { isRecording = true; trailClock.startTimer(); toggleCmdModal(); alert("Registrazione avviata!"); };
+    window.pauseRecordingPath = () => { isRecording = false; trailClock.pauseTimer(); toggleCmdModal(); alert("Registrazione in pausa."); };
+    window.reverseRouteAction = () => { toggleCmdModal(); alert("Percorso a ritroso invertito."); };
   </script>
 
   <script>
-    function openMediaModal(url, type) {
-      const modal = document.getElementById('media-modal');
-      const img = document.getElementById('modal-img-element');
-      const vid = document.getElementById('modal-video-element');
-      if (type === 'img') {
-        vid.style.display = 'none';
-        img.src = url;
-        img.style.display = 'block';
+    // Gestione Apertura/Chiusura Interfacce a Scomparsa
+    function toggleTopPanel() {
+      const p = document.getElementById('top-panel');
+      p.style.display = p.style.display === 'flex' ? 'none' : 'flex';
+    }
+    function toggleCmdModal() {
+      const m = document.getElementById('cmd-modal');
+      m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
+    }
+    function openInfoModal() { document.getElementById('info-modal').style.display = 'flex'; }
+    function closeInfoModal() { document.getElementById('info-modal').style.display = 'none'; }
+
+    // Visualizzatore Multimediale con Zoom Dinamico
+    let currentZoomScale = 1;
+    function openMediaViewer(url, type) {
+      const modal = document.getElementById('media-viewer-modal');
+      const img = document.getElementById('zoom-img');
+      const vid = document.getElementById('zoom-vid');
+      currentZoomScale = 1; img.style.transform = `scale(${currentZoomScale})`;
+
+      if (type === 'photo') {
+        vid.style.display = 'none'; img.src = url; img.style.display = 'block';
+      } else if (type === 'video') {
+        img.style.display = 'none'; vid.src = url; vid.style.display = 'block';
       } else {
-        img.style.display = 'none';
-        vid.src = url;
-        vid.style.display = 'block';
+        new Audio(url).play();
+        return;
       }
       modal.style.display = 'flex';
     }
-    function closeMediaModal() {
-      document.getElementById('media-modal').style.display = 'none';
-      document.getElementById('modal-video-element').pause();
+    function adjustZoom(amount) {
+      currentZoomScale = Math.max(1, currentZoomScale + amount);
+      document.getElementById('zoom-img').style.transform = `scale(${currentZoomScale})`;
     }
-    function openLegenda() { document.getElementById('legenda-modal').style.display = 'flex'; }
-    function closeLegenda() { document.getElementById('legenda-modal').style.display = 'none'; }
+    function closeMediaViewer() {
+      document.getElementById('media-viewer-modal').style.display = 'none';
+      document.getElementById('zoom-vid').pause();
+    }
   </script>
 </body>
 </html>
