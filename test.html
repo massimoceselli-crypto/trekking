@@ -11,8 +11,9 @@
             --primary-color: #2e7d32;
             --secondary-color: #388e3c;
             --accent-color: #ff8f00;
+            --menu-color: #00838f;
             --bg-dark: #121212;
-            --panel-bg: rgba(18, 18, 18, 0.90);
+            --panel-bg: rgba(18, 18, 18, 0.92);
             --text-light: #f1f1f1;
         }
 
@@ -40,39 +41,39 @@
             z-index: 1;
         }
 
-        /* Plancia di comando superiore e inferiore */
+        /* Plancia di comando posizionata in BASSO per perfetta ergonomia con una mano */
         .control-panel {
             position: absolute;
-            top: 15px;
+            bottom: 20px;
             left: 15px;
             right: 15px;
             z-index: 10;
             background: var(--panel-bg);
             padding: 12px 15px;
-            border-radius: 12px;
+            border-radius: 14px;
             backdrop-filter: blur(8px);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            box-shadow: 0 -4px 25px rgba(0,0,0,0.6);
             display: flex;
             flex-direction: column;
             gap: 10px;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.15);
         }
 
         .panel-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
 
         .btn {
             background-color: var(--primary-color);
             color: white;
             border: none;
-            padding: 10px 14px;
+            padding: 10px 12px;
             border-radius: 8px;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 13px;
             cursor: pointer;
             transition: background 0.2s, transform 0.1s;
             display: flex;
@@ -88,25 +89,26 @@
 
         .btn-web { background-color: #0277bd; }
         .btn-ai { background-color: #6a1b9a; }
+        .btn-menu { background-color: var(--menu-color); }
         .btn-manual-wp { background-color: var(--accent-color); color: #000; font-weight: 800; }
         .btn-stop { background-color: #c62828; }
 
         /* Status bar e info testuali */
         .status-bar {
-            font-size: 13px;
+            font-size: 12px;
             color: #b0bec5;
             background: rgba(0,0,0,0.4);
-            padding: 6px 10px;
+            padding: 5px 8px;
             border-radius: 6px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        /* Finestra modale / Risposta AI diretta (senza ripetizione della domanda) */
+        /* Finestra modale / Risposta AI diretta (in alto per non coprire i comandi in basso) */
         .ai-response-box {
             position: absolute;
-            bottom: 20px;
+            top: 15px;
             left: 15px;
             right: 15px;
             z-index: 10;
@@ -142,35 +144,36 @@
     <!-- Mappa Leaflet -->
     <div id="map"></div>
 
-    <!-- Plancia Comandi Principale -->
-    <div class="control-panel">
-        <div class="panel-row">
-            <button class="btn btn-web" onclick="triggerWebInfo()">🌐 Info Web & Guida</button>
-            <button class="btn btn-ai" onclick="askAiDestination()">🎙️ Chiedi a Voce</button>
-        </div>
-
-        <!-- TASTO RAPIDO PRINCIPALE: Waypoint Manuale (Filo di Arianna) -->
-        <button class="btn btn-manual-wp" onclick="markManualWaypoint()">📍 Segna Waypoint Manuale (#<span id="wp-counter">0</span>)</button>
-
-        <div class="panel-row">
-            <button class="btn" onclick="startTracking()">▶ Avvia Percorso</button>
-            <button class="btn btn-stop" onclick="stopTracking()">⏹ Stop & Salva</button>
-        </div>
-
-        <div class="status-bar">
-            <span>GPS: <strong id="gps-status" style="color: #66bb6a;">Attivo (Simulato)</strong></span>
-            <span>Traccia: <strong id="track-status">Inattiva</strong></span>
-            <span>WP: <strong id="wp-total">0</strong></span>
-        </div>
-    </div>
-
-    <!-- Riquadro Risposta AI Diretto (Senza ripetizione query) -->
+    <!-- Riquadro Risposta AI Diretto (Senza ripetizione query, posizionato in alto) -->
     <div id="aiResponseBox" class="ai-response-box">
         <div class="ai-response-title">
             <span>SentieroVivo Guida</span>
             <span style="cursor:pointer; color:#aaa;" onclick="closeAiBox()">✕</span>
         </div>
         <div id="aiResponseText">Elaborazione in corso...</div>
+    </div>
+
+    <!-- Plancia Comandi Principale (Posizionata in BASSO) -->
+    <div class="control-panel">
+        <div class="panel-row">
+            <button class="btn btn-web" onclick="triggerWebInfo()">🌐 Info Web</button>
+            <button class="btn btn-ai" onclick="askAiDestination()">🎙️ Chiedi AI</button>
+            <button class="btn btn-menu" onclick="openCommandMenu()">📂 Menu (12)</button>
+        </div>
+
+        <!-- TASTO RAPIDO CENTRALE: Waypoint Manuale (Filo di Arianna) -->
+        <button class="btn btn-manual-wp" onclick="markManualWaypoint()">📍 Segna Waypoint Manuale (#<span id="wp-counter">0</span>)</button>
+
+        <div class="panel-row">
+            <button class="btn" onclick="startTracking()">▶ Avvia</button>
+            <button class="btn btn-stop" onclick="stopTracking()">⏹ Stop & Salva</button>
+        </div>
+
+        <div class="status-bar">
+            <span>GPS: <strong id="gps-status" style="color: #66bb6a;">Attivo</strong></span>
+            <span>Traccia: <strong id="track-status">Inattiva</strong></span>
+            <span>WP: <strong id="wp-total">0</strong></span>
+        </div>
     </div>
 
     <!-- Leaflet JS -->
@@ -185,8 +188,8 @@
             attribution: '© OpenStreetMap contributors | SentieroVivo'
         }).addTo(map);
 
-        // Controllo zoom in basso a destra per pulizia visiva
-        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        // Controllo zoom in alto a destra per pulizia visiva
+        L.control.zoom({ position: 'topright' }).addTo(map);
 
         let isTracking = false;
         let waypointCount = 0;
@@ -197,13 +200,12 @@
         // Sintesi Vocale Ottimizzata (Voce Femminile Naturale Italiana)
         function speakText(text) {
             if (!('speechSynthesis' in window)) return;
-            window.speechSynthesis.cancel(); // Ferma eventuali letture precedenti
+            window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'it-IT';
             utterance.rate = 1.0;
             
             const voices = window.speechSynthesis.getVoices();
-            // Cerca preferibilmente una voce femminile italiana
             const femaleVoice = voices.find(v => v.lang.includes('it') && (v.name.toLowerCase().includes('elena') || v.name.toLowerCase().includes('alice') || v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('elsa')));
             if (femaleVoice) {
                 utterance.voice = femaleVoice;
@@ -214,21 +216,26 @@
             window.speechSynthesis.speak(utterance);
         }
 
-        // Caricamento voci asincrono per browser
         if ('speechSynthesis' in window) {
             window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
         }
 
-        // Funzione Guida Turistica / Territoriale ("Informazioni Web")
+        // Funzione Guida Territoriale ("Informazioni Web")
         function triggerWebInfo() {
-            showAiBox("Guida Territoriale", "Analisi della posizione corrente: ti trovi in un'area collinare protetta. A circa 800 metri verso nord si sviluppa un sentiero panoramico con vegetazione di macchia mediterranea e lecci. Ideale per escursioni leggere.");
+            showAiBox("Guida Territoriale", "Analisi della posizione corrente: ti trovi in un'area collinare protetta. A circa 800 metri verso nord si sviluppa un sentiero panoramico con vegetazione di macchia mediterranea e lecci.");
             speakText("Ti trovi in un'area protetta. A ottocento metri a nord si sviluppa un sentiero panoramico ideale per escursioni.");
         }
 
-        // Interrogazione AI Destinazione (Es. Eremo di Calomini / Camaldoli) senza ripetere la domanda
+        // Interrogazione AI Destinazione
         function askAiDestination() {
-            showAiBox("Destinazione e Routing Misto", "Destinazione impostata: Eremo di Calomini. Avvicinamento veicolare consigliato fino al punto di sosta segnalato, seguito da tratto a piedi su mulattiera per 3.5 km. Coordinate caricate correttamente sulla mappa.");
+            showAiBox("Destinazione e Routing Misto", "Destinazione impostata: Eremo di Calomini. Avvicinamento veicolare consigliato fino al punto di sosta segnalato, seguito da tratto a piedi su mulattiera per 3.5 km.");
             speakText("Destinazione Eremo di Calomini impostata. Avvicinamento in auto e proseguimento a piedi su mulattiera.");
+        }
+
+        // Apertura Menu Comandi (12 Scelte)
+        function openCommandMenu() {
+            showAiBox("Menu Comandi Avanzati", "Apertura del pannello con le opzioni di navigazione, gestione cartelle, filtri POI e impostazioni offline.");
+            speakText("Menu comandi aperto.");
         }
 
         // TASTO RAPIDO: Waypoint Manuale (Filo di Arianna)
@@ -237,7 +244,6 @@
             document.getElementById('wp-counter').innerText = waypointCount;
             document.getElementById('wp-total').innerText = waypointCount;
 
-            // Simula posizione corrente sulla mappa (o usa GPS reale se attivo)
             const latlng = map.getCenter();
             const marker = L.circleMarker(latlng, {
                 radius: 6,
@@ -254,7 +260,7 @@
 
         function startTracking() {
             isTracking = true;
-            document.getElementById('track-status').innerText = 'Registrazione (ogni 3m)';
+            document.getElementById('track-status').innerText = 'Registrazione';
             document.getElementById('track-status').style.color = '#66bb6a';
             speakText("Registrazione del percorso avviata. Filo di Arianna attivo.");
         }
@@ -277,14 +283,14 @@
             document.getElementById('aiResponseBox').style.display = 'none';
         }
 
-        // Simulatore di movimento GPS per test su PC (Sensori browser)
+        // Simulatore GPS
         if (navigator.geolocation) {
             navigator.geolocation.watchPosition(position => {
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
                 const latlng = [lat, lon];
 
-                document.getElementById('gps-status').innerText = "Attivo (GPS)";
+                document.getElementById('gps-status').innerText = "Attivo";
                 document.getElementById('gps-status').style.color = "#66bb6a";
 
                 if (!currentPositionMarker) {
@@ -297,7 +303,7 @@
                     trackLine.addLatLng(latlng);
                 }
             }, error => {
-                console.warn("GPS non disponibile, utilizzo posizione simulata di fallback.");
+                console.warn("GPS non disponibile, utilizzo posizione simulata.");
             }, { enableHighAccuracy: true });
         }
     </script>
