@@ -191,7 +191,7 @@
         <li>☀️ <b>Sole:</b> Modalità alto contrasto.</li>
         <li>💡 <b>Schermo:</b> Wake Lock ON/OFF.</li>
         <li>🤖 <b>AI Web:</b> Legge dati reali da GPS e web.</li>
-        <li>🔍 <b>Cerca POI:</b> Seleziona rifugi e chiese reali con coordinate copiabili.</li>
+        <li>🔍 <b>Cerca POI:</b> Seleziona rifugi e chiese reali con nome e coordinate copiabili.</li>
       </ul>
       <button onclick="document.getElementById('info-modal').style.display='none'" style="background: #ff9800; color: #000; width: 100%; padding: 10px; border-radius: 10px; border: none; font-weight: 800; cursor: pointer;">CHIUDI</button>
     </div>
@@ -202,8 +202,9 @@
   <script type="module">
     import { TrailClock } from './js/clock-core.js';
 
+    // Mappa ripristinata e pulita correttamente
     const map = L.map('map', { zoomControl: false }).setView([43.55, 10.32], 14);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}⁠/{x}/{y}.png', {
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19, attribution: '© OpenStreetMap'
     }).addTo(map);
 
@@ -279,9 +280,11 @@
 
         let listHtml = "";
         data.elements.forEach((el) => {
-          const name = el.tags.name || "Punto di interesse";
+          // Cattura il nome reale del POI o assegna una descrizione di fallback pulita
+          const name = (el.tags && el.tags.name) ? el.tags.name : "Punto di interesse (Senza nome)";
           const lat = el.lat, lon = el.lon;
-          listHtml += `<button class="search-opt-btn" onclick="selectRealPoiDestination(${lat}, ${lon}, '${name.replace(/'/g, "")}')"><i class="fa-solid fa-location-dot" style="color:#4ade80;"></i> ${name} <span style="font-size:10px; color:#a0a0a0; margin-left:auto;">[${lat.toFixed(4)}, ${lon.toFixed(4)}]</span></button>`;
+          const safeName = name.replace(/'/g, "\\'");
+          listHtml += `<button class="search-opt-btn" onclick="selectRealPoiDestination(${lat}, ${lon}, '${safeName}')"><i class="fa-solid fa-location-dot" style="color:#4ade80;"></i> ${name} <span style="font-size:10px; color:#a0a0a0; margin-left:auto;">[${lat.toFixed(4)}, ${lon.toFixed(4)}]</span></button>`;
         });
 
         document.getElementById('results-list').innerHTML = listHtml;
@@ -319,21 +322,23 @@
         });
       };
 
-      // Popup con nome, coordinate e pulsante "Copia Coordinate"
+      // Popup completo con Nome in evidenza, coordinate e tasto copia
       const popupHtml = `
-        <b>Destinazione:</b> ${name}<br>
-        <b>Coordinate GPS:</b><br>
-        Lat: ${destLat.toFixed(6)}<br>
-        Lng: ${destLon.toFixed(6)}<br>
-        <button onclick="copyPoiCoords(${destLat}, ${destLon})" style="background:#2196f3; color:#fff; border:none; padding:5px 10px; border-radius:6px; font-weight:bold; margin-top:6px; cursor:pointer;">
-          <i class="fa-solid fa-copy"></i> Copia Coordinate
-        </button>
+        <div style="font-size:13px;">
+          <b style="color:#00bcd4; font-size:14px;"><i class="fa-solid fa-map-pin"></i> ${name}</b><hr style="margin:5px 0; border-color:rgba(255,255,255,0.2);">
+          <b>Coordinate GPS:</b><br>
+          Lat: ${destLat.toFixed(6)}<br>
+          Lng: ${destLon.toFixed(6)}<br>
+          <button onclick="copyPoiCoords(${destLat}, ${destLon})" style="background:#2196f3; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-weight:bold; margin-top:8px; cursor:pointer; width:100%;">
+            <i class="fa-solid fa-copy"></i> Copia Coordinate
+          </button>
+        </div>
       `;
 
       marker.bindPopup(popupHtml).openPopup();
       map.setView(destLatLng, 15);
       
-      speakAlert(`Rotta calcolata per ${name}. Coordinate pronte.`);
+      speakAlert(`Destinazione impostata: ${name}.`);
     };
 
     window.toggleAiPower = function() {
@@ -408,3 +413,4 @@
     function toggleCmdModal() { const m = document.getElementById('cmd-modal'); m.style.display = m.style.display === 'flex' ? 'none' : 'flex'; }
   </script>
 </body>
+</html>
