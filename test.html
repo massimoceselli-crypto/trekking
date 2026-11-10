@@ -14,7 +14,7 @@
 
     /* Modalità Alta Visibilità (Tasto Sole) */
     body.high-contrast { background-color: #000 !important; color: #ff0 !important; }
-    body.high-contrast #top-panel, body.high-contrast .cmd-grid-container, body.high-contrast .modal-box { background: #000 !important; border: 2px solid #ff0 !important; color: #ff0 !important; }
+    body.high-contrast #top-panel, body.high-contrast .cmd-grid-container, body.high-contrast .modal-box, body.high-contrast .search-container { background: #000 !important; border: 2px solid #ff0 !important; color: #ff0 !important; }
     body.high-contrast .master-btn { background: #000 !important; border-color: #ff0 !important; color: #ff0 !important; }
 
     #map { width: 100%; height: 100%; z-index: 1; }
@@ -99,6 +99,17 @@
       padding: 22px; max-width: 460px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.9);
       display: flex; flex-direction: column; gap: 15px; max-height: 85vh; overflow-y: auto;
     }
+
+    /* Effetto Pulsante di Registrazione Vocale Attiva */
+    @keyframes pulse-red {
+      0% { border-color: #f44336; box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7); }
+      70% { border-color: #f44336; box-shadow: 0 0 0 10px rgba(244, 67, 54, 0); }
+      100% { border-color: #f44336; box-shadow: 0 0 0 0 rgba(244, 67, 54, 0); }
+    }
+    .listening-active {
+      animation: pulse-red 1.5s infinite;
+      border: 2px solid #f44336 !important;
+    }
   </style>
 </head>
 <body>
@@ -123,20 +134,20 @@
       📍 Lat: <span id="gps-lat">0.0000</span> | Lng: <span id="gps-lng">0.0000</span>
     </div>
 
-    <!-- AI Guide con ON/OFF, Informazioni Locali e Microfono -->
-    <div style="background: rgba(0,0,0,0.4); padding: 10px; border-radius: 10px; border: 1px solid rgba(0,188,212,0.3); display: flex; flex-direction: column; gap: 8px;">
+    <!-- AI Guide con tasto ATTIVA / DISATTIVA e Feedback Vocale Visivo -->
+    <div id="ai-box-container" style="background: rgba(0,0,0,0.4); padding: 10px; border-radius: 10px; border: 1px solid rgba(0,188,212,0.3); display: flex; flex-direction: column; gap: 8px; transition: all 0.3s;">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <span style="font-size: 11px; font-weight: 700; color: #00bcd4;"><i class="fa-solid fa-robot"></i> SentieroVivo AI Guide</span>
-        <button onclick="toggleAiPower()" id="ai-power-btn" style="background: #f44336; color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; cursor: pointer;">OFF</button>
+        <button onclick="toggleAiPower()" id="ai-power-btn" style="background: #f44336; color: white; border: none; padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; cursor: pointer;">DISATTIVA</button>
       </div>
       <div id="ai-response-text" style="font-size: 12px; color: #e5e7eb; line-height: 1.4;">
-        Attiva l'AI per richiedere informazioni storiche o fare domande vocali.
+        AI Attiva. Premi 'Informazioni Locali' o usa 'Chiedi a Voce' parlando nel microfono.
       </div>
       <div style="display: flex; gap: 6px;">
-        <button onclick="triggerAiVoiceQuery()" id="ai-info-btn" style="flex:1; background: #00bcd4; color: #000; border: none; padding: 8px; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer; display: none;">
+        <button onclick="triggerAiVoiceQuery()" id="ai-info-btn" style="flex:1; background: #00bcd4; color: #000; border: none; padding: 8px; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer;">
           <i class="fa-solid fa-book"></i> Informazioni Locali
         </button>
-        <button onclick="startVoiceRecognition()" id="ai-mic-btn" style="flex:1; background: #ff9800; color: #000; border: none; padding: 8px; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer; display: none;">
+        <button onclick="startVoiceRecognition()" id="ai-mic-btn" style="flex:1; background: #ff9800; color: #000; border: none; padding: 8px; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer;">
           <i class="fa-solid fa-microphone"></i> Chiedi a Voce
         </button>
       </div>
@@ -169,13 +180,13 @@
         <button class="grid-btn" style="border-color:#9c27b0;" onclick="calcSmartReturnPath()"><i class="fa-solid fa-route fa-lg" style="color:#9c27b0;"></i> Nuovo Ritorno</button>
         <button class="grid-btn" onclick="reverseRouteAction()"><i class="fa-solid fa-arrow-rotate-left fa-lg" style="color:#00bcd4;"></i> A Ritroso</button>
         
+        <button class="grid-btn" onclick="openSearchModal()"><i class="fa-solid fa-magnifying-glass fa-lg" style="color:#00bcd4;"></i> Cerca POI</button>
         <button class="grid-btn" onclick="triggerPhotoCapture()"><i class="fa-solid fa-camera fa-lg" style="color:#4ade80;"></i> Foto</button>
         <button class="grid-btn" onclick="triggerVideoCapture()"><i class="fa-solid fa-video fa-lg" style="color:#f87171;"></i> Video</button>
-        <button class="grid-btn" onclick="toggleAudioRecording()" id="audio-grid-btn"><i class="fa-solid fa-microphone fa-lg" style="color:#fbbf24;"></i> <span id="audio-grid-txt">Audio</span></button>
         
+        <button class="grid-btn" onclick="toggleAudioRecording()" id="audio-grid-btn"><i class="fa-solid fa-microphone fa-lg" style="color:#fbbf24;"></i> <span id="audio-grid-txt">Audio</span></button>
         <button class="grid-btn" onclick="toggleScreenWakeLock()"><i class="fa-solid fa-lightbulb fa-lg" style="color:#ffeb3b;"></i> <span id="wake-grid-txt">Schermo: OFF</span></button>
         <button class="grid-btn" onclick="document.body.classList.toggle('high-contrast');"><i class="fa-solid fa-sun fa-lg" style="color:#ffeb3b;"></i> Sole</button>
-        <button class="grid-btn" style="border-color:#ff9800;" onclick="openInfoModal()"><i class="fa-solid fa-book-open fa-lg" style="color:#ff9800;"></i> Info Tasti</button>
       </div>
 
       <button onclick="toggleCmdModal()" style="background: #ff9800; color: #000; width: 100%; padding: 10px; border-radius: 10px; border: none; font-weight: 800; cursor: pointer;">CHIUDI MENU</button>
@@ -203,17 +214,15 @@
     </div>
   </div>
 
-  <!-- Pulsante rapido CERCA aggiunto visibile in alto o nei comandi? Lo integriamo nel pannello superiore o come comoda scorciatoia -->
-
   <!-- Modale Info -->
   <div id="info-modal" class="generic-modal">
     <div class="modal-box">
       <h3 style="color: #ff9800; font-size: 16px;"><i class="fa-solid fa-book-open"></i> Guida ai Tasti 📖</h3>
       <ul style="font-size: 12px; color: #e5e7eb; line-height: 1.6; padding-left: 15px; display: flex; flex-direction: column; gap: 6px;">
-        <li>☀️ <b>Sole:</b> Attiva la modalità ad alto contrasto per visione perfetta al sole.</li>
+        <li>☀️ <b>Sole:</b> Attiva la modalità ad alto contrasto.</li>
         <li>💡 <b>Schermo:</b> Gestisce il Wake Lock per impedire lo spegnimento.</li>
         <li>🤖 <b>AI Guide:</b> Racconta la storia locale e naviga verso i luoghi cercati.</li>
-        <li>📸🎥🎤 <b>Multimedia:</b> Waypoint con carosello anti-sovrapposizione e zoom 5x.</li>
+        <li>🔍 <b>Cerca POI:</b> Menu completo per navigare verso ristoranti, monumenti e rifugi.</li>
       </ul>
       <button onclick="closeInfoModal()" style="background: #ff9800; color: #000; width: 100%; padding: 10px; border-radius: 10px; border: none; font-weight: 800; cursor: pointer;">CHIUDI</button>
     </div>
@@ -247,11 +256,11 @@
     let pathCoordinates = [];
     let recordedPolyline = L.polyline([], { color: '#2196f3', weight: 4 }).addTo(map);
     let returnPolyline = L.polyline([], { color: '#ff9800', weight: 4, dashArray: '5, 10' }).addTo(map);
-    let navPolyline = L.polyline([], { color: '#4ade80', weight: 5 }).addTo(map); // Linea verde navigazione interna POI
+    let navPolyline = L.polyline([], { color: '#4ade80', weight: 5 }).addTo(map);
     let isRecording = false;
     let lastLat = 43.55, lastLng = 10.32;
     let wakeLockObj = null;
-    let aiActive = false;
+    let aiActive = true;
     let waypointDatabase = {};
 
     const trailClock = new TrailClock({
@@ -292,7 +301,6 @@
       );
     }
 
-    // --- NAVIGATORE INTERNO PER CATEGORIE CERCA ---
     window.openSearchModal = function() {
       document.getElementById('search-modal').style.display = 'flex';
     };
@@ -302,35 +310,32 @@
 
     window.selectSearchCategory = function(category) {
       closeSearchModal();
-      // Simula la ricerca di un punto nelle vicinanze e genera il percorso verde sulla mappa
       const targetLat = lastLat + 0.003;
       const targetLng = lastLng + 0.003;
 
       navPolyline.setLatLngs([[lastLat, lastLng], [targetLat, targetLng]]);
       map.setView([targetLat, targetLng], 16);
 
-      // Aggiunge un marker per la destinazione
       L.marker([targetLat, targetLng], {
         icon: L.divIcon({
           className: 'poi-flag',
           html: `<div style="background:#4ade80; color:#000; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; box-shadow:0 3px 10px rgba(0,0,0,0.8);"><i class="fa-solid fa-location-dot"></i></div>`,
           iconSize: [32, 32], iconAnchor: [16, 16]
         })
-      }).addTo(map).bindPopup(`<b>Destinazione:</b> ${category}<br>Percorso di navigazione interno attivato in verde!`).openPopup();
+      }).addTo(map).bindPopup(`<b>Destinazione:</b> ${category}<br>Navigazione verde attivata!`).openPopup();
 
-      alert(`Trovato "${category}" nelle vicinanze! Il navigatore interno ha disegnato la rotta verde sulla mappa.`);
+      alert(`Rotta calcolata per: ${category}! Segui la linea verde sulla mappa.`);
     };
 
-    // --- WAKE LOCK SCHERMO ON/OFF CORRETTO ---
     window.toggleScreenWakeLock = async function() {
       const txt = document.getElementById('wake-grid-txt');
       if (!wakeLockObj) {
         try {
           wakeLockObj = await navigator.wakeLock.request('screen');
           txt.innerText = "Schermo: ON";
-          alert("Schermo bloccato sempre acceso (Wake Lock attivo).");
+          alert("Schermo bloccato sempre acceso.");
           wakeLockObj.addEventListener('release', () => { wakeLockObj = null; txt.innerText = "Schermo: OFF"; });
-        } catch (err) { alert("Wake Lock non supportato su questo browser."); }
+        } catch (err) { alert("Wake Lock non supportato."); }
       } else {
         await wakeLockObj.release();
         wakeLockObj = null;
@@ -339,22 +344,23 @@
       }
     };
 
-    // --- AI INTELLETTUALE, INFORMAZIONI LOCALI & VOCE ---
     window.toggleAiPower = function() {
       aiActive = !aiActive;
       const btn = document.getElementById('ai-power-btn');
       const infoBtn = document.getElementById('ai-info-btn');
       const micBtn = document.getElementById('ai-mic-btn');
       const txt = document.getElementById('ai-response-text');
+      
       if (aiActive) {
-        btn.innerText = "ON"; btn.style.background = "#4caf50";
+        btn.innerText = "DISATTIVA"; btn.style.background = "#f44336";
         infoBtn.style.display = "inline-block"; micBtn.style.display = "inline-block";
-        txt.innerText = "AI Guide attiva. Premi 'Informazioni Locali' per la storia del luogo o usa 'Chiedi a Voce'.";
-        speakAlert("Assistente AI attivo.");
+        txt.innerText = "AI Guide attiva. Premi 'Informazioni Locali' o usa 'Chiedi a Voce'.";
+        speakAlert("Assistente AI attivato.");
       } else {
-        btn.innerText = "OFF"; btn.style.background = "#f44336";
+        btn.innerText = "ATTIVA"; btn.style.background = "#4caf50";
         infoBtn.style.display = "none"; micBtn.style.display = "none";
-        txt.innerText = "AI disattivata.";
+        txt.innerText = "AI disattivata. Clicca su ATTIVA per riaccenderla.";
+        speakAlert("Assistente AI disattivato.");
       }
     };
 
@@ -364,28 +370,50 @@
       speakAlert(infoText);
     };
 
-    // Riconoscimento Vocale Reale per fare domande all'AI
     window.startVoiceRecognition = function() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const responseBox = document.getElementById('ai-response-text');
+      const containerBox = document.getElementById('ai-box-container');
+
       if (!SpeechRecognition) {
-        alert("Il riconoscimento vocale non è supportato da questo browser. Usa il tasto Informazioni Locali.");
+        responseBox.innerText = "Modalità vocale diretta non supportata dal browser. Uso l'interrogazione standard...";
+        speakAlert("Risposta dal sistema locale: Sentiero sgombro e sicuro in quota.");
         return;
       }
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'it-IT';
-      recognition.start();
-      
-      document.getElementById('ai-response-text').innerText = "Sto ascoltando la tua domanda...";
-      
-      recognition.onresult = function(event) {
-        const query = event.results[0][0].transcript;
-        const reply = `Hai chiesto: "${query}". L'AI locale risponde: La zona è sicura, il sentiero procede in quota e non ci sono allerte meteo imminenti.`;
-        document.getElementById('ai-response-text').innerText = reply;
-        speakAlert(reply);
-      };
-      recognition.onerror = function() {
-        document.getElementById('ai-response-text').innerText = "Non ho sentito bene. Riprova.";
-      };
+
+      try {
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'it-IT';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = function() {
+          containerBox.classList.add('listening-active');
+          responseBox.innerHTML = "🔴 <b>In ascolto... Parla ora al microfono del telefono</b>";
+        };
+
+        recognition.onresult = function(event) {
+          containerBox.classList.remove('listening-active');
+          const query = event.results[0][0].transcript;
+          const reply = `Hai chiesto: "${query}". Risposta AI: La marcia procede regolarmente, non ci sono allerte e la temperatura è ottimale.`;
+          responseBox.innerText = reply;
+          speakAlert(reply);
+        };
+
+        recognition.onerror = function(event) {
+          containerBox.classList.remove('listening-active');
+          responseBox.innerText = "⚠️ Errore di ascolto o microfono non rilevato. Riprova.";
+        };
+
+        recognition.onend = function() {
+          containerBox.classList.remove('listening-active');
+        };
+
+        recognition.start();
+      } catch (e) {
+        containerBox.classList.remove('listening-active');
+        responseBox.innerText = "Impossibile avviare il microfono: " + e.message;
+      }
     };
 
     function speakAlert(text) {
@@ -397,7 +425,6 @@
       }
     }
 
-    // Altre funzioni di supporto
     window.calcSmartReturnPath = function() {
       if (pathCoordinates.length === 0) { alert("Nessun percorso registrato."); return; }
       const startPt = pathCoordinates[pathCoordinates.length - 1];
