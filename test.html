@@ -309,7 +309,7 @@
         <div class="center-box">
             <h2 style="font-size: 22px; margin-bottom: 15px; color: var(--primary);">Benvenuto in SentieroVivo</h2>
             <p style="font-size: 15px; color: var(--text-muted); margin-bottom: 20px;">
-                Configuriamo la cartella principale sul tuo dispositivo per archiviare i tuoi percorsi e file GPX.
+                Tocca qui sotto per nominare o personalizzare la cartella principale in cui archiviare i tuoi percorsi.
             </p>
             <div class="form-group">
                 <label class="form-label">Nome Cartella Principale:</label>
@@ -428,16 +428,8 @@
                     <input type="text" class="form-input" id="saveTrackName" value="Escursione_Livorno">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Seleziona Cartella:</label>
-                    <select class="form-input" id="folderSelect">
-                        <option value="Trekking">Trekking (Default)</option>
-                        <option value="Urbano">Urbano</option>
-                        <option value="Preferiti">Preferiti</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Oppure Nuova Cartella:</label>
-                    <input type="text" class="form-input" id="newFolderName" placeholder="Nome nuova cartella...">
+                    <label class="form-label">Cartella di Salvataggio:</label>
+                    <input type="text" class="form-input" id="saveFolderNameDisplay" readonly style="color: var(--accent); font-weight: bold;">
                 </div>
                 <button class="btn-action" onclick="confirmSaveTrack()">Salva Definitivamente</button>
             </div>
@@ -534,15 +526,12 @@
             }
 
             if (!installDate) {
-                // Prima installazione assoluta
                 localStorage.setItem('sentierovivo_install', now);
                 localStorage.setItem('sentierovivo_maxtime', now);
                 installDate = now;
                 maxRecordedTime = now;
             } else {
-                // Controllo Anti-Furbetti (Rilevamento manomissione data orologio)
                 if (now < maxRecordedTime) {
-                    // Tentativo di frode: l'orologio è stato portato indietro nel passato!
                     document.getElementById('licenseMsg').innerText = "Rilevata manomissione dell'orologio di sistema! Inserisci il codice di sblocco.";
                     document.getElementById('licenseModal').classList.add('active');
                     return;
@@ -551,7 +540,6 @@
                 }
             }
 
-            // Verifica periodo di prova (30 giorni = 30 * 24 * 3600 * 1000 ms)
             const trialDuration = 30 * 24 * 60 * 60 * 1000;
             const elapsed = now - parseInt(installDate);
 
@@ -686,7 +674,7 @@
                     if (isTracking && !isPaused && userMarker) {
                         waypointsList.push({ type: 'auto', latlng: userMarker.getLatLng(), time: new Date() });
                     }
-                }, 360000); // ogni 6 minuti
+                }, 360000);
 
                 closeModal('menuModal');
             } else {
@@ -734,14 +722,14 @@
                 return;
             }
             closeModal('menuModal');
+            const defaultFolder = localStorage.getItem('sentierovivo_default_folder') || 'Trekking';
+            document.getElementById('saveFolderNameDisplay').value = defaultFolder;
             document.getElementById('stopSaveModal').classList.add('active');
         }
 
         function confirmSaveTrack() {
             const name = document.getElementById('saveTrackName').value || 'Escursione';
-            let folder = document.getElementById('folderSelect').value;
-            const newFolder = document.getElementById('newFolderName').value.trim();
-            if (newFolder) folder = newFolder;
+            const folder = localStorage.getItem('sentierovivo_default_folder') || 'Trekking';
 
             const trackData = {
                 id: Date.now(),
@@ -833,7 +821,6 @@
             closeModal('menuModal');
             const body = document.getElementById('meteoBody');
             
-            // Generazione timeline oraria fittizia ma realistica per le successive 30 ore
             let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
             html += '<p style="font-size:14px; color:var(--text-muted); margin-bottom:10px;">Previsioni geolocalizzate ora per ora:</p>';
             
@@ -869,7 +856,7 @@
                 let html = '<div class="menu-list">';
                 savedTracks.forEach(track => {
                     html += `
-                        <div class="menu-item" style="justify-content: space-linejoin;" onclick="loadTrackScenario(${track.id})">
+                        <div class="menu-item" style="justify-content: space-between;" onclick="loadTrackScenario(${track.id})">
                             <div>
                                 <div style="font-size: 18px;">📁 ${track.name}</div>
                                 <div style="font-size: 13px; color: var(--text-muted);">Cartella: ${track.folder} | ${track.date}</div>
