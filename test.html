@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SentieroVivo - Navigazione Escursionistica Professionale</title>
-    <!-- Leaflet CSS per le mappe offline/online -->
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root {
@@ -13,8 +13,8 @@
             --menu-color: #00838f;
             --web-color: #0277bd;
             --bg-dark: #121212;
-            --panel-bg: rgba(18, 18, 18, 0.94);
-            --text-light: #f1f1f1;
+            --panel-bg: rgba(18, 18, 18, 0.96);
+            --text-light: #ffffff;
         }
 
         * {
@@ -41,50 +41,51 @@
             z-index: 1;
         }
 
-        /* Plancia essenziale in BASSO: pulita, con soli 3 comandi chiave */
+        /* Plancia essenziale in BASSO: tasti più compatti ma con testi grandi e leggibili */
         .control-panel {
             position: absolute;
-            bottom: 20px;
-            left: 15px;
-            right: 15px;
+            bottom: 15px;
+            left: 10px;
+            right: 10px;
             z-index: 10;
             background: var(--panel-bg);
-            padding: 12px 15px;
-            border-radius: 14px;
+            padding: 10px 12px;
+            border-radius: 12px;
             backdrop-filter: blur(10px);
-            box-shadow: 0 -4px 25px rgba(0,0,0,0.6);
+            box-shadow: 0 -4px 25px rgba(0,0,0,0.7);
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            border: 1px solid rgba(255,255,255,0.15);
+            gap: 8px;
+            border: 1px solid rgba(255,255,255,0.2);
         }
 
         .panel-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 10px;
+            gap: 6px;
         }
 
         .btn {
             background-color: var(--primary-color);
             color: white;
             border: none;
-            padding: 12px 14px;
+            padding: 10px 8px;
             border-radius: 8px;
-            font-weight: bold;
-            font-size: 13px;
+            font-weight: 700;
+            font-size: 13px; /* Testo chiaro e visibile */
             cursor: pointer;
             transition: transform 0.1s;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: 4px;
             flex: 1;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
 
         .btn:active {
-            transform: scale(0.97);
+            transform: scale(0.96);
         }
 
         .btn-web { background-color: var(--web-color); }
@@ -93,39 +94,40 @@
             background-color: var(--accent-color); 
             color: #000; 
             font-weight: 800; 
-            flex: 1.5; /* Leggermente più largo per risaltare al centro */
+            flex: 1.2; 
             font-size: 14px;
         }
 
         /* Status bar essenziale */
         .status-bar {
             font-size: 12px;
-            color: #b0bec5;
-            background: rgba(0,0,0,0.4);
-            padding: 5px 8px;
+            color: #cfd8dc;
+            background: rgba(0,0,0,0.5);
+            padding: 4px 8px;
             border-radius: 6px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            font-weight: 600;
         }
 
-        /* Finestra modale (Risposte Guide / Menu 12 tasti) */
+        /* Modale per Guide e Menu */
         .modal-box {
             position: absolute;
             top: 15px;
-            left: 15px;
-            right: 15px;
+            left: 10px;
+            right: 10px;
             z-index: 20;
             background: var(--panel-bg);
-            padding: 18px;
-            border-radius: 14px;
+            padding: 16px;
+            border-radius: 12px;
             backdrop-filter: blur(10px);
-            border-left: 4px solid var(--accent-color);
-            box-shadow: 0 6px 25px rgba(0,0,0,0.7);
+            border-left: 5px solid var(--accent-color);
+            box-shadow: 0 6px 25px rgba(0,0,0,0.8);
             display: none;
-            font-size: 14px;
+            font-size: 15px;
             line-height: 1.5;
-            max-height: 80vh;
+            max-height: 75vh;
             overflow-y: auto;
         }
 
@@ -135,36 +137,38 @@
             margin-bottom: 8px;
             display: flex;
             justify-content: space-between;
-            font-size: 16px;
+            font-size: 17px;
         }
 
-        /* Griglia dei 12 tasti all'interno del menu */
+        /* Griglia dei 13 tasti all'interno del menu */
         .menu-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 8px;
-            margin-top: 12px;
+            margin-top: 10px;
         }
 
         .menu-grid-btn {
             background: #212121;
             color: #fff;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.15);
             padding: 10px;
             border-radius: 8px;
             text-align: left;
-            font-size: 12px;
+            font-size: 13px;
+            font-weight: 600;
             cursor: pointer;
         }
 
         .menu-grid-btn:active {
-            background: #333;
+            background: #424242;
         }
 
         .leaflet-popup-content-wrapper, .leaflet-popup-tip {
             background: #212121;
             color: #fff;
             border-radius: 8px;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -173,11 +177,11 @@
     <!-- Mappa Leaflet -->
     <div id="map"></div>
 
-    <!-- Modale Unica per Guide e Menu dei 12 Comandi -->
+    <!-- Modale Unica per Guide e Menu dei 13 Comandi -->
     <div id="modalBox" class="modal-box">
         <div class="modal-title">
             <span id="modalTitleText">SentieroVivo</span>
-            <span style="cursor:pointer; color:#aaa; font-size: 18px;" onclick="closeModal()">✕</span>
+            <span style="cursor:pointer; color:#fff; font-size: 20px; padding: 0 5px;" onclick="closeModal()">✕</span>
         </div>
         <div id="modalContentText">Contenuto...</div>
     </div>
@@ -188,15 +192,15 @@
             <!-- Sinistra: Info Web -->
             <button class="btn btn-web" onclick="triggerWebInfo()">🌐 Info Web</button>
             
-            <!-- Centro: Tasto Rapido Waypoint Manuale (Filo di Arianna) -->
-            <button class="btn btn-manual-wp" onclick="markManualWaypoint()">📍 Waypoint (#<span id="wp-counter">0</span>)</button>
+            <!-- Centro: Tasto Rapido Waypoint Manuale -->
+            <button class="btn btn-manual-wp" onclick="markManualWaypoint()">📍 Waypoint (<span id="wp-counter">0</span>)</button>
             
-            <!-- Destra: Menu dei 12 comandi -->
-            <button class="btn btn-menu" onclick="openCommandMenu()">📂 Menu (12)</button>
+            <!-- Destra: Menu dei 13 comandi -->
+            <button class="btn btn-menu" onclick="openCommandMenu()">📂 Menu (13)</button>
         </div>
 
         <div class="status-bar">
-            <span>GPS: <strong id="gps-status" style="color: #66bb6a;">Attivo</strong></span>
+            <span>GPS: <strong id="gps-status" style="color: #66bb6a;">Ricerca...</strong></span>
             <span>Traccia: <strong id="track-status">Inattiva</strong></span>
             <span>WP: <strong id="wp-total">0</strong></span>
         </div>
@@ -205,7 +209,7 @@
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Inizializzazione della mappa (Centrata su Livorno / area test)
+        // Inizializzazione della mappa (Centrata su Livorno di default)
         const map = L.map('map', { zoomControl: false }).setView([43.5485, 10.3106], 15);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -219,11 +223,15 @@
         let waypointCount = 0;
         let waypointsList = [];
         let currentPositionMarker = null;
-        let trackLine = L.polyline([], { color: '#2e7d32', weight: 4, opacity: 0.8 }).addTo(map);
+        let accuracyCircle = null;
+        let trackLine = L.polyline([], { color: '#2e7d32', weight: 5, opacity: 0.85 }).addTo(map);
+        
+        // Stato audio (Gestione tasto 13: Voce ON / OFF)
+        let audioEnabled = true;
 
-        // Sintesi Vocale Voce Femminile Naturale
+        // Sintesi Vocale con controllo audio ON/OFF
         function speakText(text) {
-            if (!('speechSynthesis' in window)) return;
+            if (!audioEnabled || !('speechSynthesis' in window)) return;
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'it-IT';
@@ -246,9 +254,9 @@
 
         // Tasto Sinistra: Info Web & Guida Territoriale
         function triggerWebInfo() {
-            showModal("Guida Territoriale & Info Web", 
-                "Analisi della posizione corrente: ti trovi in un'area collinare protetta. A circa 800 metri verso nord si sviluppa un sentiero panoramico con vegetazione di macchia mediterranea e lecci.");
-            speakText("Ti trovi in un'area protetta. A ottocento metri a nord si sviluppa un sentiero panoramico ideale per escursioni.");
+            const infoText = "Analisi della posizione corrente: ti trovi in un'area collinare protetta. A circa 800 metri verso nord si sviluppa un sentiero panoramico con vegetazione di macchia mediterranea e lecci.";
+            showModal("Guida Territoriale & Info Web", infoText);
+            speakText("Ti trovi in area protetta. A ottocento metri a nord si sviluppa un sentiero panoramico.");
         }
 
         // Tasto Centro: Waypoint Manuale (Filo di Arianna)
@@ -257,12 +265,13 @@
             document.getElementById('wp-counter').innerText = waypointCount;
             document.getElementById('wp-total').innerText = waypointCount;
 
-            const latlng = map.getCenter();
+            const latlng = currentPositionMarker ? currentPositionMarker.getLatLng() : map.getCenter();
             const marker = L.circleMarker(latlng, {
-                radius: 6,
+                radius: 8,
                 color: '#fff',
                 fillColor: '#ff8f00',
-                fillOpacity: 1
+                fillOpacity: 1,
+                weight: 2
             }).addTo(map);
 
             marker.bindPopup(`<b>Waypoint Manuale #${waypointCount}</b><br>Boa di sicurezza registrata.`);
@@ -271,10 +280,12 @@
             speakText(`Waypoint numero ${waypointCount} registrato.`);
         }
 
-        // Tasto Destra: Apertura Menu dei 12 Comandi
+        // Tasto Destra: Apertura Menu dei 13 Comandi
         function openCommandMenu() {
+            let audioStatusText = audioEnabled ? "🔊 Voce: ATTIVA (Clicca per disattivare)" : "🔇 Voce: DISATTIVATA (Solo testo)";
+            
             let menuHTML = `
-                <p>Seleziona una funzione avanzata:</p>
+                <p>Seleziona una funzione:</p>
                 <div class="menu-grid">
                     <button class="menu-grid-btn" onclick="runMenuAction('Avvia Percorso')">▶ 1. Avvia Tracciamento</button>
                     <button class="menu-grid-btn" onclick="runMenuAction('Stop & Salva')">⏹ 2. Stop & Salva</button>
@@ -288,27 +299,57 @@
                     <button class="menu-grid-btn" onclick="runMenuAction('Galleria Foto')">📷 10. Foto Waypoint</button>
                     <button class="menu-grid-btn" onclick="runMenuAction('Stato GPS & Offline')">📶 11. Diagnostica GPS</button>
                     <button class="menu-grid-btn" onclick="runMenuAction('Impostazioni Voce')">⚙️ 12. Impostazioni</button>
+                    <button class="menu-grid-btn" style="grid-column: span 2; background: #004d40;" onclick="toggleAudioVoice()">🗣️ 13. ${audioStatusText}</button>
                 </div>
             `;
-            showModal("Menu Comandi Avanzati (12 Scelte)", menuHTML);
+            showModal("Menu Comandi Avanzati (13 Scelte)", menuHTML);
             speakText("Menu comandi aperto.");
         }
 
+        // Funzione per attivare/disattivare la voce al volo (13° tasto)
+        function toggleAudioVoice() {
+            audioEnabled = !audioEnabled;
+            if (!audioEnabled) {
+                window.speechSynthesis.cancel();
+            } else {
+                speakText("Sintesi vocale riattivata.");
+            }
+            openCommandMenu(); // Aggiorna il menu con lo stato corrente
+        }
+
+        // Gestione delle azioni del menu
         function runMenuAction(actionName) {
+            let msg = "";
             if (actionName.includes('Avvia')) {
                 isTracking = true;
                 document.getElementById('track-status').innerText = 'Registrazione';
                 document.getElementById('track-status').style.color = '#66bb6a';
-                speakText("Registrazione avviata.");
+                msg = "Registrazione del percorso avviata. Il Filo di Arianna è attivo.";
+                speakText(msg);
             } else if (actionName.includes('Stop')) {
                 isTracking = false;
                 document.getElementById('track-status').innerText = 'Salvato';
                 document.getElementById('track-status').style.color = '#ff8f00';
-                speakText("Percorso salvato.");
+                msg = "Percorso interrotto e salvato correttamente.";
+                speakText(msg);
+            } else if (actionName.includes('Ritorno')) {
+                msg = "Modalità Ritorno a Ritroso attivata: segui i waypoint inversi per rientrare.";
+                speakText(msg);
+            } else if (actionName.includes('Anello')) {
+                msg = "Calcolo del percorso di rientro ad anello verso la base avviato.";
+                speakText(msg);
+            } else if (actionName.includes('Fontane')) {
+                msg = "Ricerca fontane d'acqua potabile e rifugi nelle vicinanze in corso.";
+                speakText(msg);
+            } else if (actionName.includes('Esplora')) {
+                msg = "Analisi del sentiero in corso: verifica della destinazione finale.";
+                speakText(msg);
+            } else {
+                msg = `Funzione <b>${actionName}</b> selezionata e pronta all'uso.`;
+                speakText(`Attivato ${actionName}`);
             }
-            closeModal();
-            // Mostra conferma rapida
-            showModal("Comando Eseguito", `Hai attivato: <b>${actionName}</b>`);
+
+            showModal("Esecuzione Comando", msg);
         }
 
         function showModal(title, htmlContent) {
@@ -321,28 +362,58 @@
             document.getElementById('modalBox').style.display = 'none';
         }
 
-        // Simulatore GPS
+        // Geolocation reale e visibile (Pallino blu + cerchio di precisione)
         if (navigator.geolocation) {
             navigator.geolocation.watchPosition(position => {
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
+                const accuracy = position.coords.accuracy;
                 const latlng = [lat, lon];
 
-                document.getElementById('gps-status').innerText = "Attivo";
+                document.getElementById('gps-status').innerText = "Attivo (GPS)";
                 document.getElementById('gps-status').style.color = "#66bb6a";
 
                 if (!currentPositionMarker) {
-                    currentPositionMarker = L.marker(latlng).addTo(map).bindPopup("Posizione Attuale");
+                    // Crea il marker della posizione (il pallino blu visibile)
+                    currentPositionMarker = L.circleMarker(latlng, {
+                        radius: 9,
+                        color: '#ffffff',
+                        fillColor: '#2196f3',
+                        fillOpacity: 1,
+                        weight: 3
+                    }).addTo(map).bindPopup("La tua posizione attuale");
+
+                    accuracyCircle = L.circle(latlng, {
+                        radius: accuracy,
+                        color: '#2196f3',
+                        fillColor: '#2196f3',
+                        fillOpacity: 0.15,
+                        weight: 1
+                    }).addTo(map);
+
+                    map.setView(latlng, 16); // Centra la mappa sulla posizione reale
                 } else {
                     currentPositionMarker.setLatLng(latlng);
+                    accuracyCircle.setLatLng(latlng);
+                    accuracyCircle.setRadius(accuracy);
                 }
 
                 if (isTracking) {
                     trackLine.addLatLng(latlng);
                 }
             }, error => {
-                console.warn("GPS non disponibile, utilizzo posizione simulata.");
-            }, { enableHighAccuracy: true });
+                console.warn("GPS non disponibile o permessi negati.");
+                document.getElementById('gps-status').innerText = "Simulato";
+                document.getElementById('gps-status').style.color = "#ff8f00";
+                
+                // Fallback di posizione fissa se il GPS non risponde subito sul browser
+                const fallbackLatLng = [43.5485, 10.3106];
+                if (!currentPositionMarker) {
+                    currentPositionMarker = L.circleMarker(fallbackLatLng, {
+                        radius: 9, color: '#fff', fillColor: '#2196f3', fillOpacity: 1, weight: 3
+                    }).addTo(map).bindPopup("Posizione di Simulazione");
+                }
+            }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 });
         }
     </script>
 </body>
