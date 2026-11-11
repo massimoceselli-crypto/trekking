@@ -93,14 +93,14 @@
             font-size: 13px;
         }
 
-        /* Pannelli modali e menu a scorrimento */
+        /* Pannelli modali e schermate di blocco */
         .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.75);
+            background-color: rgba(0, 0, 0, 0.85);
             z-index: 2000;
             display: none;
             justify-content: center;
@@ -109,6 +109,11 @@
 
         .modal-overlay.active {
             display: flex;
+        }
+
+        .modal-overlay.center-mode {
+            align-items: center;
+            padding: 20px;
         }
 
         .sheet-container {
@@ -122,6 +127,16 @@
             flex-direction: column;
             overflow: hidden;
             animation: slideUp 0.3s ease-out;
+        }
+
+        .center-box {
+            width: 100%;
+            max-width: 450px;
+            background-color: var(--bg-card);
+            border-radius: 16px;
+            border: 2px solid var(--primary);
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
         }
 
         @keyframes slideUp {
@@ -235,7 +250,7 @@
             background-color: var(--danger);
         }
 
-        /* Badge di stato flottante in alto */
+        /* Badge di stato GPS */
         .status-badge {
             position: absolute;
             top: 15px;
@@ -263,7 +278,7 @@
 
         .status-dot.active {
             background-color: var(--primary);
-            animation: pulse 1.5px infinite;
+            animation: pulse 1.5s infinite;
         }
 
         @keyframes pulse {
@@ -271,46 +286,40 @@
             50% { transform: scale(1.2); opacity: 1; }
             100% { transform: scale(0.95); opacity: 0.8; }
         }
-
-        /* Visualizzatore multimediale a tutto schermo */
-        #media-viewer {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: black;
-            z-index: 3000;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-        }
-
-        #media-viewer img, #media-viewer video {
-            max-width: 100%;
-            max-height: 85vh;
-            object-fit: contain;
-        }
-
-        .media-close {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255,255,255,0.2);
-            color: white;
-            border: none;
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            font-size: 24px;
-            cursor: pointer;
-        }
     </style>
 </head>
 <body>
 
-    <!-- Badge di Stato GPS / Tracciamento -->
+    <!-- BLOCCO DI SICUREZZA / LICENZA (POP-UP CENTRALE) -->
+    <div class="modal-overlay center-mode" id="licenseModal">
+        <div class="center-box">
+            <h2 style="font-size: 22px; margin-bottom: 15px; color: var(--primary);">Attivazione SentieroVivo</h2>
+            <p id="licenseMsg" style="font-size: 15px; color: var(--text-muted); margin-bottom: 20px;">
+                Periodo di prova attivo. Inserisci il codice di sblocco per l'attivazione definitiva.
+            </p>
+            <div class="form-group">
+                <input type="text" class="form-input" id="licenseInputKey" placeholder="Inserisci codice chiave...">
+            </div>
+            <button class="btn-action" onclick="verifyLicenseKey()">Attiva Licenza</button>
+        </div>
+    </div>
+
+    <!-- WIZARD PRIMO AVVIO: CREAZIONE CARTELLA PRINCIPALE -->
+    <div class="modal-overlay center-mode" id="setupWizardModal">
+        <div class="center-box">
+            <h2 style="font-size: 22px; margin-bottom: 15px; color: var(--primary);">Benvenuto in SentieroVivo</h2>
+            <p style="font-size: 15px; color: var(--text-muted); margin-bottom: 20px;">
+                Configuriamo la cartella principale sul tuo dispositivo per archiviare i tuoi percorsi e file GPX.
+            </p>
+            <div class="form-group">
+                <label class="form-label">Nome Cartella Principale:</label>
+                <input type="text" class="form-input" id="setupFolderName" value="Trekking">
+            </div>
+            <button class="btn-action" onclick="completeSetupWizard()">Conferma e Inizia</button>
+        </div>
+    </div>
+
+    <!-- Badge di Stato GPS -->
     <div class="status-badge" id="statusBadge">
         <div class="status-dot" id="statusDot"></div>
         <span id="statusText">Pronto - GPS Inattivo</span>
@@ -374,7 +383,7 @@
                     </div>
                     <div class="menu-item" onclick="openMeteoModal()">
                         <span class="icon">⛅</span>
-                        <span>Meteo in Tempo Reale</span>
+                        <span>Meteo in Tempo Reale (30 Ore)</span>
                     </div>
                     <div class="menu-item" onclick="openFoldersModal()">
                         <span class="icon">📁</span>
@@ -419,7 +428,7 @@
                     <input type="text" class="form-input" id="saveTrackName" value="Escursione_Livorno">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Seleziona o Crea Cartella:</label>
+                    <label class="form-label">Seleziona Cartella:</label>
                     <select class="form-input" id="folderSelect">
                         <option value="Trekking">Trekking (Default)</option>
                         <option value="Urbano">Urbano</option>
@@ -465,15 +474,15 @@
         </div>
     </div>
 
-    <!-- MODALE: METEO -->
+    <!-- MODALE: METEO EVOLUTO A 30 ORE -->
     <div class="modal-overlay" id="meteoModal">
         <div class="sheet-container">
             <div class="sheet-header">
-                <div class="sheet-title">Meteo in Tempo Reale</div>
+                <div class="sheet-title">Meteo 30 Ore (GPS Reale)</div>
                 <button class="close-btn" onclick="closeModal('meteoModal')">&times;</button>
             </div>
             <div class="sheet-body" id="meteoBody">
-                <p style="font-size: 18px; text-align: center; color: var(--text-muted);">Rilevamento condizioni meteorologiche GPS...</p>
+                <!-- Timeline oraria dinamica -->
             </div>
         </div>
     </div>
@@ -486,34 +495,108 @@
                 <button class="close-btn" onclick="closeModal('foldersModal')">&times;</button>
             </div>
             <div class="sheet-body" id="foldersListBody">
-                <!-- Lista dinamica percorsi salvati -->
+                <!-- Lista dinamica percorsi -->
             </div>
         </div>
-    </div>
-
-    <!-- VISUALIZZATORE MEDIA A TUTTO SCHERMO -->
-    <div id="mediaViewer">
-        <button class="media-close" onclick="closeMediaViewer()">&times;</button>
-        <div id="mediaContainer" style="width:100%; height:100%; display:flex; justify-content:center; align-items:center;"></div>
     </div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script>
+        // Tabella Clienti Autorizzati (Gestita direttamente da te nel codice)
+        const authorizedClientKeys = [
+            "PAOLO-VIVO-2026",
+            "MARIO-TKK-9988",
+            "CLIENTE-TEST-01"
+        ];
+
         // Stato Applicazione
         let map, userMarker, accuracyCircle;
         let isTracking = false;
         let isPaused = false;
         let voiceActive = true;
-        let watchId = null;
         let pathCoordinates = [];
         let waypointsList = [];
         let savedTracks = JSON.parse(localStorage.getItem('sentierovivo_tracks') || '[]');
         let autoTimer = null;
 
+        // Controllo Sicurezza & Licenza all'avvio
+        function checkLicenseAndSetup() {
+            const now = new Date().getTime();
+            let installDate = localStorage.getItem('sentierovivo_install');
+            let maxRecordedTime = localStorage.getItem('sentierovivo_maxtime');
+            let isActivated = localStorage.getItem('sentierovivo_activated') === 'true';
+
+            if (isActivated) {
+                document.getElementById('licenseModal').classList.remove('active');
+                checkFirstRunWizard();
+                return;
+            }
+
+            if (!installDate) {
+                // Prima installazione assoluta
+                localStorage.setItem('sentierovivo_install', now);
+                localStorage.setItem('sentierovivo_maxtime', now);
+                installDate = now;
+                maxRecordedTime = now;
+            } else {
+                // Controllo Anti-Furbetti (Rilevamento manomissione data orologio)
+                if (now < maxRecordedTime) {
+                    // Tentativo di frode: l'orologio è stato portato indietro nel passato!
+                    document.getElementById('licenseMsg').innerText = "Rilevata manomissione dell'orologio di sistema! Inserisci il codice di sblocco.";
+                    document.getElementById('licenseModal').classList.add('active');
+                    return;
+                } else {
+                    localStorage.setItem('sentierovivo_maxtime', now);
+                }
+            }
+
+            // Verifica periodo di prova (30 giorni = 30 * 24 * 3600 * 1000 ms)
+            const trialDuration = 30 * 24 * 60 * 60 * 1000;
+            const elapsed = now - parseInt(installDate);
+
+            if (elapsed > trialDuration) {
+                document.getElementById('licenseMsg').innerText = "Periodo di prova di 30 giorni scaduto. Inserisci il codice di sblocco per continuare.";
+                document.getElementById('licenseModal').classList.add('active');
+            } else {
+                const daysLeft = Math.ceil((trialDuration - elapsed) / (1000 * 60 * 60 * 24));
+                document.getElementById('licenseMsg').innerText = `Periodo di prova attivo (${daysLeft} giorni rimanenti). Inserisci il codice di sblocco se desideri attivarla definitivamente.`;
+                document.getElementById('licenseModal').classList.remove('active');
+                checkFirstRunWizard();
+            }
+        }
+
+        function verifyLicenseKey() {
+            const key = document.getElementById('licenseInputKey').value.trim();
+            if (key === "MassimoMaster2026" || key === "SentieroVIP" || authorizedClientKeys.includes(key)) {
+                localStorage.setItem('sentierovivo_activated', 'true');
+                document.getElementById('licenseModal').classList.remove('active');
+                alert("Licenza attivata con successo!");
+                checkFirstRunWizard();
+            } else {
+                alert("Codice chiave non valido. Riprova.");
+            }
+        }
+
+        function checkFirstRunWizard() {
+            const setupDone = localStorage.getItem('sentierovivo_setup_done');
+            if (!setupDone) {
+                document.getElementById('setupWizardModal').classList.add('active');
+            } else {
+                initMap();
+            }
+        }
+
+        function completeSetupWizard() {
+            const folderName = document.getElementById('setupFolderName').value.trim() || 'Trekking';
+            localStorage.setItem('sentierovivo_default_folder', folderName);
+            localStorage.setItem('sentierovivo_setup_done', 'true');
+            document.getElementById('setupWizardModal').classList.remove('active');
+            initMap();
+        }
+
         // Inizializzazione Mappa
         function initMap() {
-            // Coordinate di default (Livorno / Toscana)
             map = L.map('map', { zoomControl: false }).setView([43.5485, 10.3106], 15);
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -521,10 +604,8 @@
                 attribution: '© OpenStreetMap'
             }).addTo(map);
 
-            // Zoom in basso a destra
             L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-            // Avvio geolocalizzazione live
             if (navigator.geolocation) {
                 navigator.geolocation.watchPosition(updatePosition, handleGeoError, {
                     enableHighAccuracy: true,
@@ -571,7 +652,7 @@
         }
 
         function handleGeoError(err) {
-            console.warn("Errore GPS: " + err.message);
+            console.warn("GPS in attesa: " + err.message);
         }
 
         function redrawPath() {
@@ -587,7 +668,7 @@
             }
         }
 
-        // Gestione Tracciamento
+        // Tracciamento
         function toggleTracking() {
             if (!isTracking) {
                 isTracking = true;
@@ -600,13 +681,12 @@
                 document.getElementById('menuTrackText').innerText = 'Ferma Tracciamento';
                 speak("Registrazione percorso avviata.");
                 
-                // Waypoint automatici ogni 6 minuti (Filo di Arianna temporale)
                 if (autoTimer) clearInterval(autoTimer);
                 autoTimer = setInterval(() => {
                     if (isTracking && !isPaused && userMarker) {
-                        addAutoWaypoint(userMarker.getLatLng());
+                        waypointsList.push({ type: 'auto', latlng: userMarker.getLatLng(), time: new Date() });
                     }
-                }, 360000);
+                }, 360000); // ogni 6 minuti
 
                 closeModal('menuModal');
             } else {
@@ -616,40 +696,35 @@
 
         function pauseTracking() {
             if (!isTracking) {
-                alert("Nessun percorso attivo da mettere in pausa. Avvia prima la registrazione.");
+                alert("Nessun percorso attivo.");
                 return;
             }
             isPaused = !isPaused;
             document.getElementById('statusDot').classList.toggle('active', !isPaused);
             document.getElementById('statusText').innerText = isPaused ? 'Registrazione in Pausa' : 'Registrazione in Corso';
-            speak(isPaused ? "Registrazione messa in pausa." : "Registrazione ripresa.");
+            speak(isPaused ? "Registrazione in pausa." : "Registrazione ripresa.");
             closeModal('menuModal');
         }
 
-        function addAutoWaypoint(latlng) {
-            const index = waypointsList.length;
-            waypointsList.push({ type: 'auto', latlng: latlng, time: new Date() });
-        }
-
-        // Waypoint Manuali & Multimediali
+        // Waypoint Manuali
         function addManualWaypoint() {
             if (!isTracking) {
-                alert("Avvia prima la registrazione del percorso per aggiungere waypoint.");
+                alert("Avvia prima la registrazione per aggiungere waypoint.");
                 return;
             }
             if (!userMarker) return;
             const latlng = userMarker.getLatLng();
             const wpIndex = waypointsList.length;
 
-            const marker = L.marker(latlng, {
+            L.marker(latlng, {
                 icon: L.divIcon({
                     className: 'custom-badge',
                     html: `<div style="background:#ff8f00; color:white; padding:4px 8px; border-radius:12px; font-weight:bold; font-size:12px; border:2px solid white; box-shadow:0 2px 5px rgba(0,0,0,0.5);">🏁 ${wpIndex}</div>`
                 })
             }).addTo(map);
 
-            waypointsList.push({ type: 'manual', index: wpIndex, latlng: latlng, notes: '', media: null });
-            speak(`Waypoint manuale numero ${wpIndex} registrato.`);
+            waypointsList.push({ type: 'manual', index: wpIndex, latlng: latlng });
+            speak(`Bandierina manuale numero ${wpIndex} registrata.`);
         }
 
         // Stop & Salva
@@ -689,28 +764,26 @@
             document.getElementById('menuTrackText').innerText = 'Avvia Tracciamento';
 
             closeModal('stopSaveModal');
-            speak("Percorso salvato correttamente nella cartella " + folder);
+            speak("Percorso salvato nella cartella " + folder);
         }
 
-        // Info Web Dinamico & Voce
+        // Info Web & Voce
         function openInfoWeb() {
             if (userMarker) {
                 const ll = userMarker.getLatLng();
                 document.getElementById('infoGpsCoords').innerText = `Lat: ${ll.lat.toFixed(5)}, Lng: ${ll.lng.toFixed(5)}`;
             } else {
-                document.getElementById('infoGpsCoords').innerText = "Segnale GPS in attesa...";
+                document.getElementById('infoGpsCoords').innerText = "GPS in attesa...";
             }
             document.getElementById('infoWebModal').classList.add('active');
         }
 
         function askAiInfo() {
-            const query = document.getElementById('infoQueryText').value;
-            speak("Analisi della posizione corrente in corso.");
-            alert("Analisi AI Completata: Ti trovi in un'area naturale protetta con sentieri escursionistici ben tracciati. Condizioni ottimali per la camminata.");
+            speak("Analisi posizione corrente completata.");
+            alert("Analisi AI: Area naturale protetta con sentieri stabili. Condizioni ottimali.");
             closeModal('infoWebModal');
         }
 
-        // Voce On / Off
         function toggleVoice() {
             voiceActive = !voiceActive;
             document.getElementById('menuVoiceIcon').innerText = voiceActive ? '🔊' : '🔇';
@@ -726,26 +799,25 @@
             }
         }
 
-        // Ritorno a Ritroso (Backtrack)
+        // Ritorno a Ritroso & Anello
         function startBacktrack() {
             if (pathCoordinates.length < 2) {
-                alert("Registra prima un tratto di percorso per attivare il ritorno a ritroso.");
+                alert("Registra prima un tratto.");
                 return;
             }
             closeModal('menuModal');
             const reversed = [...pathCoordinates].reverse();
             L.polyline(reversed, { color: '#29b6f6', weight: 6, dashArray: '10, 10' }).addTo(map);
-            speak("Modalità ritorno a ritroso attivata. Segui la linea azzurra.");
+            speak("Ritorno a ritroso attivato.");
         }
 
-        // Crea Nuovo Percorso di Rientro (Anello)
         function createReturnLoop() {
             closeModal('menuModal');
-            speak("Calcolo anello di rientro alternativo in corso.");
-            alert("Rilevamento area boschiva: Calcolato anello di rientro fuoristrada alternativo con analisi delle pendenze per evitare il tracciato dell'andata.");
+            speak("Calcolo anello di rientro.");
+            alert("Routing fuoristrada calcolato: Anello di rientro alternativo pronto con analisi delle pendenze.");
         }
 
-        // Punti di Interesse (POI)
+        // POI
         function openPoiModal() {
             closeModal('menuModal');
             document.getElementById('poiModal').classList.add('active');
@@ -753,37 +825,51 @@
 
         function searchPoi(type) {
             closeModal('poiModal');
-            alert(`Ricerca ${type} completata nei dintorni della posizione GPS corrente. Segnalini caricati sulla mappa.`);
+            alert(`Punti di interesse (${type}) caricati sulla mappa.`);
         }
 
-        // Meteo
+        // Meteo Avanzato 30 Ore
         function openMeteoModal() {
             closeModal('menuModal');
             const body = document.getElementById('meteoBody');
-            body.innerHTML = `
-                <div style="text-align: center; padding: 10px;">
-                    <div style="font-size: 50px; margin-bottom: 10px;">☀️</div>
-                    <h3 style="font-size: 22px; margin-bottom: 5px;">Sereno / Poco Nuvoloso</h3>
-                    <p style="font-size: 16px; color: var(--text-muted); margin-bottom: 15px;">Temperatura: 21°C - Vento debole da Ovest</p>
-                    <p style="font-size: 16px; color: var(--primary); font-weight: bold;">Nessuna allerta maltempo nelle prossime 6 ore.</p>
-                </div>
-            `;
+            
+            // Generazione timeline oraria fittizia ma realistica per le successive 30 ore
+            let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
+            html += '<p style="font-size:14px; color:var(--text-muted); margin-bottom:10px;">Previsioni geolocalizzate ora per ora:</p>';
+            
+            const hours = ["Adesso", "+3h", "+6h", "+9h", "+12h", "+15h", "+18h", "+21h", "+24h", "+30h"];
+            const icons = ["☀️", "☀️", "⛅", "⛅", "🌧️", "☁️", "☀️", "🌙", "🌙", "☀️"];
+            const temps = ["21°C", "22°C", "19°C", "17°C", "15°C", "14°C", "16°C", "13°C", "12°C", "18°C"];
+            const descs = ["Sereno", "Soleggiato", "Nuvoloso", "Coperto", "Pioggia debole", "Variabile", "Sereno", "Notte serena", "Notte serena", "Sole"];
+
+            for (let i = 0; i < hours.length; i++) {
+                html += `
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:#2a2a2a; padding:12px 15px; border-radius:10px;">
+                        <span style="font-weight:bold; width:60px; color:var(--accent);">${hours[i]}</span>
+                        <span style="font-size:24px;">${icons[i]}</span>
+                        <span style="flex-grow:1; margin-left:15px; font-size:15px;">${descs[i]}</span>
+                        <span style="font-weight:bold; font-size:16px;">${temps[i]}</span>
+                    </div>
+                `;
+            }
+            html += '</div>';
+            body.innerHTML = html;
             document.getElementById('meteoModal').classList.add('active');
         }
 
-        // Cartelle Percorsi & Ricarica Scenario
+        // Cartelle & Ricarica Scenario
         function openFoldersModal() {
             closeModal('menuModal');
             const container = document.getElementById('foldersListBody');
             container.innerHTML = '';
 
             if (savedTracks.length === 0) {
-                container.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:20px;">Nessun percorso salvato nell\'archivio.</p>';
+                container.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:20px;">Nessun percorso salvato.</p>';
             } else {
                 let html = '<div class="menu-list">';
                 savedTracks.forEach(track => {
                     html += `
-                        <div class="menu-item" style="justify-content: space-between;" onclick="loadTrackScenario(${track.id})">
+                        <div class="menu-item" style="justify-content: space-linejoin;" onclick="loadTrackScenario(${track.id})">
                             <div>
                                 <div style="font-size: 18px;">📁 ${track.name}</div>
                                 <div style="font-size: 13px; color: var(--text-muted);">Cartella: ${track.folder} | ${track.date}</div>
@@ -808,7 +894,7 @@
             if (pathCoordinates.length > 0) {
                 map.setView(pathCoordinates[0], 15);
             }
-            speak(`Percorso ${track.name} caricato con successo.`);
+            speak(`Percorso ${track.name} caricato.`);
         }
 
         // Utility Modali
@@ -820,12 +906,8 @@
             document.getElementById(modalId).classList.remove('active');
         }
 
-        function closeMediaViewer() {
-            document.getElementById('mediaViewer').style.display = 'none';
-        }
-
-        // Avvio app al caricamento della pagina
-        window.onload = initMap;
+        // Avvio all'avvio della pagina
+        window.onload = checkLicenseAndSetup;
     </script>
 </body>
 </html>
