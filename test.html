@@ -41,7 +41,7 @@
             z-index: 1;
         }
 
-        /* Plancia essenziale in BASSO: tasti più compatti ma con testi grandi e leggibili */
+        /* Plancia essenziale in BASSO: tasti compatti, testi chiari e leggibili */
         .control-panel {
             position: absolute;
             bottom: 15px;
@@ -73,7 +73,7 @@
             padding: 10px 8px;
             border-radius: 8px;
             font-weight: 700;
-            font-size: 13px; /* Testo chiaro e visibile */
+            font-size: 13px;
             cursor: pointer;
             transition: transform 0.1s;
             display: flex;
@@ -140,6 +140,39 @@
             font-size: 17px;
         }
 
+        /* Campi di input personalizzati per il salvataggio file */
+        .input-group {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .input-group label {
+            font-size: 13px;
+            color: #b0bec5;
+        }
+
+        .input-group input, .input-group select {
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #444;
+            background: #212121;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .save-btn {
+            background-color: #2e7d32;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
         /* Griglia dei 13 tasti all'interno del menu */
         .menu-grid {
             display: grid;
@@ -177,7 +210,7 @@
     <!-- Mappa Leaflet -->
     <div id="map"></div>
 
-    <!-- Modale Unica per Guide e Menu dei 13 Comandi -->
+    <!-- Modale Unica per Guide e Menu -->
     <div id="modalBox" class="modal-box">
         <div class="modal-title">
             <span id="modalTitleText">SentieroVivo</span>
@@ -209,7 +242,7 @@
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Inizializzazione della mappa (Centrata su Livorno di default)
+        // Inizializzazione della mappa (Centrata su Livorno)
         const map = L.map('map', { zoomControl: false }).setView([43.5485, 10.3106], 15);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -219,17 +252,15 @@
 
         L.control.zoom({ position: 'topright' }).addTo(map);
 
-        let isTracking = false;
+        let trackingState = 'INACTIVE'; // INACTIVE, RECORDING, PAUSED
         let waypointCount = 0;
         let waypointsList = [];
         let currentPositionMarker = null;
         let accuracyCircle = null;
         let trackLine = L.polyline([], { color: '#2e7d32', weight: 5, opacity: 0.85 }).addTo(map);
         
-        // Stato audio (Gestione tasto 13: Voce ON / OFF)
         let audioEnabled = true;
 
-        // Sintesi Vocale con controllo audio ON/OFF
         function speakText(text) {
             if (!audioEnabled || !('speechSynthesis' in window)) return;
             window.speechSynthesis.cancel();
@@ -252,14 +283,14 @@
             window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
         }
 
-        // Tasto Sinistra: Info Web & Guida Territoriale
+        // Info Web
         function triggerWebInfo() {
             const infoText = "Analisi della posizione corrente: ti trovi in un'area collinare protetta. A circa 800 metri verso nord si sviluppa un sentiero panoramico con vegetazione di macchia mediterranea e lecci.";
             showModal("Guida Territoriale & Info Web", infoText);
             speakText("Ti trovi in area protetta. A ottocento metri a nord si sviluppa un sentiero panoramico.");
         }
 
-        // Tasto Centro: Waypoint Manuale (Filo di Arianna)
+        // Waypoint Manuale
         function markManualWaypoint() {
             waypointCount++;
             document.getElementById('wp-counter').innerText = waypointCount;
@@ -267,11 +298,7 @@
 
             const latlng = currentPositionMarker ? currentPositionMarker.getLatLng() : map.getCenter();
             const marker = L.circleMarker(latlng, {
-                radius: 8,
-                color: '#fff',
-                fillColor: '#ff8f00',
-                fillOpacity: 1,
-                weight: 2
+                radius: 8, color: '#fff', fillColor: '#ff8f00', fillOpacity: 1, weight: 2
             }).addTo(map);
 
             marker.bindPopup(`<b>Waypoint Manuale #${waypointCount}</b><br>Boa di sicurezza registrata.`);
@@ -280,25 +307,26 @@
             speakText(`Waypoint numero ${waypointCount} registrato.`);
         }
 
-        // Tasto Destra: Apertura Menu dei 13 Comandi
+        // Apertura Menu dei 13 Comandi (Con tasto Pausa e Stop & Salva dedicati)
         function openCommandMenu() {
-            let audioStatusText = audioEnabled ? "🔊 Voce: ATTIVA (Clicca per disattivare)" : "🔇 Voce: DISATTIVATA (Solo testo)";
+            let audioStatusText = audioEnabled ? "🔊 Voce: ATTIVA" : "🔇 Voce: DISATTIVATA";
+            let pauseResumeText = trackingState === 'PAUSED' ? "▶ Riprendi Registrazione" : "⏸ Pausa Percorso";
             
             let menuHTML = `
                 <p>Seleziona una funzione:</p>
                 <div class="menu-grid">
                     <button class="menu-grid-btn" onclick="runMenuAction('Avvia Percorso')">▶ 1. Avvia Tracciamento</button>
-                    <button class="menu-grid-btn" onclick="runMenuAction('Stop & Salva')">⏹ 2. Stop & Salva</button>
-                    <button class="menu-grid-btn" onclick="runMenuAction('Ritorno a Ritroso')">↩ 3. Ritorno (Backtrack)</button>
-                    <button class="menu-grid-btn" onclick="runMenuAction('Nuovo Anello')">🔄 4. Calcola Anello</button>
-                    <button class="menu-grid-btn" onclick="runMenuAction('Cerca Fontane POI')">💧 5. Cerca Acqua / POI</button>
-                    <button class="menu-grid-btn" onclick="runMenuAction('Esplora Sentiero')">🔍 6. Predici Sentiero</button>
-                    <button class="menu-grid-btn" onclick="runMenuAction('Gestione Cartelle')">📁 7. Cartelle Percorsi</button>
-                    <button class="menu-grid-btn" onclick="runMenuAction('Esportazione GPX')">💾 8. Esporta GPX</button>
-                    <button class="menu-grid-btn" onclick="runMenuAction('Note Vocali')">🎙️ 9. Registro Audio</button>
-                    <button class="menu-grid-btn" onclick="runMenuAction('Galleria Foto')">📷 10. Foto Waypoint</button>
-                    <button class="menu-grid-btn" onclick="runMenuAction('Stato GPS & Offline')">📶 11. Diagnostica GPS</button>
-                    <button class="menu-grid-btn" onclick="runMenuAction('Impostazioni Voce')">⚙️ 12. Impostazioni</button>
+                    <button class="menu-grid-btn" onclick="runMenuAction('Pausa Percorso')">${pauseResumeText}</button>
+                    <button class="menu-grid-btn" onclick="runMenuAction('Stop & Salva')">⏹ 3. Stop & Salva (Cartella)</button>
+                    <button class="menu-grid-btn" onclick="runMenuAction('Ritorno a Ritroso')">↩ 4. Ritorno (Backtrack)</button>
+                    <button class="menu-grid-btn" onclick="runMenuAction('Nuovo Anello')">🔄 5. Calcola Anello</button>
+                    <button class="menu-grid-btn" onclick="runMenuAction('Cerca Fontane POI')">💧 6. Cerca Acqua / POI</button>
+                    <button class="menu-grid-btn" onclick="runMenuAction('Esplora Sentiero')">🔍 7. Predici Sentiero</button>
+                    <button class="menu-grid-btn" onclick="runMenuAction('Gestione Cartelle')">📁 8. Cartelle Percorsi</button>
+                    <button class="menu-grid-btn" onclick="runMenuAction('Esportazione GPX')">💾 9. Esporta GPX</button>
+                    <button class="menu-grid-btn" onclick="runMenuAction('Note Vocali')">🎙️ 10. Registro Audio</button>
+                    <button class="menu-grid-btn" onclick="runMenuAction('Galleria Foto')">📷 11. Foto Waypoint</button>
+                    <button class="menu-grid-btn" onclick="runMenuAction('Stato GPS & Offline')">📶 12. Diagnostica GPS</button>
                     <button class="menu-grid-btn" style="grid-column: span 2; background: #004d40;" onclick="toggleAudioVoice()">🗣️ 13. ${audioStatusText}</button>
                 </div>
             `;
@@ -306,7 +334,6 @@
             speakText("Menu comandi aperto.");
         }
 
-        // Funzione per attivare/disattivare la voce al volo (13° tasto)
         function toggleAudioVoice() {
             audioEnabled = !audioEnabled;
             if (!audioEnabled) {
@@ -314,42 +341,97 @@
             } else {
                 speakText("Sintesi vocale riattivata.");
             }
-            openCommandMenu(); // Aggiorna il menu con lo stato corrente
+            openCommandMenu();
         }
 
-        // Gestione delle azioni del menu
+        // Gestione delle azioni del menu (Con logica di Stop & Salva con cartelle e Pausa)
         function runMenuAction(actionName) {
-            let msg = "";
             if (actionName.includes('Avvia')) {
-                isTracking = true;
-                document.getElementById('track-status').innerText = 'Registrazione';
+                trackingState = 'RECORDING';
+                document.getElementById('track-status').innerText = 'In Corso';
                 document.getElementById('track-status').style.color = '#66bb6a';
-                msg = "Registrazione del percorso avviata. Il Filo di Arianna è attivo.";
-                speakText(msg);
-            } else if (actionName.includes('Stop')) {
-                isTracking = false;
-                document.getElementById('track-status').innerText = 'Salvato';
-                document.getElementById('track-status').style.color = '#ff8f00';
-                msg = "Percorso interrotto e salvato correttamente.";
-                speakText(msg);
-            } else if (actionName.includes('Ritorno')) {
-                msg = "Modalità Ritorno a Ritroso attivata: segui i waypoint inversi per rientrare.";
-                speakText(msg);
-            } else if (actionName.includes('Anello')) {
-                msg = "Calcolo del percorso di rientro ad anello verso la base avviato.";
-                speakText(msg);
-            } else if (actionName.includes('Fontane')) {
-                msg = "Ricerca fontane d'acqua potabile e rifugi nelle vicinanze in corso.";
-                speakText(msg);
-            } else if (actionName.includes('Esplora')) {
-                msg = "Analisi del sentiero in corso: verifica della destinazione finale.";
-                speakText(msg);
-            } else {
-                msg = `Funzione <b>${actionName}</b> selezionata e pronta all'uso.`;
+                speakText("Registrazione del percorso avviata.");
+                closeModal();
+                showModal("Stato Tracciamento", "Registrazione in corso...");
+            } 
+            else if (actionName.includes('Pausa') || actionName.includes('Riprendi')) {
+                if (trackingState === 'RECORDING') {
+                    trackingState = 'PAUSED';
+                    document.getElementById('track-status').innerText = 'In Pausa';
+                    document.getElementById('track-status').style.color = '#ff8f00';
+                    speakText("Registrazione in pausa.");
+                    showModal("Stato Tracciamento", "Registrazione messa in pausa.");
+                } else if (trackingState === 'PAUSED') {
+                    trackingState = 'RECORDING';
+                    document.getElementById('track-status').innerText = 'In Corso';
+                    document.getElementById('track-status').style.color = '#66bb6a';
+                    speakText("Registrazione ripresa.");
+                    showModal("Stato Tracciamento", "Registrazione ripresa.");
+                } else {
+                    showModal("Avviso", "Nessun percorso attivo da mettere in pausa. Avvia prima la registrazione.");
+                }
+            }
+            else if (actionName.includes('Stop & Salva')) {
+                // Apre il pannello di salvataggio personalizzato con scelta cartella e nome
+                openSaveDialog();
+            } 
+            else {
                 speakText(`Attivato ${actionName}`);
+                showModal("Esecuzione Comando", `Funzione <b>${actionName}</b> selezionata.`);
+            }
+        }
+
+        // Finestra dedicata al salvataggio (Scegli cartella o scrivi nome)
+        function openSaveDialog() {
+            trackingState = 'INACTIVE';
+            document.getElementById('track-status').innerText = 'Salvato';
+            document.getElementById('track-status').style.color = '#0277bd';
+            speakText("Inserisci il nome del percorso e seleziona la cartella di destinazione.");
+
+            let saveHTML = `
+                <p>Termina escursione e archivia il tracciato:</p>
+                <div class="input-group">
+                    <label>Nome del Percorso:</label>
+                    <input type="text" id="trackNameInput" value="Escursione_${new Date().toLocaleDateString().replace(/\//g, '-')}" />
+                </div>
+                <div class="input-group">
+                    <label>Seleziona Cartella di Destinazione:</label>
+                    <select id="folderSelect">
+                        <option value="Trekking_Montagna">Trekking Montagna</option>
+                        <option value="Passeggiate_Collina">Passeggiate Collina</option>
+                        <option value="Uscite_Urbane">Uscite Urbane</option>
+                        <option value="Nuova_Cartella">+ Crea Nuova Cartella...</option>
+                    </select>
+                </div>
+                <div class="input-group" id="newFolderBox" style="display:none;">
+                    <label>Nome Nuova Cartella:</label>
+                    <input type="text" id="newFolderNameInput" placeholder="Es. Ferie_Toscana_2026" />
+                </div>
+                <button class="save-btn" onclick="confirmSaveTrack()">💾 Conferma e Salva sul Telefono</button>
+            `;
+            showModal("Salvataggio Percorso", saveHTML);
+
+            // Gestione visibilità input nuova cartella
+            setTimeout(() => {
+                const select = document.getElementById('folderSelect');
+                if (select) {
+                    select.onchange = (e) => {
+                        document.getElementById('newFolderBox').style.display = (e.target.value === 'Nuova_Cartella') ? 'flex' : 'none';
+                    };
+                }
+            }, 100);
+        }
+
+        function confirmSaveTrack() {
+            const trackName = document.getElementById('trackNameInput').value || 'Percorso_Senza_Nome';
+            let folder = document.getElementById('folderSelect').value;
+            if (folder === 'Nuova_Cartella') {
+                folder = document.getElementById('newFolderNameInput.value') || 'Cartella_Personalizzata';
             }
 
-            showModal("Esecuzione Comando", msg);
+            speakText(`Percorso salvato con successo nella cartella ${folder}.`);
+            closeModal();
+            showModal("Salvataggio Completato", `Il tracciato <b>${trackName}</b> è stato archiviato correttamente nella cartella <b>${folder}</b>.`);
         }
 
         function showModal(title, htmlContent) {
@@ -362,7 +444,7 @@
             document.getElementById('modalBox').style.display = 'none';
         }
 
-        // Geolocation reale e visibile (Pallino blu + cerchio di precisione)
+        // Geolocation reale e visibile
         if (navigator.geolocation) {
             navigator.geolocation.watchPosition(position => {
                 const lat = position.coords.latitude;
@@ -374,39 +456,29 @@
                 document.getElementById('gps-status').style.color = "#66bb6a";
 
                 if (!currentPositionMarker) {
-                    // Crea il marker della posizione (il pallino blu visibile)
                     currentPositionMarker = L.circleMarker(latlng, {
-                        radius: 9,
-                        color: '#ffffff',
-                        fillColor: '#2196f3',
-                        fillOpacity: 1,
-                        weight: 3
+                        radius: 9, color: '#ffffff', fillColor: '#2196f3', fillOpacity: 1, weight: 3
                     }).addTo(map).bindPopup("La tua posizione attuale");
 
                     accuracyCircle = L.circle(latlng, {
-                        radius: accuracy,
-                        color: '#2196f3',
-                        fillColor: '#2196f3',
-                        fillOpacity: 0.15,
-                        weight: 1
+                        radius: accuracy, color: '#2196f3', fillColor: '#2196f3', fillOpacity: 0.15, weight: 1
                     }).addTo(map);
 
-                    map.setView(latlng, 16); // Centra la mappa sulla posizione reale
+                    map.setView(latlng, 16);
                 } else {
                     currentPositionMarker.setLatLng(latlng);
                     accuracyCircle.setLatLng(latlng);
                     accuracyCircle.setRadius(accuracy);
                 }
 
-                if (isTracking) {
+                if (trackingState === 'RECORDING') {
                     trackLine.addLatLng(latlng);
                 }
             }, error => {
-                console.warn("GPS non disponibile o permessi negati.");
+                console.warn("GPS non disponibile.");
                 document.getElementById('gps-status').innerText = "Simulato";
                 document.getElementById('gps-status').style.color = "#ff8f00";
                 
-                // Fallback di posizione fissa se il GPS non risponde subito sul browser
                 const fallbackLatLng = [43.5485, 10.3106];
                 if (!currentPositionMarker) {
                     currentPositionMarker = L.circleMarker(fallbackLatLng, {
