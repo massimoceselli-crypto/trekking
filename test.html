@@ -44,7 +44,7 @@
             z-index: 1;
         }
 
-        /* Plancia in basso */
+        /* Plancia in basso a 3 Tasti */
         .bottom-bar {
             position: absolute;
             bottom: 0;
@@ -57,18 +57,18 @@
             justify-content: space-around;
             align-items: center;
             z-index: 1000;
-            padding: 0 5px;
+            padding: 0 10px;
         }
 
         .nav-btn {
             flex: 1;
             height: 55px;
-            margin: 0 3px;
+            margin: 0 5px;
             background-color: var(--primary);
             color: var(--text-main);
             border: none;
             border-radius: 12px;
-            font-size: 15px;
+            font-size: 16px;
             font-weight: bold;
             display: flex;
             flex-direction: column;
@@ -79,28 +79,49 @@
             transition: background 0.2s;
         }
 
-        .nav-btn.sos-btn {
+        .nav-btn:active {
+            background-color: var(--primary-hover);
+            transform: scale(0.97);
+        }
+
+        .nav-btn span.icon {
+            font-size: 20px;
+            margin-bottom: 2px;
+        }
+
+        .nav-btn span.label {
+            font-size: 13px;
+        }
+
+        /* Tasto S.O.S. in alto a destra */
+        .top-sos-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
             background-color: var(--danger);
+            color: white;
+            border: 2px solid #ffffff;
+            padding: 10px 18px;
+            border-radius: 25px;
+            z-index: 1500;
+            font-size: 16px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(211, 47, 47, 0.6);
+            cursor: pointer;
             animation: sosPulse 2s infinite;
         }
 
         @keyframes sosPulse {
             0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.7); }
-            70% { transform: scale(1.03); box-shadow: 0 0 0 10px rgba(211, 47, 47, 0); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(211, 47, 47, 0); }
             100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(211, 47, 47, 0); }
         }
 
-        .nav-btn:active {
-            transform: scale(0.97);
-        }
-
-        .nav-btn span.icon {
-            font-size: 18px;
-            margin-bottom: 2px;
-        }
-
-        .nav-btn span.label {
-            font-size: 12px;
+        .top-sos-btn:active {
+            transform: scale(0.95);
         }
 
         /* Pannelli modali e schermate di blocco */
@@ -267,7 +288,7 @@
             background-color: var(--danger);
         }
 
-        /* Badge di stato GPS */
+        /* Badge di stato GPS in alto al centro */
         .status-badge {
             position: absolute;
             top: 15px;
@@ -278,7 +299,7 @@
             padding: 8px 16px;
             border-radius: 20px;
             z-index: 1000;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: bold;
             display: flex;
             align-items: center;
@@ -287,8 +308,8 @@
         }
 
         .status-dot {
-            width: 12px;
-            height: 12px;
+            width: 10px;
+            height: 10px;
             background-color: var(--danger);
             border-radius: 50%;
         }
@@ -381,21 +402,22 @@
         </div>
     </div>
 
-    <!-- Badge di Stato GPS -->
+    <!-- Tasto S.O.S. in Alto a Destra -->
+    <button class="top-sos-btn" onclick="triggerSosEmergency()">
+        <span>🆘</span> S.O.S.
+    </button>
+
+    <!-- Badge di Stato GPS in Alto al Centro -->
     <div class="status-badge" id="statusBadge">
         <div class="status-dot" id="statusDot"></div>
-        <span id="statusText">Pronto - GPS Inattivo</span>
+        <span id="statusText">GPS Inattivo</span>
     </div>
 
     <!-- Mappa Leaflet -->
     <div id="map"></div>
 
-    <!-- Plancia in Basso a 4 Tasti (Con S.O.S. in evidenza) -->
+    <!-- Plancia in Basso a 3 Tasti Classica -->
     <div class="bottom-bar">
-        <button class="nav-btn sos-btn" onclick="triggerSosEmergency()">
-            <span class="icon">🆘</span>
-            <span class="label">S.O.S.</span>
-        </button>
         <button class="nav-btn" onclick="openInfoWeb()">
             <span class="icon">ℹ️</span>
             <span class="label">Info Web</span>
@@ -419,6 +441,10 @@
             </div>
             <div class="sheet-body">
                 <div class="menu-list">
+                    <div class="menu-item" onclick="openSosEditModal()">
+                        <span class="icon">🆘</span>
+                        <span>Modifica Contatti S.O.S.</span>
+                    </div>
                     <div class="menu-item" onclick="toggleTracking()">
                         <span class="icon" id="menuTrackIcon">▶️</span>
                         <span id="menuTrackText">Avvia Tracciamento</span>
@@ -646,6 +672,10 @@
         function checkSosWizard() {
             const sosDone = localStorage.getItem('sentierovivo_sos_configured');
             if (!sosDone) {
+                document.getElementById('sosUserName').value = '';
+                document.getElementById('sosContact1').value = '';
+                document.getElementById('sosContact2').value = '';
+                document.getElementById('sosContact3').value = '';
                 document.getElementById('sosWizardModal').classList.add('active');
             } else {
                 checkFirstRunWizard();
@@ -671,6 +701,16 @@
 
             document.getElementById('sosWizardModal').classList.remove('active');
             checkFirstRunWizard();
+        }
+
+        // Funzione per modificare i contatti S.O.S. dal Menu
+        function openSosEditModal() {
+            closeModal('menuModal');
+            document.getElementById('sosUserName').value = localStorage.getItem('sentierovivo_sos_name') || '';
+            document.getElementById('sosContact1').value = localStorage.getItem('sentierovivo_sos_c1') || '';
+            document.getElementById('sosContact2').value = localStorage.getItem('sentierovivo_sos_c2') || '';
+            document.getElementById('sosContact3').value = localStorage.getItem('sentierovivo_sos_c3') || '';
+            document.getElementById('sosWizardModal').classList.add('active');
         }
 
         function checkFirstRunWizard() {
@@ -709,9 +749,6 @@
             const userName = localStorage.getItem('sentierovivo_sos_name') || 'Escursionista';
             const coordsText = `Lat: ${currentLat.toFixed(5)}, Lng: ${currentLng.toFixed(5)}`;
             const message = encodeURIComponent(`SONO ${userName.toUpperCase()}. HO BISOGNO DI AIUTO! Coordinate: ${coordsText}`);
-            
-            const c1 = localStorage.getItem('sentierovivo_sos_c1') || '';
-            // Apre l'app SMS predefinita con il messaggio pronto
             window.location.href = `sms:?body=${message}`;
         }
 
