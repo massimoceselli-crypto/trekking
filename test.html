@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SentieroVivo - Navigazione Escursionistica</title>
+    <title>SentieroVivo - Navigazione Escursionistica & S.O.S.</title>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <style>
@@ -57,18 +57,18 @@
             justify-content: space-around;
             align-items: center;
             z-index: 1000;
-            padding: 0 10px;
+            padding: 0 5px;
         }
 
         .nav-btn {
             flex: 1;
             height: 55px;
-            margin: 0 5px;
+            margin: 0 3px;
             background-color: var(--primary);
             color: var(--text-main);
             border: none;
             border-radius: 12px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
             display: flex;
             flex-direction: column;
@@ -79,18 +79,28 @@
             transition: background 0.2s;
         }
 
+        .nav-btn.sos-btn {
+            background-color: var(--danger);
+            animation: sosPulse 2s infinite;
+        }
+
+        @keyframes sosPulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.7); }
+            70% { transform: scale(1.03); box-shadow: 0 0 0 10px rgba(211, 47, 47, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(211, 47, 47, 0); }
+        }
+
         .nav-btn:active {
-            background-color: var(--primary-hover);
             transform: scale(0.97);
         }
 
         .nav-btn span.icon {
-            font-size: 20px;
+            font-size: 18px;
             margin-bottom: 2px;
         }
 
         .nav-btn span.label {
-            font-size: 13px;
+            font-size: 12px;
         }
 
         /* Pannelli modali e schermate di blocco */
@@ -137,6 +147,13 @@
             border: 2px solid var(--primary);
             padding: 25px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .center-box.sos-urgent {
+            border: 3px solid var(--danger);
+            background-color: #1a0505;
         }
 
         @keyframes slideUp {
@@ -206,25 +223,25 @@
 
         /* Form ed elementi interattivi */
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .form-label {
             display: block;
-            font-size: 16px;
-            margin-bottom: 8px;
+            font-size: 15px;
+            margin-bottom: 6px;
             color: var(--text-muted);
             font-weight: bold;
         }
 
         .form-input {
             width: 100%;
-            padding: 14px;
+            padding: 12px;
             background-color: #2a2a2a;
             border: 2px solid var(--border);
             border-radius: 10px;
             color: var(--text-main);
-            font-size: 18px;
+            font-size: 16px;
         }
 
         .form-input:focus {
@@ -304,10 +321,37 @@
         </div>
     </div>
 
-    <!-- WIZARD PRIMO AVVIO: CREAZIONE CARTELLA PRINCIPALE -->
+    <!-- WIZARD S.O.S. OBBLIGATORIO AL PRIMO AVVIO -->
+    <div class="modal-overlay center-mode" id="sosWizardModal" style="z-index: 2500;">
+        <div class="center-box sos-urgent">
+            <h2 style="font-size: 22px; margin-bottom: 10px; color: var(--danger); text-align: center;">🚨 CONFIGURAZIONE EMERGENZA S.O.S.</h2>
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 15px; text-align: center;">
+                PRIMA DI TUTTO: Inserisci il tuo nome e fino a 3 numeri di familiari o amici da chiamare in caso di soccorso.
+            </p>
+            <div class="form-group">
+                <label class="form-label">Il Tuo Nome e Cognome:</label>
+                <input type="text" class="form-input" id="sosUserName" placeholder="Es. Massimo Ceselli">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Contatto Emergenza 1:</label>
+                <input type="tel" class="form-input" id="sosContact1" placeholder="Nome e Numero (es. Claudia 338...)">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Contatto Emergenza 2 (Opzionale):</label>
+                <input type="tel" class="form-input" id="sosContact2" placeholder="Nome e Numero...">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Contatto Emergenza 3 (Opzionale):</label>
+                <input type="tel" class="form-input" id="sosContact3" placeholder="Nome e Numero...">
+            </div>
+            <button class="btn-action danger" onclick="completeSosWizard()">Salva Emergenza e Continua</button>
+        </div>
+    </div>
+
+    <!-- WIZARD CARTELLA (DOPO L'S.O.S.) -->
     <div class="modal-overlay center-mode" id="setupWizardModal">
         <div class="center-box">
-            <h2 style="font-size: 22px; margin-bottom: 15px; color: var(--primary);">Benvenuto in SentieroVivo</h2>
+            <h2 style="font-size: 22px; margin-bottom: 15px; color: var(--primary);">Cartella Percorsi</h2>
             <p style="font-size: 15px; color: var(--text-muted); margin-bottom: 20px;">
                 Tocca qui sotto per nominare o personalizzare la cartella principale in cui archiviare i tuoi percorsi.
             </p>
@@ -316,6 +360,24 @@
                 <input type="text" class="form-input" id="setupFolderName" value="Trekking">
             </div>
             <button class="btn-action" onclick="completeSetupWizard()">Conferma e Inizia</button>
+        </div>
+    </div>
+
+    <!-- MODALE ATTIVAZIONE S.O.S. D'EMERGENZA IN CAMPO -->
+    <div class="modal-overlay center-mode" id="sosActiveModal" style="z-index: 3000;">
+        <div class="center-box sos-urgent" style="text-align: center;">
+            <div style="font-size: 50px; margin-bottom: 10px;">🆘</div>
+            <h2 style="font-size: 24px; color: var(--danger); margin-bottom: 10px;">RICHIESTA SOCCORSO ATTIVA</h2>
+            <p id="sosCoordsDisplay" style="font-size: 15px; color: var(--text-main); margin-bottom: 15px; background: #2a1111; padding: 10px; border-radius: 8px;">
+                Rilevamento coordinate GPS in corso...
+            </p>
+            <div style="background: #251010; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: left;">
+                <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 5px;">Messaggio Pronto per gli Amici:</p>
+                <p id="sosMessageText" style="font-size: 16px; font-weight: bold; color: white; line-height: 1.4;"></p>
+            </div>
+            <a href="tel:112" class="btn-action danger" style="display: block; text-decoration: none; font-size: 20px; padding: 18px; margin-bottom: 12px;">📞 CHIAMA IL 112 SUBITO</a>
+            <button class="btn-action" onclick="sendSosMessages()" style="background-color: var(--accent); margin-bottom: 12px;">💬 Invia Messaggio ai Contatti</button>
+            <button class="btn-action" onclick="closeSosModal()" style="background-color: #444;">Annulla / Chiudi</button>
         </div>
     </div>
 
@@ -328,8 +390,12 @@
     <!-- Mappa Leaflet -->
     <div id="map"></div>
 
-    <!-- Plancia in Basso a 3 Tasti -->
+    <!-- Plancia in Basso a 4 Tasti (Con S.O.S. in evidenza) -->
     <div class="bottom-bar">
+        <button class="nav-btn sos-btn" onclick="triggerSosEmergency()">
+            <span class="icon">🆘</span>
+            <span class="label">S.O.S.</span>
+        </button>
         <button class="nav-btn" onclick="openInfoWeb()">
             <span class="icon">ℹ️</span>
             <span class="label">Info Web</span>
@@ -519,6 +585,8 @@
         let waypointsList = [];
         let savedTracks = JSON.parse(localStorage.getItem('sentierovivo_tracks') || '[]');
         let autoTimer = null;
+        let currentLat = 43.5485;
+        let currentLng = 10.3106;
 
         // Controllo Sicurezza & Licenza all'avvio
         function checkLicenseAndSetup() {
@@ -529,7 +597,7 @@
 
             if (isActivated) {
                 document.getElementById('licenseModal').classList.remove('active');
-                checkFirstRunWizard();
+                checkSosWizard();
                 return;
             }
 
@@ -558,7 +626,7 @@
                 const daysLeft = Math.ceil((trialDuration - elapsed) / (1000 * 60 * 60 * 24));
                 document.getElementById('licenseMsg').innerText = `Periodo di prova attivo (${daysLeft} giorni rimanenti). Inserisci il codice di sblocco se desideri attivarla definitivamente.`;
                 document.getElementById('licenseModal').classList.remove('active');
-                checkFirstRunWizard();
+                checkSosWizard();
             }
         }
 
@@ -568,10 +636,41 @@
                 localStorage.setItem('sentierovivo_activated', 'true');
                 document.getElementById('licenseModal').classList.remove('active');
                 alert("Licenza attivata con successo!");
-                checkFirstRunWizard();
+                checkSosWizard();
             } else {
                 alert("Codice chiave non valido. Riprova.");
             }
+        }
+
+        // Controllo S.O.S. al primo avvio (PRIMA DI TUTTO)
+        function checkSosWizard() {
+            const sosDone = localStorage.getItem('sentierovivo_sos_configured');
+            if (!sosDone) {
+                document.getElementById('sosWizardModal').classList.add('active');
+            } else {
+                checkFirstRunWizard();
+            }
+        }
+
+        function completeSosWizard() {
+            const name = document.getElementById('sosUserName').value.trim();
+            const c1 = document.getElementById('sosContact1').value.trim();
+            const c2 = document.getElementById('sosContact2').value.trim();
+            const c3 = document.getElementById('sosContact3').value.trim();
+
+            if (!name || !c1) {
+                alert("Inserisci almeno il tuo nome e il primo contatto di emergenza.");
+                return;
+            }
+
+            localStorage.setItem('sentierovivo_sos_name', name);
+            localStorage.setItem('sentierovivo_sos_c1', c1);
+            localStorage.setItem('sentierovivo_sos_c2', c2);
+            localStorage.setItem('sentierovivo_sos_c3', c3);
+            localStorage.setItem('sentierovivo_sos_configured', 'true');
+
+            document.getElementById('sosWizardModal').classList.remove('active');
+            checkFirstRunWizard();
         }
 
         function checkFirstRunWizard() {
@@ -589,6 +688,35 @@
             localStorage.setItem('sentierovivo_setup_done', 'true');
             document.getElementById('setupWizardModal').classList.remove('active');
             initMap();
+        }
+
+        // Gestione Tasto S.O.S. di Emergenza sul campo
+        function triggerSosEmergency() {
+            const userName = localStorage.getItem('sentierovivo_sos_name') || 'Escursionista';
+            const coordsText = `Lat: ${currentLat.toFixed(5)}, Lng: ${currentLng.toFixed(5)}`;
+            const mapsLink = `https://maps.google.com/?q=${currentLat},${currentLng}`;
+
+            document.getElementById('sosCoordsDisplay').innerText = `Coordinate GPS: ${coordsText}`;
+            
+            const message = `SONO ${userName.toUpperCase()}. HO BISOGNO DI AIUTO E QUESTE SONO LE MIE COORDINATE GEOGRAFICHE: ${coordsText}. Link mappa: ${mapsLink}`;
+            document.getElementById('sosMessageText').innerText = message;
+            
+            document.getElementById('sosActiveModal').classList.add('active');
+            speak("Allarme S.O.S. attivato. Pronta la chiamata al centododici.");
+        }
+
+        function sendSosMessages() {
+            const userName = localStorage.getItem('sentierovivo_sos_name') || 'Escursionista';
+            const coordsText = `Lat: ${currentLat.toFixed(5)}, Lng: ${currentLng.toFixed(5)}`;
+            const message = encodeURIComponent(`SONO ${userName.toUpperCase()}. HO BISOGNO DI AIUTO! Coordinate: ${coordsText}`);
+            
+            const c1 = localStorage.getItem('sentierovivo_sos_c1') || '';
+            // Apre l'app SMS predefinita con il messaggio pronto
+            window.location.href = `sms:?body=${message}`;
+        }
+
+        function closeSosModal() {
+            document.getElementById('sosActiveModal').classList.remove('active');
         }
 
         // Inizializzazione Mappa
@@ -616,6 +744,9 @@
             const lng = position.coords.longitude;
             const accuracy = position.coords.accuracy;
             const latlng = [lat, lng];
+
+            currentLat = lat;
+            currentLng = lng;
 
             if (!userMarker) {
                 userMarker = L.circleMarker(latlng, {
@@ -765,12 +896,7 @@
 
         // Info Web, GPS & Microfono Nativo
         function openInfoWeb() {
-            if (userMarker) {
-                const ll = userMarker.getLatLng();
-                document.getElementById('infoGpsCoords').innerText = `Lat: ${ll.lat.toFixed(5)}, Lng: ${ll.lng.toFixed(5)}`;
-            } else {
-                document.getElementById('infoGpsCoords').innerText = "GPS in attesa...";
-            }
+            document.getElementById('infoGpsCoords').innerText = `Lat: ${currentLat.toFixed(5)}, Lng: ${currentLng.toFixed(5)}`;
             document.getElementById('infoWebModal').classList.add('active');
         }
 
