@@ -489,7 +489,7 @@
         </div>
     </div>
 
-    <!-- MODALE UNIFICATO: ASSISTENTE INFO & TERRITORIO (DETTAGLIATO E INTELLIGENTE) -->
+    <!-- MODALE UNIFICATO: ASSISTENTE INFO & TERRITORIO (CON ASCOLTO AUTOMATICO) -->
     <div class="modal-overlay" id="infoWebModal">
         <div class="sheet-container">
             <div class="sheet-header">
@@ -846,7 +846,7 @@
         }
 
         // ==========================================
-        // GESTIONE ASSISTENTE INFO E TERRITORIO REALE
+        // GESTIONE ASSISTENTE INFO E TERRITORIO REALE (CON ASCOLTO AUTOMATICO)
         // ==========================================
         function openInfoWeb() {
             document.getElementById('infoGpsCoords').innerText = `Lat: ${currentLat.toFixed(5)}, Lng: ${currentLng.toFixed(5)} (${gpsActive ? 'GPS Attivo' : 'GPS in attesa'})`;
@@ -869,10 +869,15 @@
             micBtn.style.backgroundColor = "var(--danger)";
 
             recognition.onresult = function(event) {
-                document.getElementById('infoQueryText').value = event.results[0][0].transcript;
+                const spokenText = event.results[0][0].transcript;
+                document.getElementById('infoQueryText').value = spokenText;
                 micBtn.innerText = "🎤 Avvia Ascolto";
                 micBtn.style.backgroundColor = "var(--accent)";
+                
+                // >>> AUTOMATISMO: AVVIA SUBITO L'INTERROGAZIONE ASSISTENTE <<<
+                askAiInfo();
             };
+
             recognition.onerror = recognition.onend = function() {
                 micBtn.innerText = "🎤 Avvia Ascolto";
                 micBtn.style.backgroundColor = "var(--accent)";
@@ -886,22 +891,24 @@
 
             let detailedAnswer = `📍 Posizione Rilevata: Lat ${currentLat.toFixed(4)}, Lng ${currentLng.toFixed(4)}\n\n`;
 
-            if (query.includes('notizie') || query.includes('luogo') || query.includes('zona') || query.includes('dove')) {
+            if (query.includes('notizie') || query.includes('luogo') || query.includes('zona') || query.includes('dove') || query.includes('questo')) {
                 detailedAnswer += `Rilevamento Area: Territorio collinare/montano toscano (Settore Livorno / Colline Livornesi).\n` +
                                   `• Sentieri principali vicini: Sentiero CAI 01 (Dorsale dei Monti Livornesi), Sentiero dell'Acqua e Tracciato Storico di Vicarello.\n` +
                                   `• Destinazioni finali: Giunzione con anello di Monte Info e Valle della Tora.\n` +
                                   `• Vegetazione prevalente: Macchia mediterranea mista a boschi di leccio e castagno. Condizioni di calpestio stabili.`;
-            } else if (query.includes('interesse') || query.includes('monastero') || query.includes('chiesa') || query.includes('punti')) {
+            } else if (query.includes('interesse') || query.includes('monastero') || query.includes('chiesa') || query.includes('punti') || query.includes('vicinanze')) {
                 detailedAnswer += `Punti di Interesse nelle vicinanze (Raggio 3km):\n` +
                                   `1. Eremo di Santa Maria alla Speciosa / Complesso storico di Vicarello.\n` +
                                   `2. Antiche fonti termali etrusco-romane di Vicarello.\n` +
-                                  `3. Punti panoramici sulla costa tirrondata e arcipelago.\n` +
+                                  `3. Punti panoramici sulla costa tirrenica e arcipelago.\n` +
                                   `4. Rifugi forestali di sosta lungo la dorsale CAI.`;
             } else if (query.includes('ore') || query.includes('tempo')) {
                 const now = new Date();
                 detailedAnswer += `Orario di sistema: Ore ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}. Copertura GPS e reti mobili attive.`;
-            } else {
+            } else if (query.length > 0) {
                 detailedAnswer += `Analisi per la richiesta "${query}": Area escursionistica protetta. I sentieri risultano percorribili in sicurezza. Si consiglia di mantenere la traccia principale e verificare l'orario di rientro prima del tramonto.`;
+            } else {
+                detailedAnswer += `Nessuna domanda inserita. Tocca "Avvia Ascolto" o scrivi una richiesta nel campo sopra per ricevere informazioni dettagliate.`;
             }
 
             document.getElementById('infoQueryText').value = detailedAnswer;
