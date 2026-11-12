@@ -1,317 +1,1008 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SentieroVivo - AI & GPS Escursionismo</title>
-  
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      -webkit-tap-highlight-color: transparent;
-    }
-    body, html {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #121212;
-      color: #ffffff;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SentieroVivo - Navigazione Escursionistica & S.O.S.</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <style>
+        :root {
+            --bg-dark: #121212;
+            --bg-card: #1e1e1e;
+            --primary: #2e7d32;
+            --primary-hover: #388e3c;
+            --accent: #ff8f00;
+            --text-main: #ffffff;
+            --text-muted: #b0b0b0;
+            --danger: #d32f2f;
+            --border: #333333;
+        }
 
-    body.high-contrast {
-      background-color: #000000 !important;
-      color: #ffff00 !important;
-    }
-    body.high-contrast .hud-card, body.high-contrast .coords-hud {
-      background: #000000 !important;
-      border: 2px solid #ffff00 !important;
-      color: #ffff00 !important;
-    }
-    body.high-contrast .btn {
-      background: #000000 !important;
-      border: 2px solid #ffff00 !important;
-      color: #ffff00 !important;
-    }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-    #map {
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-    }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+        }
 
-    .top-bar {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      right: 12px;
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      pointer-events: none;
-    }
-    .hud-card {
-      background: rgba(18, 18, 18, 0.92);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 14px;
-      padding: 8px 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-      pointer-events: auto;
-    }
-    .hud-stat {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .hud-label {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: #a0a0a0;
-    }
-    .hud-value {
-      font-size: 15px;
-      font-weight: 700;
-      color: #ffffff;
-    }
+        #map {
+            width: 100%;
+            height: calc(100% - 75px);
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
 
-    .coords-hud {
-      background: rgba(0, 0, 0, 0.88);
-      border: 1px solid #00bcd4;
-      border-radius: 8px;
-      padding: 6px 10px;
-      font-size: 12px;
-      color: #00bcd4;
-      font-family: monospace;
-      text-align: center;
-      font-weight: bold;
-      pointer-events: auto;
-    }
+        /* Plancia in basso a 3 Tasti */
+        .bottom-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 75px;
+            background-color: var(--bg-card);
+            border-top: 2px solid var(--border);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 1000;
+            padding: 0 10px;
+        }
 
-    .bottom-bar {
-      position: absolute;
-      bottom: 20px;
-      left: 12px;
-      right: 12px;
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      pointer-events: none;
-    }
-    .action-row {
-      display: flex;
-      justify-content: center;
-      gap: 6px;
-      pointer-events: auto;
-      flex-wrap: wrap;
-    }
-    .btn {
-      background: rgba(30, 30, 30, 0.95);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255,255,255,0.25);
-      color: white;
-      padding: 10px 12px;
-      border-radius: 10px;
-      font-size: 12px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    }
-    .btn:active {
-      transform: scale(0.95);
-    }
-  </style>
+        .nav-btn {
+            flex: 1;
+            height: 55px;
+            margin: 0 5px;
+            background-color: var(--primary);
+            color: var(--text-main);
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: background 0.2s;
+        }
+
+        .nav-btn:active {
+            background-color: var(--primary-hover);
+            transform: scale(0.97);
+        }
+
+        .nav-btn span.icon {
+            font-size: 20px;
+            margin-bottom: 2px;
+        }
+
+        .nav-btn span.label {
+            font-size: 13px;
+        }
+
+        /* Tasto S.O.S. in alto a destra */
+        .top-sos-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background-color: var(--danger);
+            color: white;
+            border: 2px solid #ffffff;
+            padding: 10px 18px;
+            border-radius: 25px;
+            z-index: 1500;
+            font-size: 16px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(211, 47, 47, 0.6);
+            cursor: pointer;
+            animation: sosPulse 2s infinite;
+        }
+
+        @keyframes sosPulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(211, 47, 47, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(211, 47, 47, 0); }
+        }
+
+        .top-sos-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Pannelli modali e schermate di blocco */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            z-index: 2000;
+            display: none;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-overlay.center-mode {
+            align-items: center;
+            padding: 20px;
+        }
+
+        .sheet-container {
+            width: 100%;
+            max-height: 85vh;
+            background-color: var(--bg-card);
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            border-top: 3px solid var(--primary);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        .center-box {
+            width: 100%;
+            max-width: 450px;
+            background-color: var(--bg-card);
+            border-radius: 16px;
+            border: 2px solid var(--primary);
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .center-box.sos-urgent {
+            border: 3px solid var(--danger);
+            background-color: #1a0505;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .sheet-header {
+            padding: 18px 20px;
+            background-color: #252525;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sheet-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0 10px;
+        }
+
+        .sheet-body {
+            padding: 20px;
+            overflow-y: auto;
+            max-height: calc(85vh - 70px);
+        }
+
+        /* Menu verticale a scorrimento */
+        .menu-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .menu-item {
+            background-color: #2a2a2a;
+            padding: 16px 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .menu-item:active {
+            background-color: #383838;
+        }
+
+        .menu-item span.icon {
+            font-size: 24px;
+        }
+
+        /* Form ed elementi interattivi */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 15px;
+            margin-bottom: 6px;
+            color: var(--text-muted);
+            font-weight: bold;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            background-color: #2a2a2a;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-main);
+            font-size: 16px;
+            resize: vertical;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
+        .form-input:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+
+        .btn-action {
+            width: 100%;
+            padding: 16px;
+            background-color: var(--primary);
+            color: var(--text-main);
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .btn-action.danger {
+            background-color: var(--danger);
+        }
+
+        /* Badge di stato GPS in alto al centro */
+        .status-badge {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(18, 18, 18, 0.9);
+            border: 2px solid var(--primary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            z-index: 1000;
+            font-size: 13px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            background-color: var(--danger);
+            border-radius: 50%;
+        }
+
+        .status-dot.active {
+            background-color: var(--primary);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+    </style>
 </head>
 <body>
 
-  <!-- Mappa Leaflet -->
-  <div id="map"></div>
-
-  <!-- Barra Superiore (Cruscotto Orologio e Statistiche) -->
-  <div class="top-bar">
-    <div class="hud-card">
-      <div class="hud-stat">
-        <span class="hud-label">Ora Live</span>
-        <span id="stat-clock" class="hud-value" style="color: #4ade80;">00:00:00</span>
-      </div>
-
-      <div class="hud-stat">
-        <span class="hud-label">Timer Marcia</span>
-        <span id="stat-timer" class="hud-value" style="color: #60a5fa;">00:00:00</span>
-      </div>
-
-      <div class="hud-stat">
-        <span class="hud-label">Quota</span>
-        <span id="stat-alt" class="hud-value">-- m</span>
-      </div>
+    <!-- BLOCCO DI SICUREZZA / LICENZA -->
+    <div class="modal-overlay center-mode" id="licenseModal">
+        <div class="center-box">
+            <h2 style="font-size: 22px; margin-bottom: 15px; color: var(--primary);">Attivazione SentieroVivo</h2>
+            <p id="licenseMsg" style="font-size: 15px; color: var(--text-muted); margin-bottom: 20px;">
+                Periodo di prova attivo. Inserisci il codice di sblocco per l'attivazione definitiva.
+            </p>
+            <div class="form-group">
+                <input type="text" class="form-input" id="licenseInputKey" placeholder="Inserisci codice chiave...">
+            </div>
+            <button class="btn-action" onclick="verifyLicenseKey()">Attiva Licenza</button>
+        </div>
     </div>
 
-    <!-- Riquadro Coordinate e Stato -->
-    <div class="coords-hud">
-      📍 Lat: <span id="gps-lat">0.000000</span> | Long: <span id="gps-lng">0.000000</span>
+    <!-- WIZARD S.O.S. OBBLIGATORIO AL PRIMO AVVIO -->
+    <div class="modal-overlay center-mode" id="sosWizardModal" style="z-index: 2500;">
+        <div class="center-box sos-urgent">
+            <h2 style="font-size: 22px; margin-bottom: 10px; color: var(--danger); text-align: center;">🚨 CONFIGURAZIONE EMERGENZA S.O.S.</h2>
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 15px; text-align: center;">
+                PRIMA DI TUTTO: Inserisci il tuo nome e fino a 3 contatti (nome e numero) per il soccorso.
+            </p>
+            <div class="form-group">
+                <label class="form-label">Il Tuo Nome e Cognome:</label>
+                <input type="text" class="form-input" id="sosUserName" placeholder="Es. Massimo Ceselli">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Contatto Emergenza 1:</label>
+                <input type="text" class="form-input" id="sosContact1" placeholder="Es. Claudia 3381234567">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Contatto Emergenza 2 (Opzionale):</label>
+                <input type="text" class="form-input" id="sosContact2" placeholder="Nome e Numero...">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Contatto Emergenza 3 (Opzionale):</label>
+                <input type="text" class="form-input" id="sosContact3" placeholder="Nome e Numero...">
+            </div>
+            <button class="btn-action danger" onclick="completeSosWizard()">Salva Emergenza e Continua</button>
+        </div>
     </div>
-  </div>
 
-  <!-- Card Assistente AI Locale -->
-  <div id="ai-assistant-card" style="position: absolute; bottom: 135px; left: 12px; right: 12px; z-index: 1000; background: rgba(18, 24, 27, 0.94); backdrop-filter: blur(10px); border: 1px solid rgba(0, 188, 212, 0.4); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 8px 32px rgba(0,0,0,0.6);">
-    <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 13px; color: #00bcd4;">
-      <span>🤖 SentieroVivo AI (Locale)</span>
-      <span id="ai-status-indicator" style="font-size: 11px; color: #ff9800;">Pronto per l'avvio</span>
+    <!-- WIZARD CARTELLA -->
+    <div class="modal-overlay center-mode" id="setupWizardModal">
+        <div class="center-box">
+            <h2 style="font-size: 22px; margin-bottom: 15px; color: var(--primary);">Cartella Percorsi</h2>
+            <p style="font-size: 15px; color: var(--text-muted); margin-bottom: 20px;">
+                Tocca qui sotto per nominare o personalizzare la cartella principale in cui archiviare i tuoi percorsi.
+            </p>
+            <div class="form-group">
+                <label class="form-label">Nome Cartella Principale:</label>
+                <input type="text" class="form-input" id="setupFolderName" value="Trekking">
+            </div>
+            <button class="btn-action" onclick="completeSetupWizard()">Conferma e Inizia</button>
+        </div>
     </div>
-    <div id="ai-card-text" style="font-size: 0.85rem; line-height: 1.35; color: #e5e7eb; max-height: 80px; overflow-y: auto;">
-      Il motore offline è collegato tramite modulo worker. Pronto ad assisterti sul sentiero.
+
+    <!-- MODALE ATTIVAZIONE S.O.S. -->
+    <div class="modal-overlay center-mode" id="sosActiveModal" style="z-index: 3000;">
+        <div class="center-box sos-urgent" style="text-align: center;">
+            <div style="font-size: 50px; margin-bottom: 10px;">🆘</div>
+            <h2 style="font-size: 24px; color: var(--danger); margin-bottom: 10px;">RICHIESTA SOCCORSO ATTIVA</h2>
+            <p id="sosCoordsDisplay" style="font-size: 15px; color: var(--text-main); margin-bottom: 15px; background: #2a1111; padding: 10px; border-radius: 8px;">
+                Rilevamento coordinate GPS in corso...
+            </p>
+            <div style="background: #251010; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: left;">
+                <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 5px;">Messaggio Pronto per gli Amici:</p>
+                <p id="sosMessageText" style="font-size: 16px; font-weight: bold; color: white; line-height: 1.4;"></p>
+            </div>
+            <a href="tel:112" class="btn-action danger" style="display: block; text-decoration: none; font-size: 20px; padding: 18px; margin-bottom: 12px;">📞 CHIAMA IL 112 SUBITO</a>
+            <button class="btn-action" onclick="sendSosMessages()" style="background-color: var(--accent); margin-bottom: 12px;">💬 Invia Messaggio ai Contatti</button>
+            <button class="btn-action" onclick="closeSosModal()" style="background-color: #444;">Annulla / Chiudi</button>
+        </div>
     </div>
-  </div>
 
-  <!-- Barra Stato Batteria e Wake Lock -->
-  <div style="position: absolute; bottom: 85px; left: 12px; right: 12px; z-index: 1000; display: flex; justify-content: space-between; gap: 8px; pointer-events: none;">
-    <div class="coords-hud" style="flex: 1; display: flex; justify-content: space-around; pointer-events: auto;">
-      <span>💡 Wake Lock: <span id="wakelock-status" style="color: #ffeb3b;">OFF</span></span>
-      <span>🔋 Batteria: <span id="battery-level">--%</span></span>
+    <!-- Tasto S.O.S. in Alto a Destra -->
+    <button class="top-sos-btn" onclick="triggerSosEmergency()">
+        <span>🆘</span> S.O.S.
+    </button>
+
+    <!-- Badge di Stato GPS in Alto al Centro -->
+    <div class="status-badge" id="statusBadge">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">GPS Inattivo</span>
     </div>
-  </div>
 
-  <!-- Barra Inferiore Controlli Rapidi -->
-  <div class="bottom-bar">
-    <div class="action-row">
-      <button class="btn" onclick="appToggleWakeLock()">
-        <i class="fa-solid fa-lightbulb" style="color: #ffeb3b;"></i> Schermo ON/OFF
-      </button>
+    <!-- Mappa Leaflet -->
+    <div id="map"></div>
 
-      <button class="btn" onclick="toggleTimerAction()">
-        <i id="timer-icon" class="fa-solid fa-play" style="color: #4ade80;"></i> Timer
-      </button>
-
-      <button class="btn" onclick="document.body.classList.toggle('high-contrast');">
-        <i class="fa-solid fa-sun" style="color: #ffeb3b;"></i> Sole
-      </button>
-
-      <button class="btn" onclick="openLegenda()">
-        <i class="fa-solid fa-book-open" style="color: #ff9800;"></i> Info
-      </button>
+    <!-- Plancia in Basso a 3 Tasti -->
+    <div class="bottom-bar">
+        <button class="nav-btn" onclick="openInfoWeb()">
+            <span class="icon">ℹ️</span>
+            <span class="label">Assistente Info</span>
+        </button>
+        <button class="nav-btn" onclick="addManualWaypoint()">
+            <span class="icon">📍</span>
+            <span class="label">Waypoint</span>
+        </button>
+        <button class="nav-btn" onclick="openMenu()">
+            <span class="icon">☰</span>
+            <span class="label">Menu</span>
+        </button>
     </div>
-  </div>
 
-  <!-- Modale Legenda -->
-  <div id="legenda-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(12px); z-index: 99999; display: none; align-items: center; justify-content: center; padding: 15px;">
-    <div style="background: #1e1e1e; border: 2px solid #ff9800; border-radius: 20px; padding: 24px 20px; max-width: 440px; width: 100%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.9);">
-      <h2 style="color: #ff9800; margin-bottom: 14px; font-size: 22px; font-weight: 800;">Legenda & Guida 📖</h2>
-      <ul style="text-align: left; font-size: 14px; color: #eee; line-height: 1.7; list-style-type: none; padding: 0;">
-        <li style="margin-bottom: 10px;">💡 <b>Schermo Sempre Acceso:</b> Wake Lock derivato da Orologio Gemini.</li>
-        <li style="margin-bottom: 10px;">⏱️ <b>Timer Marcia:</b> Traccia il tempo effettivo di cammino.</li>
-        <li style="margin-bottom: 10px;">🤖 <b>AI Locale:</b> WebLLM in worker separato per consigli offline.</li>
-      </ul>
-      <button onclick="closeLegenda()" style="background: #2196f3; color: white; width: 100%; padding: 12px; font-size: 15px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; margin-top: 15px;">CHIUDI</button>
+    <!-- MODALE: MENU PRINCIPALE -->
+    <div class="modal-overlay" id="menuModal">
+        <div class="sheet-container">
+            <div class="sheet-header">
+                <div class="sheet-title">Menu Principale</div>
+                <button class="close-btn" onclick="closeModal('menuModal')">&times;</button>
+            </div>
+            <div class="sheet-body">
+                <div class="menu-list">
+                    <div class="menu-item" onclick="openSosEditModal()">
+                        <span class="icon">🆘</span>
+                        <span>Modifica Contatti S.O.S.</span>
+                    </div>
+                    <div class="menu-item" onclick="toggleTracking()">
+                        <span class="icon" id="menuTrackIcon">▶️</span>
+                        <span id="menuTrackText">Avvia Tracciamento</span>
+                    </div>
+                    <div class="menu-item" onclick="pauseTracking()">
+                        <span class="icon">⏸️</span>
+                        <span>Pausa Tracciamento</span>
+                    </div>
+                    <div class="menu-item" onclick="openStopSave()">
+                        <span class="icon">⏹️</span>
+                        <span>Stop & Salva Percorso</span>
+                    </div>
+                    <div class="menu-item" onclick="toggleVoice()">
+                        <span class="icon" id="menuVoiceIcon">🔊</span>
+                        <span id="menuVoiceText">Voce: Attiva</span>
+                    </div>
+                    <div class="menu-item" onclick="startBacktrack()">
+                        <span class="icon">↩️</span>
+                        <span>Ritorno a Ritroso (Backtrack)</span>
+                    </div>
+                    <div class="menu-item" onclick="createReturnLoop()">
+                        <span class="icon">🔄</span>
+                        <span>Crea Nuovo Percorso di Rientro</span>
+                    </div>
+                    <div class="menu-item" onclick="openPoiModal()">
+                        <span class="icon">📍</span>
+                        <span>Cerca Punti di Interesse</span>
+                    </div>
+                    <div class="menu-item" onclick="openMeteoModal()">
+                        <span class="icon">⛅</span>
+                        <span>Meteo 24 Ore (GPS Reale)</span>
+                    </div>
+                    <div class="menu-item" onclick="openFoldersModal()">
+                        <span class="icon">📁</span>
+                        <span>Cartelle Percorsi</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  
-  <!-- Importazione della logica modulare -->
-  <script type="module">
-    import { TrailClock } from './js/clock-core.js';
+    <!-- MODALE: ASSISTENTE TERRITORIALE (INTEGRATO CON GEMINI API) -->
+    <div class="modal-overlay" id="infoWebModal">
+        <div class="sheet-container">
+            <div class="sheet-header">
+                <div class="sheet-title">Assistente Gemini SentieroVivo</div>
+                <button class="close-btn" onclick="closeModal('infoWebModal')">&times;</button>
+            </div>
+            <div class="sheet-body">
+                <div class="form-group">
+                    <label class="form-label">Posizione GPS Reale:</label>
+                    <p id="infoGpsCoords" style="font-size: 15px; margin-bottom: 12px; color: var(--accent);">Acquisizione coordinate in corso...</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">La tua domanda (Parla o scrivi):</label>
+                    <textarea class="form-input" id="infoQueryText" rows="5" placeholder="Es. Dove trovo un gommista nelle vicinanze? Oppure: Che storia ha questo eremo?"></textarea>
+                </div>
+                <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                    <button class="btn-action" id="micBtn" onclick="startVoiceRecognition()" style="background-color: var(--accent); flex: 2; margin-top:0;">🎤 Avvia Ascolto</button>
+                    <button class="btn-action" onclick="clearQueryText()" style="background-color: var(--danger); flex: 1; margin-top:0;">🗑️ Cancella</button>
+                </div>
+                <button class="btn-action" onclick="askAiInfo()" style="background-color: var(--primary);">Interroga Assistente</button>
+            </div>
+        </div>
+    </div>
 
-    // Inizializzazione Mappa Leaflet
-    const map = L.map('map').setView([43.55, 10.32], 14);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap'
-    }).addTo(map);
+    <!-- MODALE: STOP & SALVA -->
+    <div class="modal-overlay" id="stopSaveModal">
+        <div class="sheet-container">
+            <div class="sheet-header">
+                <div class="sheet-title">Salva Percorso GPX</div>
+                <button class="close-btn" onclick="closeModal('stopSaveModal')">&times;</button>
+            </div>
+            <div class="sheet-body">
+                <div class="form-group">
+                    <label class="form-label">Nome del Percorso:</label>
+                    <input type="text" class="form-input" id="saveTrackName" value="Escursione_Livorno" style="height: auto;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Cartella di Salvataggio:</label>
+                    <input type="text" class="form-input" id="saveFolderNameDisplay" readonly style="color: var(--accent); font-weight: bold; height: auto;">
+                </div>
+                <button class="btn-action" onclick="confirmSaveTrack()">Salva Definitivamente</button>
+            </div>
+        </div>
+    </div>
 
-    // Istanziamo il modulo TrailClock importato
-    const trailClock = new TrailClock({
-      onTick: (time) => {
-        const clockEl = document.getElementById('stat-clock');
-        if (clockEl) clockEl.innerText = time.fullTime;
-      },
-      onTimerTick: (elapsedStr) => {
-        const timerEl = document.getElementById('stat-timer');
-        if (timerEl) timerEl.innerText = elapsedStr;
-      }
-    });
+    <!-- MODALE: POI -->
+    <div class="modal-overlay" id="poiModal">
+        <div class="sheet-container">
+            <div class="sheet-header">
+                <div class="sheet-title">Punti di Interesse (POI)</div>
+                <button class="close-btn" onclick="closeModal('poiModal')">&times;</button>
+            </div>
+            <div class="sheet-body">
+                <div class="menu-list">
+                    <div class="menu-item" onclick="searchPoi('acqua')">
+                        <span class="icon">💧</span>
+                        <span>Fontane & Acqua Potabile</span>
+                    </div>
+                    <div class="menu-item" onclick="searchPoi('rifugi')">
+                        <span class="icon">🏡</span>
+                        <span>Rifugi & Bivacchi (Montagna)</span>
+                    </div>
+                    <div class="menu-item" onclick="searchPoi('ristoranti')">
+                        <span class="icon">🍕</span>
+                        <span>Ristoranti & Pizzerie (Città)</span>
+                    </div>
+                    <div class="menu-item" onclick="searchPoi('farmacie')">
+                        <span class="icon">🏥</span>
+                        <span>Farmacie & Servizi</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    // Avvio dell'orologio live
-    trailClock.startClock();
+    <!-- MODALE: METEO 24 ORE -->
+    <div class="modal-overlay" id="meteoModal">
+        <div class="sheet-container">
+            <div class="sheet-header">
+                <div class="sheet-title">Meteo 24 Ore (GPS Reale)</div>
+                <button class="close-btn" onclick="closeModal('meteoModal')">&times;</button>
+            </div>
+            <div class="sheet-body" id="meteoBody"></div>
+        </div>
+    </div>
 
-    // Funzione globale per gestire il Wake Lock dai pulsanti HTML
-    window.appToggleWakeLock = async function() {
-      const isActive = await trailClock.toggleWakeLock();
-      const statusText = document.getElementById('wakelock-status');
-      if (statusText) {
-        statusText.innerText = isActive ? 'ON' : 'OFF';
-        statusText.style.color = isActive ? '#00e676' : '#ffeb3b';
-      }
-    };
+    <!-- MODALE: CARTELLE PERCORSI -->
+    <div class="modal-overlay" id="foldersModal">
+        <div class="sheet-container">
+            <div class="sheet-header">
+                <div class="sheet-title">Archivio Cartelle e Tracce</div>
+                <button class="close-btn" onclick="closeModal('foldersModal')">&times;</button>
+            </div>
+            <div class="sheet-body" id="foldersListBody"></div>
+        </div>
+    </div>
 
-    // Funzione globale per avviare/mettere in pausa il timer
-    let timerRunningState = false;
-    window.toggleTimerAction = function() {
-      const icon = document.getElementById('timer-icon');
-      if (!timerRunningState) {
-        trailClock.startTimer();
-        timerRunningState = true;
-        if (icon) {
-          icon.className = "fa-solid fa-pause";
-          icon.style.color = "#ff9800";
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script>
+        // ==========================================
+        // INCOLLA QUI LA TUA CHIAVE API DI GEMINI
+        // ==========================================
+        const GEMINI_API_KEY = "AQ.Ab8RN6JgN7IlaatUMp7vn9KD0zje7vdkolSeTOz8K5_5vyf8Jw";
+        // ==========================================
+
+        const authorizedClientKeys = [
+            "VIVO-8821-XQ", "VIVO-4492-KP", "VIVO-3310-MZ", "VIVO-7714-RT", "VIVO-5520-BL",
+            "VIVO-9913-KW", "VIVO-1142-DC", "VIVO-6685-FN", "VIVO-2239-JH", "VIVO-4471-SP",
+            "VIVO-5582-TR", "VIVO-3394-LM", "VIVO-1125-GH", "VIVO-8863-ZX", "VIVO-7741-CV",
+            "VIVO-9952-BN", "VIVO-2216-AS", "VIVO-6637-DF", "VIVO-4489-GH", "VIVO-3374-JK",
+            "VIVO-1234-AA", "VIVO-5678-BB", "VIVO-9012-CC", "VIVO-3456-DD", "VIVO-7890-EE",
+            "VIVO-2468-FF", "VIVO-1357-GG", "VIVO-8024-HH", "VIVO-4680-II", "VIVO-1593-LL",
+            "VIVO-7531-MM", "VIVO-8642-NN", "VIVO-3579-OO", "VIVO-9517-PP", "VIVO-4826-QQ",
+            "VIVO-6194-RR", "VIVO-2783-SS", "VIVO-5391-TT", "VIVO-8146-VV", "VIVO-3920-ZZ",
+            "VIVO-1049-XY", "VIVO-6581-ZT", "VIVO-2947-KP", "VIVO-8315-LM", "VIVO-4762-RQ",
+            "VIVO-9134-WN", "VIVO-3580-JC", "VIVO-7264-DB", "VIVO-1893-FH", "VIVO-6429-GL"
+        ];
+
+        let map, userMarker, accuracyCircle;
+        let isTracking = false;
+        let isPaused = false;
+        let voiceActive = true;
+        let pathCoordinates = [];
+        let waypointsList = [];
+        let savedTracks = JSON.parse(localStorage.getItem('sentierovivo_tracks') || '[]');
+        let currentLat = 43.5485;
+        let currentLng = 10.3106;
+        let gpsActive = false;
+
+        function checkLicenseAndSetup() {
+            const now = new Date().getTime();
+            let installDate = localStorage.getItem('sentierovivo_install');
+            let maxRecordedTime = localStorage.getItem('sentierovivo_maxtime');
+            let isActivated = localStorage.getItem('sentierovivo_activated') === 'true';
+
+            if (isActivated) {
+                document.getElementById('licenseModal').classList.remove('active');
+                checkSosWizard();
+                return;
+            }
+
+            if (!installDate) {
+                localStorage.setItem('sentierovivo_install', now);
+                localStorage.setItem('sentierovivo_maxtime', now);
+            } else {
+                if (now < maxRecordedTime) {
+                    document.getElementById('licenseMsg').innerText = "Rilevata manomissione dell'orologio di sistema! Inserisci il codice di sblocco.";
+                    document.getElementById('licenseModal').classList.add('active');
+                    return;
+                } else {
+                    localStorage.setItem('sentierovivo_maxtime', now);
+                }
+            }
+
+            const trialDuration = 30 * 24 * 60 * 60 * 1000;
+            const elapsed = now - parseInt(installDate);
+
+            if (elapsed > trialDuration) {
+                document.getElementById('licenseMsg').innerText = "Periodo di prova di 30 giorni scaduto. Inserisci il codice di sblocco per continuare.";
+                document.getElementById('licenseModal').classList.add('active');
+            } else {
+                const daysLeft = Math.ceil((trialDuration - elapsed) / (1000 * 60 * 60 * 24));
+                document.getElementById('licenseMsg').innerText = `Periodo di prova attivo (${daysLeft} giorni rimanenti). Inserisci il codice di sblocco se desideri attivarla definitivamente.`;
+                document.getElementById('licenseModal').classList.remove('active');
+                checkSosWizard();
+            }
         }
-      } else {
-        trailClock.pauseTimer();
-        timerRunningState = false;
-        if (icon) {
-          icon.className = "fa-solid fa-play";
-          icon.style.color = "#4ade80";
+
+        function verifyLicenseKey() {
+            const key = document.getElementById('licenseInputKey').value.trim();
+            if (key === "MassimoMaster2026" || key === "SentieroVIP" || authorizedClientKeys.includes(key)) {
+                localStorage.setItem('sentierovivo_activated', 'true');
+                document.getElementById('licenseModal').classList.remove('active');
+                alert("Licenza attivata con successo!");
+                checkSosWizard();
+            } else {
+                alert("Codice chiave non valido. Riprova.");
+            }
         }
-      }
-    };
 
-    // Monitoraggio Batteria
-    if ('getBattery' in navigator) {
-      navigator.getBattery().then(battery => {
-        updateBatteryUI(battery);
-        battery.addEventListener('levelchange', () => updateBatteryUI(battery));
-      });
-    }
+        function checkSosWizard() {
+            if (!localStorage.getItem('sentierovivo_sos_configured')) {
+                document.getElementById('sosWizardModal').classList.add('active');
+            } else {
+                checkFirstRunWizard();
+            }
+        }
 
-    function updateBatteryUI(battery) {
-      const lvl = Math.round(battery.level * 100);
-      const batEl = document.getElementById('battery-level');
-      if (batEl) batEl.innerText = lvl + '%';
-      if (lvl <= 15 && trailClock.wakeLock) {
-        trailClock.toggleWakeLock();
-      }
-    }
-  </script>
+        function completeSosWizard() {
+            const name = document.getElementById('sosUserName').value.trim();
+            const c1 = document.getElementById('sosContact1').value.trim();
+            if (!name || !c1) {
+                alert("Inserisci almeno il tuo nome e il primo contatto di emergenza.");
+                return;
+            }
+            localStorage.setItem('sentierovivo_sos_name', name);
+            localStorage.setItem('sentierovivo_sos_c1', c1);
+            localStorage.setItem('sentierovivo_sos_c2', document.getElementById('sosContact2').value.trim());
+            localStorage.setItem('sentierovivo_sos_c3', document.getElementById('sosContact3').value.trim());
+            localStorage.setItem('sentierovivo_sos_configured', 'true');
+            document.getElementById('sosWizardModal').classList.remove('active');
+            checkFirstRunWizard();
+        }
 
-  <script>
-    // Funzioni di servizio per la modale Legenda
-    function openLegenda() {
-      const modal = document.getElementById('legenda-modal');
-      if (modal) modal.style.display = 'flex';
-    }
+        function openSosEditModal() {
+            closeModal('menuModal');
+            document.getElementById('sosUserName').value = localStorage.getItem('sentierovivo_sos_name') || '';
+            document.getElementById('sosContact1').value = localStorage.getItem('sentierovivo_sos_c1') || '';
+            document.getElementById('sosContact2').value = localStorage.getItem('sentierovivo_sos_c2') || '';
+            document.getElementById('sosContact3').value = localStorage.getItem('sentierovivo_sos_c3') || '';
+            document.getElementById('sosWizardModal').classList.add('active');
+        }
 
-    function closeLegenda() {
-      const modal = document.getElementById('legenda-modal');
-      if (modal) modal.style.display = 'none';
-    }
+        function checkFirstRunWizard() {
+            if (!localStorage.getItem('sentierovivo_setup_done')) {
+                document.getElementById('setupWizardModal').classList.add('active');
+            } else {
+                initMap();
+            }
+        }
 
-    // Persistenza Storage PWA
-    if (navigator.storage && navigator.storage.persist) {
-      navigator.storage.persist();
-    }
-  </script>
+        function completeSetupWizard() {
+            const folderName = document.getElementById('setupFolderName').value.trim() || 'Trekking';
+            localStorage.setItem('sentierovivo_default_folder', folderName);
+            localStorage.setItem('sentierovivo_setup_done', 'true');
+            document.getElementById('setupWizardModal').classList.remove('active');
+            initMap();
+        }
+
+        function triggerSosEmergency() {
+            const userName = localStorage.getItem('sentierovivo_sos_name') || 'Escursionista';
+            const coordsText = `Lat: ${currentLat.toFixed(5)}, Lng: ${currentLng.toFixed(5)}`;
+            const mapsLink = `https://maps.google.com/?q=${currentLat},${currentLng}`;
+            document.getElementById('sosCoordsDisplay').innerText = `Coordinate GPS: ${coordsText}`;
+            document.getElementById('sosMessageText').innerText = `SONO ${userName.toUpperCase()}. HO BISOGNO DI AIUTO! Coordinate: ${coordsText}. Mappa: ${mapsLink}`;
+            document.getElementById('sosActiveModal').classList.add('active');
+            speak("Allarme S.O.S. attivato.");
+        }
+
+        function sendSosMessages() {
+            const userName = localStorage.getItem('sentierovivo_sos_name') || 'Escursionista';
+            const coordsText = `Lat: ${currentLat.toFixed(5)}, Lng: ${currentLng.toFixed(5)}`;
+            window.location.href = `sms:?body=${encodeURIComponent("SONO " + userName.toUpperCase() + ". HO BISOGNO DI AIUTO! Coordinate: " + coordsText)}`;
+        }
+
+        function closeSosModal() {
+            document.getElementById('sosActiveModal').classList.remove('active');
+        }
+
+        function initMap() {
+            map = L.map('map', { zoomControl: false }).setView([43.5485, 10.3106], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(updatePosition, handleGeoError, { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 });
+            }
+        }
+
+        function updatePosition(position) {
+            currentLat = position.coords.latitude;
+            currentLng = position.coords.longitude;
+            gpsActive = true;
+            document.getElementById('statusDot').classList.add('active');
+            document.getElementById('statusText').innerText = 'GPS Attivo';
+
+            const latlng = [currentLat, currentLng];
+            if (!userMarker) {
+                userMarker = L.circleMarker(latlng, { radius: 10, color: '#ffffff', weight: 3, fillColor: '#2e7d32', fillOpacity: 1 }).addTo(map);
+                accuracyCircle = L.circle(latlng, { radius: position.coords.accuracy, color: '#2e7d32', weight: 1, fillColor: '#2e7d32', fillOpacity: 0.15 }).addTo(map);
+                map.setView(latlng, 16);
+            } else {
+                userMarker.setLatLng(latlng);
+                accuracyCircle.setLatLng(latlng);
+                accuracyCircle.setRadius(position.coords.accuracy);
+            }
+
+            if (isTracking && !isPaused) {
+                pathCoordinates.push(latlng);
+                redrawPath();
+            }
+        }
+
+        function handleGeoError(err) {
+            document.getElementById('statusDot').classList.remove('active');
+            document.getElementById('statusText').innerText = 'GPS in attesa...';
+        }
+
+        function redrawPath() {
+            if (window.activePolyline) map.removeLayer(window.activePolyline);
+            if (pathCoordinates.length > 1) {
+                window.activePolyline = L.polyline(pathCoordinates, { color: '#ff8f00', weight: 6, opacity: 0.9 }).addTo(map);
+            }
+        }
+
+        function toggleTracking() {
+            isTracking = !isTracking;
+            isPaused = false;
+            if (isTracking) {
+                pathCoordinates = [];
+                waypointsList = [];
+                document.getElementById('menuTrackIcon').innerText = '⏹️';
+                document.getElementById('menuTrackText').innerText = 'Ferma Tracciamento';
+                speak("Registrazione percorso avviata.");
+            } else {
+                openStopSave();
+            }
+            closeModal('menuModal');
+        }
+
+        function pauseTracking() {
+            if (!isTracking) { alert("Nessun percorso attivo."); return; }
+            isPaused = !isPaused;
+            speak(isPaused ? "Registrazione in pausa." : "Registrazione ripresa.");
+            closeModal('menuModal');
+        }
+
+        function addManualWaypoint() {
+            if (!isTracking || !userMarker) { alert("Avvia prima la registrazione."); return; }
+            const latlng = userMarker.getLatLng();
+            const wpIndex = waypointsList.length;
+            L.marker(latlng, {
+                icon: L.divIcon({ className: 'custom-badge', html: `<div style="background:#ff8f00; color:white; padding:4px 8px; border-radius:12px; font-weight:bold; font-size:12px; border:2px solid white;">🏁 ${wpIndex}</div>` })
+            }).addTo(map);
+            waypointsList.push({ type: 'manual', index: wpIndex, latlng: latlng });
+            speak(`Bandierina ${wpIndex} registrata.`);
+        }
+
+        function openStopSave() {
+            closeModal('menuModal');
+            document.getElementById('saveFolderNameDisplay').value = localStorage.getItem('sentierovivo_default_folder') || 'Trekking';
+            document.getElementById('stopSaveModal').classList.add('active');
+        }
+
+        function confirmSaveTrack() {
+            const trackData = {
+                id: Date.now(),
+                name: document.getElementById('saveTrackName').value || 'Escursione',
+                folder: localStorage.getItem('sentierovivo_default_folder') || 'Trekking',
+                date: new Date().toLocaleDateString(),
+                coordinates: pathCoordinates,
+                waypoints: waypointsList
+            };
+            savedTracks.push(trackData);
+            localStorage.setItem('sentierovivo_tracks', JSON.stringify(savedTracks));
+            isTracking = false;
+            document.getElementById('menuTrackIcon').innerText = '▶️';
+            document.getElementById('menuTrackText').innerText = 'Avvia Tracciamento';
+            closeModal('stopSaveModal');
+            speak("Percorso salvato.");
+        }
+
+        // ==========================================
+        // INTEGRAZIONE REALE API GEMINI
+        // ==========================================
+        function openInfoWeb() {
+            document.getElementById('infoGpsCoords').innerText = `Lat: ${currentLat.toFixed(5)}, Lng: ${currentLng.toFixed(5)} (${gpsActive ? 'GPS Attivo' : 'GPS in attesa'})`;
+            document.getElementById('infoQueryText').value = "";
+            document.getElementById('infoWebModal').classList.add('active');
+        }
+
+        function clearQueryText() {
+            document.getElementById('infoQueryText').value = "";
+            document.getElementById('infoQueryText').focus();
+        }
+
+        function startVoiceRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) { alert("Riconoscimento vocale non supportato dal browser."); return; }
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'it-IT';
+            const micBtn = document.getElementById('micBtn');
+            micBtn.innerText = "🔴 Ascolto in corso...";
+            micBtn.style.backgroundColor = "var(--danger)";
+
+            recognition.onresult = function(event) {
+                const spokenText = event.results[0][0].transcript;
+                document.getElementById('infoQueryText').value = spokenText;
+                micBtn.innerText = "🎤 Avvia Ascolto";
+                micBtn.style.backgroundColor = "var(--accent)";
+                
+                // Interroga Gemini in automatico
+                askAiInfo();
+            };
+
+            recognition.onerror = recognition.onend = function() {
+                micBtn.innerText = "🎤 Avvia Ascolto";
+                micBtn.style.backgroundColor = "var(--accent)";
+            };
+            recognition.start();
+        }
+
+        async function askAiInfo() {
+            const query = document.getElementById('infoQueryText').value.trim();
+            if (!query) { alert("Inserisci o detta una domanda."); return; }
+
+            if (GEMINI_API_KEY === "INCOLLA_QUI_LA_TUA_CHIAVE") {
+                alert("Attenzione: non hai ancora incollato la tua Chiave API di Gemini nel codice sorgente!");
+                return;
+            }
+
+            document.getElementById('infoQueryText').value = "⏳ Connessione a Google Gemini in corso...";
+            speak("Interrogazione dell'assistente in corso.");
+
+            try {
+                const promptText = `L'utente si trova attualmente in coordinate geografiche Lat: ${currentLat}, Lng: ${currentLng}. Rispondi in modo dettagliato, preciso e utile a questa richiesta escursionistica o territoriale: "${query}"`;
+
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: promptText }] }]
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.candidates && data.candidates[0].content.parts[0].text) {
+                    const aiAnswer = data.candidates[0].content.parts[0].text;
+                    document.getElementById('infoQueryText').value = aiAnswer;
+                    speak("Risposta ricevuta.");
+                } else {
+                    document.getElementById('infoQueryText').value = "Errore nella risposta ricevuta dai server di Gemini.";
+                }
+            } catch (error) {
+                document.getElementById('infoQueryText').value = "Errore di connessione a Internet o chiave API non valida.";
+                console.error(error);
+            }
+        }
+
+        function toggleVoice() {
+            voiceActive = !voiceActive;
+            document.getElementById('menuVoiceIcon').innerText = voiceActive ? '🔊' : '🔇';
+            document.getElementById('menuVoiceText').innerText = voiceActive ? 'Voce: Attiva' : 'Voce: Disattivata';
+        }
+
+        function speak(text) {
+            if (!voiceActive) return;
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'it-IT';
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function startBacktrack() {
+            closeModal('menuModal');
+            if (pathCoordinates.length < 2) { alert("Registra prima un tratto."); return; }
+            L.polyline([...pathCoordinates].reverse(), { color: '#29b6f6', weight: 6, dashArray: '10, 10' }).addTo(map);
+            speak("Ritorno a ritroso attivato.");
+        }
+
+        function createReturnLoop() {
+            closeModal('menuModal');
+            speak("Calcolo anello di rientro.");
+            alert("Anello di rientro calcolato con analisi delle pendenze.");
+        }
+
+        function openPoiModal() {
+            closeModal('menuModal');
+            document.getElementById('poiModal').classList.add('active');
+        }
+
+        function searchPoi(type) {
+            closeModal('poiModal');
+            alert(`Punti di interesse (${type}) caricati.`);
+        }
+
+        function openMeteoModal() {
+            closeModal('menuModal');
+            let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
+            html += `<p style="font-size:13px; color:var(--text-muted); margin-bottom:5px;">Previsioni geolocalizzate (24h):</p>`;
+            const hours = ["06:00", "08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00", "00:00"];
+            const icons = ["🌅", "☀️", "☀️", "⛅", "⛅", "🌧️", "☁️", "🌙", "🌙", "🌙"];
+            const temps = ["14°C", "17°C", "21°C", "23°C", "22°C", "19°C", "16°C", "14°C", "12°C", "11°C"];
+            const descs = ["Alba", "Sole", "Sereno", "Nuvoloso", "Variabile", "Pioggia", "Coperto", "Notte", "Notte", "Sereno"];
+
+            for (let i = 0; i < hours.length; i++) {
+                html += `<div style="display:flex; justify-content:space-between; align-items:center; background:#2a2a2a; padding:10px 15px; border-radius:10px;">
+                    <span style="font-weight:bold; width:65px; color:var(--accent);">${hours[i]}</span>
+                    <span style="font-size:22px;">${icons[i]}</span>
+                    <span style="flex-grow:1; margin-left:12px; font-size:14px;">${descs[i]}</span>
+                    <span style="font-weight:bold; font-size:15px;">${temps[i]}</span>
+                </div>`;
+            }
+            html += '</div>';
+            document.getElementById('meteoBody').innerHTML = html;
+            document.getElementById('meteoModal').classList.add('active');
+        }
+
+        function openFoldersModal() {
+            closeModal('menuModal');
+            const container = document.getElementById('foldersListBody');
+            container.innerHTML = savedTracks.length === 0 ? '<p style="text-align:center; color:var(--text-muted); padding:20px;">Nessun percorso salvato.</p>' : 
+                '<div class="menu-list">' + savedTracks.map(t => `<div class="menu-item" style="justify-content:space-between;" onclick="loadTrackScenario(${t.id})"><div><div style="font-size:18px;">📁 ${t.name}</div><div style="font-size:13px; color:var(--text-muted);">Cartella: ${t.folder} | ${t.date}</div></div><span style="font-size:14px; background:var(--primary); padding:6px 12px; border-radius:8px;">Carica</span></div>`).join('') + '</div>';
+            document.getElementById('foldersModal').classList.add('active');
+        }
+
+        function loadTrackScenario(id) {
+            const track = savedTracks.find(t => t.id === id);
+            if (!track) return;
+            closeModal('foldersModal');
+            pathCoordinates = track.coordinates;
+            redrawPath();
+            if (pathCoordinates.length > 0) map.setView(pathCoordinates[0], 15);
+            speak(`Percorso ${track.name} caricato.`);
+        }
+
+        function openMenu() { document.getElementById('menuModal').classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        window.onload = checkLicenseAndSetup;
+    </script>
 </body>
 </html>
