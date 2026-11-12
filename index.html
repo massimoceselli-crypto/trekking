@@ -907,35 +907,35 @@
         })
     }); 
 
-                const data = await response.json();
-                
-                if (data.candidates && data.candidates[0].content.parts[0].text) {
-                    const aiAnswer = data.candidates[0].content.parts[0].text;
-                    document.getElementById('infoQueryText').value = aiAnswer;
-                    speak("Risposta ricevuta.");
-                } else {
-                    document.getElementById('infoQueryText').value = "Errore nella risposta ricevuta dai server di Gemini.";
-                }
-            } catch (error) {
-                document.getElementById('infoQueryText').value = "Errore di connessione a Internet o chiave API non valida.";
-                console.error(error);
+           const data = await response.json();
+            if (data.candidates && data.candidates[0].content.parts[0].text) {
+                const aiAnswer = data.candidates[0].content.parts[0].text;
+                document.getElementById('infoQueryText').value = aiAnswer;
+                speak(aiAnswer);
+            } else {
+                document.getElementById('infoQueryText').value = "Errore nella risposta ricevuta dai server di Gemini.";
             }
+        } catch (error) {
+            document.getElementById('infoQueryText').value = "Errore di connessione a Internet o chiave API non valida.";
+            console.error(error);
         }
+    }
 
-        function toggleVoice() {
-            voiceActive = !voiceActive;
-            document.getElementById('menuVoiceIcon').innerText = voiceActive ? '🔊' : '🔇';
-            document.getElementById('menuVoiceText').innerText = voiceActive ? 'Voce: Attiva' : 'Voce: Disattivata';
-        }
+    function toggleVoice() {
+        voiceActive = !voiceActive;
+        document.getElementById('menuVoiceIcon').innerText = voiceActive ? '🔊' : '🔇';
+        document.getElementById('menuVoiceText').innerText = voiceActive ? 'Voce: Attiva' : 'Voce: Disattivata';
+    }
 
-        function speak(text) {
-            if (!voiceActive) return;
-            if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'it-IT';
-                window.speechSynthesis.speak(utterance);
-            }
+    function speak(text) {
+        if (!voiceActive) return;
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel(); // Interrompe eventuali voci precedenti
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'it-IT';
+            window.speechSynthesis.speak(utterance);
         }
+    }    
 
         function startBacktrack() {
             closeModal('menuModal');
