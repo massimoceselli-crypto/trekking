@@ -749,14 +749,28 @@
                 navigator.geolocation.watchPosition(updatePosition, handleGeoError, { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 });
             }
         }
+let hasEverHadPosition = false;
 
-        function updatePosition(position) {
-            currentLat = position.coords.latitude;
-            currentLng = position.coords.longitude;
-            gpsActive = true;
-            document.getElementById('statusDot').classList.add('active');
-            document.getElementById('statusText').innerText = 'GPS Attivo';
-
+function updatePosition(position) {
+    hasEverHadPosition = true; // Segna che abbiamo agganciato il segnale reale o di fallback
+    currentLat = position.coords.latitude;
+    currentLng = position.coords.longitude;
+    gpsActive = true;
+    
+    document.getElementById('statusDot').classList.add('active');
+    document.getElementById('statusText').innerText = 'GPS Attivo';
+    
+    const latlng = [currentLat, currentLng];
+    if (!userMarker) {
+        userMarker = L.circleMarker(latlng, { radius: 10, color: '#ffffff', weight: 2, fillColor: '#3388ff', fillOpacity: 0.8 }).addTo(map);
+        accuracyCircle = L.circle(latlng, { radius: position.coords.accuracy, color: '#3388ff', weight: 1, fillColor: '#3388ff', fillOpacity: 0.15 }).addTo(map);
+        map.setView(latlng, 16);
+    } else {
+        userMarker.setLatLng(latlng);
+        accuracyCircle.setLatLng(latlng);
+        accuracyCircle.setRadius(position.coords.accuracy);
+    }
+}
             const latlng = [currentLat, currentLng];
             if (!userMarker) {
                 userMarker = L.circleMarker(latlng, { radius: 10, color: '#ffffff', weight: 3, fillColor: '#2e7d32', fillOpacity: 1 }).addTo(map);
@@ -774,11 +788,36 @@
             }
         }
 
-        function handleGeoError(err) {
-            document.getElementById('statusDot').classList.remove('active');
-            document.getElementById('statusText').innerText = 'GPS in attesa...';
-        }
+      function handleGeoError(err) {
+    // Se siamo all'avvio sul PC (senza GPS), usiamo Vicarello come punto di partenza iniziale
+    if (!hasEverHadPosition) {
+        console.warn("Avvio su PC senza GPS: imposto Vicarello come posizione iniziale.");
+        updatePosition({
+            coords: {
+                latitude: 43.5594,  // Coordinate di Vicarello
+                longitude: 10.4572, // Coordinate di Vicarello
+                accuracy: 10
+            }
+        });
+        return;
+    }
 
+    // Se eravamo in movimento sul campo e il GPS si interrompe
+    console.warn("Segnale GPS perso durante l'escursione.");
+    gpsActive = false;
+    document.getElementById('statusDot').classList.remove('active');
+    document.getElementById('statusText').innerText = 'GPS Assente';
+
+    // Mostra il popup di allerta
+    alert("ATTENZIONE: Segnale GPS mancante! Mantenuta l'ultima posizione nota sulla mappa. In attesa di nuovo segnale...");
+
+    // Avviso vocale di sicurezza
+    if ('speechSynthesis' in window) {
+        const alertSpeech = new SpeechSynthesisUtterance("Attenzione, segnale G P S perso. Mantenuta l'ultima posizione nota.");
+        alertSpeech.lang = 'it-IT';
+        window.speechSynthesis.speak(alertSpeech);
+    }
+}
         function redrawPath() {
             if (window.activePolyline) map.removeLayer(window.activePolyline);
             if (pathCoordinates.length > 1) {
