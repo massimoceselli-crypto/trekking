@@ -978,6 +978,15 @@
 
                 const data = await response.json();
                 
+                // Controllo se il server ha restituito un errore HTTP (es. chiave errata o scaduta)
+                if (!response.ok) {
+                    const errorMsg = data.error && data.error.message ? data.error.message : "Errore sconosciuto dai server";
+                    console.error("Errore API Google:", data);
+                    document.getElementById('infoQueryText').value = `Errore API Google: ${errorMsg}`;
+                    speak("Si è verificato un errore nella risposta di Google.");
+                    return;
+                }
+
                 if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
                     const aiAnswer = data.candidates[0].content.parts[0].text;
                     document.getElementById('infoQueryText').value = aiAnswer;
