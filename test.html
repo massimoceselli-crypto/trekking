@@ -928,13 +928,19 @@
         }
 
         function speak(text) {
-            if (!voiceActive) return;
-            if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'it-IT';
-                window.speechSynthesis.speak(utterance);
-            }
+    if (!voiceActive) return;
+    if ('speechSynthesis' in window) {
+        // Interrompiamo subito qualsiasi ascolto del microfono prima di parlare per evitare il loop
+        if (typeof recognition !== 'undefined' && recognition) {
+            try { recognition.stop(); } catch(e) {}
         }
+        window.speechSynthesis.cancel-voices = true; // pulizia extra sintesi se necessario
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'it-IT';
+        window.speechSynthesis.speak(utterance);
+    }
+}
 
         function startBacktrack() {
             closeModal('menuModal');
