@@ -670,7 +670,7 @@
             }
         }
 
-        // Funzione per richiedere e stampare l'elenco dei modelli disponibili direttamente da Google
+        // Funzione per richiedere e stampare l'elenco dei modelli disponibili usando l'endpoint stabile v1
         async function fetchAvailableModelsFromMenu() {
             closeModal('menuModal');
             let apiKey = localStorage.getItem('gemini_api_key');
@@ -683,31 +683,30 @@
                 localStorage.setItem('gemini_api_key', apiKey.trim());
             }
 
-            // Apre il modal assistente per mostrare il risultato
-            document.getElementById('infoGpsCoords').innerText = `Stato: Interrogazione server Google in corso...`;
+            document.getElementById('infoGpsCoords').innerText = `Stato: Interrogazione server Google (v1) in corso...`;
             const responseContainer = document.getElementById('aiResponseContainer');
             const responseBox = document.getElementById('aiResponseBox');
             responseContainer.style.display = 'block';
-            responseBox.innerText = "⏳ Connessione a Google per scaricare la lista dei modelli attivi...";
+            responseBox.innerText = "⏳ Connessione a Google (v1) per scaricare la lista dei modelli attivi...";
             document.getElementById('infoWebModal').classList.add('active');
 
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey.trim()}`);
+                // ENDPOINT AGGIORNATO A v1
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${apiKey.trim()}`);
                 const data = await response.json();
 
                 if (!response.ok) {
                     const errMsg = data.error && data.error.message ? data.error.message : `Errore HTTP ${response.status}`;
-                    responseBox.innerText = `❌ ERRORE NEL RECUPERO MODELLI:\n${errMsg}`;
+                    responseBox.innerText = `❌ ERRORE NEL RECUPERO MODELLI (v1):\n${errMsg}`;
                     return;
                 }
 
                 if (data.models && data.models.length > 0) {
-                    // Filtra i modelli che supportano la generazione di contenuti
                     const validModels = data.models
                         .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
                         .map(m => m.name.replace('models/', ''));
 
-                    responseBox.innerText = `✅ MODELLI SUPPORTATI DISPONIBILI:\n\n` + validModels.join('\n') + `\n\nCopia uno di questi nomi e incollalo in "Imposta Modello Gemini".`;
+                    responseBox.innerText = `✅ MODELLI SUPPORTATI (Endpoint v1):\n\n` + validModels.join('\n') + `\n\nCopia uno di questi nomi e incollalo in "Imposta Modello Gemini".`;
                     speak("Elenco modelli caricato con successo.");
                 } else {
                     responseBox.innerText = "⚠️ Nessun modello compatibile restituito dai server.";
@@ -1018,7 +1017,7 @@
         }
 
         // ==========================================
-        // INTEGRAZIONE ASSISTENTE CON GESTIONE ERRORI
+        // INTEGRAZIONE ASSISTENTE CON ENDPOINT STABILE v1
         // ==========================================
         function openInfoWeb() {
             document.getElementById('infoGpsCoords').innerText = `Lat: ${currentLat.toFixed(5)}, Lng: ${currentLng.toFixed(5)} (${gpsActive ? 'GPS Attivo' : 'GPS in attesa'})`;
@@ -1079,7 +1078,7 @@
             const responseContainer = document.getElementById('aiResponseContainer');
             const responseBox = document.getElementById('aiResponseBox');
             responseContainer.style.display = 'block';
-            responseBox.innerText = `⏳ Connessione a Google Gemini (${modelName}) in corso...`;
+            responseBox.innerText = `⏳ Connessione a Google Gemini (${modelName}) tramite endpoint v1 in corso...`;
 
             const promptText = `L'utente si trova attualmente in coordinate geografiche Lat: ${currentLat}, Lng: ${currentLng}. Rispondi in modo dettagliato, preciso e utile a questa richiesta escursionistica o territoriale: "${query}"`;
 
@@ -1091,7 +1090,8 @@
                     const controller = new AbortController();
                     const timeoutId = setTimeout(() => controller.abort(), 20000);
 
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey.trim()}`, {
+                    // ENDPOINT AGGIORNATO A v1
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${apiKey.trim()}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -1113,7 +1113,7 @@
                     if (!response.ok) {
                         const errorMsg = data.error && data.error.message ? data.error.message : `Errore HTTP ${response.status}`;
                         console.error("Errore API Google:", data);
-                        responseBox.innerText = `❌ ERRORE API GOOGLE:\n${errorMsg}\n\n[Modello usato: ${modelName}]\nSuggerimento: usa 'Mostra Modelli Disponibili' nel menu per verificare i nomi corretti.`;
+                        responseBox.innerText = `❌ ERRORE API GOOGLE (v1):\n${errorMsg}\n\n[Modello usato: ${modelName}]\nSuggerimento: usa 'Mostra Modelli Disponibili (Live)' per verificare i nomi supportati.`;
                         speak("Si è verificato un errore nella risposta di Google.");
                         return;
                     }
