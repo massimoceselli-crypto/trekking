@@ -593,7 +593,7 @@
         // ==========================================
         // INCOLLA QUI LA TUA CHIAVE API DI GEMINI
         // ==========================================
-        const GEMINI_API_KEY = localStorage.getItem('gemini_api_key');
+        const GEMINI_API_KEY = "localStorage.getItem('gemini_api_key')";
         // ==========================================
 
         const authorizedClientKeys = [
@@ -749,59 +749,36 @@
                 navigator.geolocation.watchPosition(updatePosition, handleGeoError, { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 });
             }
         }
-let hasEverHadPosition = false;
 
-function updatePosition(position) {
-    hasEverHadPosition = true; // Segna che abbiamo agganciato il segnale reale o di fallback iniziale
-    currentLat = position.coords.latitude;
-    currentLng = position.coords.longitude;
-    gpsActive = true;
-    
-    document.getElementById('statusDot').classList.add('active');
-    document.getElementById('statusText').innerText = 'GPS Attivo';
-    
-    const latlng = [currentLat, currentLng];
-    if (!userMarker) {
-        userMarker = L.circleMarker(latlng, { radius: 10, color: '#ffffff', weight: 2, fillColor: '#3388ff', fillOpacity: 0.8 }).addTo(map);
-        accuracyCircle = L.circle(latlng, { radius: position.coords.accuracy, color: '#3388ff', weight: 1, fillColor: '#3388ff', fillOpacity: 0.15 }).addTo(map);
-        map.setView(latlng, 16);
-    } else {
-        userMarker.setLatLng(latlng);
-        accuracyCircle.setLatLng(latlng);
-        accuracyCircle.setRadius(position.coords.accuracy);
-    }
-}
+        function updatePosition(position) {
+            currentLat = position.coords.latitude;
+            currentLng = position.coords.longitude;
+            gpsActive = true;
+            document.getElementById('statusDot').classList.add('active');
+            document.getElementById('statusText').innerText = 'GPS Attivo';
 
-function handleGeoError(err) {
-    // CASO 1: Se siamo all'avvio sul PC (senza GPS), impostiamo Vicarello come posizione iniziale
-    if (!hasEverHadPosition) {
-        console.warn("Avvio su PC senza GPS: imposto Vicarello come posizione iniziale.");
-        updatePosition({
-            coords: {
-                latitude: 43.5594,  // Latitudine di Vicarello
-                longitude: 10.4572, // Longitudine di Vicarello
-                accuracy: 10
+            const latlng = [currentLat, currentLng];
+            if (!userMarker) {
+                userMarker = L.circleMarker(latlng, { radius: 10, color: '#ffffff', weight: 3, fillColor: '#2e7d32', fillOpacity: 1 }).addTo(map);
+                accuracyCircle = L.circle(latlng, { radius: position.coords.accuracy, color: '#2e7d32', weight: 1, fillColor: '#2e7d32', fillOpacity: 0.15 }).addTo(map);
+                map.setView(latlng, 16);
+            } else {
+                userMarker.setLatLng(latlng);
+                accuracyCircle.setLatLng(latlng);
+                accuracyCircle.setRadius(position.coords.accuracy);
             }
-        });
-        return;
-    }
 
-    // CASO 2: Se eravamo in movimento sul campo e il GPS si interrompe improvvisamente
-    console.warn("Segnale GPS perso durante l'escursione.");
-    gpsActive = false;
-    document.getElementById('statusDot').classList.remove('active');
-    document.getElementById('statusText').innerText = 'GPS Assente';
+            if (isTracking && !isPaused) {
+                pathCoordinates.push(latlng);
+                redrawPath();
+            }
+        }
 
-    // Mostra il pop-up di allerta visivo sullo schermo
-    alert("ATTENZIONE: Segnale GPS mancante! Mantenuta l'ultima posizione nota sulla mappa. In attesa di nuovo segnale...");
+        function handleGeoError(err) {
+            document.getElementById('statusDot').classList.remove('active');
+            document.getElementById('statusText').innerText = 'GPS in attesa...';
+        }
 
-    // Avviso vocale di sicurezza tramite la sintesi vocale del browser
-    if ('speechSynthesis' in window) {
-        const alertSpeech = new SpeechSynthesisUtterance("Attenzione, segnale G P S perso. Mantenuta l'ultima posizione nota.");
-        alertSpeech.lang = 'it-IT';
-        window.speechSynthesis.speak(alertSpeech);
-    }
-}
         function redrawPath() {
             if (window.activePolyline) map.removeLayer(window.activePolyline);
             if (pathCoordinates.length > 1) {
@@ -880,38 +857,31 @@ function handleGeoError(err) {
             document.getElementById('infoQueryText').focus();
         }
 
-       function startListening() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-        alert("Il tuo browser non supporta il riconoscimento vocale.");
-        return;
-    }
+        function startVoiceRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) { alert("Riconoscimento vocale non supportato dal browser."); return; }
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'it-IT';
+            const micBtn = document.getElementById('micBtn');
+            micBtn.innerText = "🔴 Ascolto in corso...";
+            micBtn.style.backgroundColor = "var(--danger)";
 
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'it-IT';
-    recognition.interimResults = false;
-    recognition.continuous = false; // Fondamentale per evitare il loop infinito
+            recognition.onresult = function(event) {
+                const spokenText = event.results[0][0].transcript;
+                document.getElementById('infoQueryText').value = spokenText;
+                micBtn.innerText = "🎤 Avvia Ascolto";
+                micBtn.style.backgroundColor = "var(--accent)";
+                
+                // Interroga Gemini in automatico
+                askAiInfo();
+            };
 
-    document.getElementById('infoQueryText').value = "Ascolto in corso... Parla pure.";
-
-    recognition.onresult = function(event) {
-        const speechResult = event.results[0][0].transcript;
-        document.getElementById('infoQueryText').value = speechResult;
-        sendToGemini(speechResult);
-    };
-
-    recognition.onerror = function(event) {
-        console.error("Errore microfono:", event.error);
-        document.getElementById('infoQueryText').value = "Errore di ascolto. Riprova a cliccare sul microfono.";
-    };
-
-    recognition.onend = function() {
-        // L'ascolto è terminato regolarmente, evitiamo riavvii automatici
-        console.log("Riconoscimento vocale terminato.");
-    };
-
-    recognition.start();
-}
+            recognition.onerror = recognition.onend = function() {
+                micBtn.innerText = "🎤 Avvia Ascolto";
+                micBtn.style.backgroundColor = "var(--accent)";
+            };
+            recognition.start();
+        }
 
         async function askAiInfo() {
             const query = document.getElementById('infoQueryText').value.trim();
@@ -925,63 +895,47 @@ function handleGeoError(err) {
             document.getElementById('infoQueryText').value = "⏳ Connessione a Google Gemini in corso...";
             speak("Interrogazione dell'assistente in corso.");
 
-          try {
-    const apiKey = localStorage.getItem('gemini_api_key') || GEMINI_API_KEY;
-    const modelName = localStorage.getItem('gemini_model') || 'gemini-3.6-flash';
-    const promptText = `L'utente si trova attualmente in coordinate geografiche Lat: ${currentLat}, Lng: ${currentLng}. Rispondi in modo dettagliato, preciso e utile a questa richiesta escursionistica o territoriale: "${query}"`;
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            contents: [{ parts: [{ text: promptText }] }]
-        })
-    }); 
+            try {
+                const promptText = `L'utente si trova attualmente in coordinate geografiche Lat: ${currentLat}, Lng: ${currentLng}. Rispondi in modo dettagliato, preciso e utile a questa richiesta escursionistica o territoriale: "${query}"`;
 
-         const data = await response.json();
-            if (data.candidates && data.candidates[0].content.parts[0].text) {
-                const aiAnswer = data.candidates[0].content.parts[0].text;
-                document.getElementById('infoQueryText').value = aiAnswer;
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: promptText }] }]
+                    })
+                });
+
+                const data = await response.json();
                 
-                // Pulisce il testo dai simboli di formattazione Markdown prima di leggerlo
-                const cleanTextForSpeech = aiAnswer.replace(/[*#_`\[\]()\-]/g, ' ').replace(/\s+/g, ' ');
-                speak(cleanTextForSpeech);
-            } else {
-                const errMsg = "Errore nella risposta ricevuta dai server di Gemini.";
-                document.getElementById('infoQueryText').value = errMsg;
-                speak(errMsg);
+                if (data.candidates && data.candidates[0].content.parts[0].text) {
+                    const aiAnswer = data.candidates[0].content.parts[0].text;
+                    document.getElementById('infoQueryText').value = aiAnswer;
+                    speak("Risposta ricevuta.");
+                } else {
+                    document.getElementById('infoQueryText').value = "Errore nella risposta ricevuta dai server di Gemini.";
+                }
+            } catch (error) {
+                document.getElementById('infoQueryText').value = "Errore di connessione a Internet o chiave API non valida.";
+                console.error(error);
             }
-        } catch (error) {
-            const errNet = "Errore di connessione a Internet o chiave API non valida.";
-            document.getElementById('infoQueryText').value = errNet;
-            speak(errNet);
-            console.error(error);
         }
-    }
-    }
 
-    function toggleVoice() {
-        voiceActive = !voiceActive;
-        document.getElementById('menuVoiceIcon').innerText = voiceActive ? '🔊' : '🔇';
-        document.getElementById('menuVoiceText').innerText = voiceActive ? 'Voce: Attiva' : 'Voce: Disattivata';
-    }
+        function toggleVoice() {
+            voiceActive = !voiceActive;
+            document.getElementById('menuVoiceIcon').innerText = voiceActive ? '🔊' : '🔇';
+            document.getElementById('menuVoiceText').innerText = voiceActive ? 'Voce: Attiva' : 'Voce: Disattivata';
+        }
 
-    function speak(text) {
-        if (!voiceActive) return;
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel(); // Annulla eventuali code precedenti
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'it-IT';
-            
-            // Cerca di selezionare una voce in italiano nativa se disponibile
-            const voices = window.speechSynthesis.getVoices();
-            const italianVoice = voices.find(v => v.lang === 'it-IT' || v.lang.startsWith('it'));
-            if (italianVoice) {
-                utterance.voice = italianVoice;
+        function speak(text) {
+            if (!voiceActive) return;
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'it-IT';
+                window.speechSynthesis.speak(utterance);
             }
-            
-            window.speechSynthesis.speak(utterance);
         }
-    }
+
         function startBacktrack() {
             closeModal('menuModal');
             if (pathCoordinates.length < 2) { alert("Registra prima un tratto."); return; }
@@ -1052,3 +1006,4 @@ function handleGeoError(err) {
     </script>
 </body>
 </html>
+
