@@ -554,7 +554,7 @@
                     <textarea class="form-input" id="infoQueryText" rows="3" placeholder="Es. Dove trovo un gommista nelle vicinanze? Oppure: Che storia ha questo eremo?"></textarea>
                 </div>
                 <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                    <button class="btn-action" id="micBtn" onclick="startVoiceRecognition()" style="background-color: var(--accent); flex: 2; margin-top:0;">🎤 Avvia Ascolto</button>
+                    <button class="btn-action" id="micBtn" onclick="toggleVoiceRecognition()" style="background-color: var(--accent); flex: 2; margin-top:0;">🎤 Avvia Ascolto</button>
                     <button class="btn-action" onclick="clearQueryText()" style="background-color: var(--danger); flex: 1; margin-top:0;">🗑️ Cancella</button>
                 </div>
                 <button class="btn-action" onclick="askAiInfo()" style="background-color: var(--primary); margin-bottom: 15px;">Interroga Assistente</button>
@@ -1015,11 +1015,69 @@
             document.body.removeChild(textArea);
         }
 
-        // Funzione per interrompere immediatamente qualsiasi voce in riproduzione
         function stopSpeech() {
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
             }
+        }
+
+        // ==========================================
+        // RICONOSCIMENTO VOCALE CONTINUO E MANUALE
+        // ==========================================
+        let recognitionInstance = null;
+
+        function toggleVoiceRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert("Riconoscimento vocale non supportato dal browser.");
+                return;
+            }
+
+            const micBtn = document.getElementById('micBtn');
+
+            // Se è già attivo, un secondo tocco interrompe l'ascolto manualmente
+            if (recognitionInstance) {
+                recognitionInstance.stop();
+                recognitionInstance = null;
+                micBtn.innerText = "🎤 Avvia Ascolto";
+                micBtn.style.backgroundColor = "var(--accent)";
+                return;
+            }
+
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'it-IT';
+            recognition.continuous = true;     // Ascolto continuo senza tagliarsi sulle pause
+            recognition.interimResults = true; // Mostra le parole mentre parli
+            recognitionInstance = recognition;
+
+            micBtn.innerText = "🛑 Tocca per Fermare";
+            micBtn.style.backgroundColor = "var(--danger)";
+
+            let finalTranscript = '';
+
+            recognition.onresult = function(event) {
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript + " ";
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+                document.getElementById('infoQueryText').value = finalTranscript + interimTranscript;
+            };
+
+            recognition.onerror = function(event) {
+                console.error("Errore riconoscimento vocale:", event.error);
+            };
+
+            recognition.onend = function() {
+                micBtn.innerText = "🎤 Avvia Ascolto";
+                micBtn.style.backgroundColor = "var(--accent)";
+                recognitionInstance = null;
+            };
+
+            recognition.start();
         }
 
         // ==========================================
@@ -1040,32 +1098,13 @@
             document.getElementById('infoQueryText').focus();
         }
 
-        function startVoiceRecognition() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) { alert("Riconoscimento vocale non supportato dal browser."); return; }
-            const recognition = new SpeechRecognition();
-            recognition.lang = 'it-IT';
-            const micBtn = document.getElementById('micBtn');
-            micBtn.innerText = "🔴 Ascolto in corso...";
-            micBtn.style.backgroundColor = "var(--danger)";
-
-            recognition.onresult = function(event) {
-                const spokenText = event.results[0][0].transcript;
-                document.getElementById('infoQueryText').value = spokenText;
-                micBtn.innerText = "🎤 Avvia Ascolto";
-                micBtn.style.backgroundColor = "var(--accent)";
-                
-                askAiInfo();
-            };
-
-            recognition.onerror = recognition.onend = function() {
-                micBtn.innerText = "🎤 Avvia Ascolto";
-                micBtn.style.backgroundColor = "var(--accent)";
-            };
-            recognition.start();
-        }
-
         async function askAiInfo() {
+            // Se il microfono era ancora attivo, fermalo prima di inviare
+            if (recognitionInstance) {
+                recognitionInstance.stop();
+                recognitionInstance = null;
+            }
+
             const query = document.getElementById('infoQueryText').value.trim();
             if (!query) { alert("Inserisci o detta una domanda."); return; }
 
