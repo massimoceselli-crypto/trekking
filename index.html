@@ -907,18 +907,26 @@
         })
     }); 
 
-           const data = await response.json();
+         const data = await response.json();
             if (data.candidates && data.candidates[0].content.parts[0].text) {
                 const aiAnswer = data.candidates[0].content.parts[0].text;
                 document.getElementById('infoQueryText').value = aiAnswer;
-                speak(aiAnswer);
+                
+                // Pulisce il testo dai simboli di formattazione Markdown prima di leggerlo
+                const cleanTextForSpeech = aiAnswer.replace(/[*#_`\[\]()\-]/g, ' ').replace(/\s+/g, ' ');
+                speak(cleanTextForSpeech);
             } else {
-                document.getElementById('infoQueryText').value = "Errore nella risposta ricevuta dai server di Gemini.";
+                const errMsg = "Errore nella risposta ricevuta dai server di Gemini.";
+                document.getElementById('infoQueryText').value = errMsg;
+                speak(errMsg);
             }
         } catch (error) {
-            document.getElementById('infoQueryText').value = "Errore di connessione a Internet o chiave API non valida.";
+            const errNet = "Errore di connessione a Internet o chiave API non valida.";
+            document.getElementById('infoQueryText').value = errNet;
+            speak(errNet);
             console.error(error);
         }
+    }
     }
 
     function toggleVoice() {
@@ -930,13 +938,20 @@
     function speak(text) {
         if (!voiceActive) return;
         if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel(); // Interrompe eventuali voci precedenti
+            window.speechSynthesis.cancel(); // Annulla eventuali code precedenti
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'it-IT';
+            
+            // Cerca di selezionare una voce in italiano nativa se disponibile
+            const voices = window.speechSynthesis.getVoices();
+            const italianVoice = voices.find(v => v.lang === 'it-IT' || v.lang.startsWith('it'));
+            if (italianVoice) {
+                utterance.voice = italianVoice;
+            }
+            
             window.speechSynthesis.speak(utterance);
         }
-    }    
-
+    }
         function startBacktrack() {
             closeModal('menuModal');
             if (pathCoordinates.length < 2) { alert("Registra prima un tratto."); return; }
