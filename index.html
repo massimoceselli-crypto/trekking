@@ -857,24 +857,34 @@
             document.getElementById('infoQueryText').focus();
         }
 
-        function startListening() {
-    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+       function startListening() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        alert("Il tuo browser non supporta il riconoscimento vocale.");
+        return;
+    }
+
+    const recognition = new SpeechRecognition();
     recognition.lang = 'it-IT';
     recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
+    recognition.continuous = false; // Fondamentale per evitare il loop infinito
 
     document.getElementById('infoQueryText').value = "Ascolto in corso... Parla pure.";
 
     recognition.onresult = function(event) {
         const speechResult = event.results[0][0].transcript;
         document.getElementById('infoQueryText').value = speechResult;
-        // Invia automaticamente la domanda trascritta a Gemini
         sendToGemini(speechResult);
     };
 
     recognition.onerror = function(event) {
-        console.error("Errore riconoscimento vocale:", event.error);
-        document.getElementById('infoQueryText').value = "Errore di ascolto dal microfono. Riprova o scrivi la domanda.";
+        console.error("Errore microfono:", event.error);
+        document.getElementById('infoQueryText').value = "Errore di ascolto. Riprova a cliccare sul microfono.";
+    };
+
+    recognition.onend = function() {
+        // L'ascolto è terminato regolarmente, evitiamo riavvii automatici
+        console.log("Riconoscimento vocale terminato.");
     };
 
     recognition.start();
