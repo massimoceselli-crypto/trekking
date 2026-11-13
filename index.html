@@ -857,31 +857,28 @@
             document.getElementById('infoQueryText').focus();
         }
 
-        function startVoiceRecognition() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) { alert("Riconoscimento vocale non supportato dal browser."); return; }
-            const recognition = new SpeechRecognition();
-            recognition.lang = 'it-IT';
-            const micBtn = document.getElementById('micBtn');
-            micBtn.innerText = "🔴 Ascolto in corso...";
-            micBtn.style.backgroundColor = "var(--danger)";
+        function startListening() {
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'it-IT';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
 
-            recognition.onresult = function(event) {
-                const spokenText = event.results[0][0].transcript;
-                document.getElementById('infoQueryText').value = spokenText;
-                micBtn.innerText = "🎤 Avvia Ascolto";
-                micBtn.style.backgroundColor = "var(--accent)";
-                
-                // Interroga Gemini in automatico
-                askAiInfo();
-            };
+    document.getElementById('infoQueryText').value = "Ascolto in corso... Parla pure.";
 
-            recognition.onerror = recognition.onend = function() {
-                micBtn.innerText = "🎤 Avvia Ascolto";
-                micBtn.style.backgroundColor = "var(--accent)";
-            };
-            recognition.start();
-        }
+    recognition.onresult = function(event) {
+        const speechResult = event.results[0][0].transcript;
+        document.getElementById('infoQueryText').value = speechResult;
+        // Invia automaticamente la domanda trascritta a Gemini
+        sendToGemini(speechResult);
+    };
+
+    recognition.onerror = function(event) {
+        console.error("Errore riconoscimento vocale:", event.error);
+        document.getElementById('infoQueryText').value = "Errore di ascolto dal microfono. Riprova o scrivi la domanda.";
+    };
+
+    recognition.start();
+}
 
         async function askAiInfo() {
             const query = document.getElementById('infoQueryText').value.trim();
