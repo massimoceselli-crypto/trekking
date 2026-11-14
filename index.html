@@ -381,6 +381,24 @@
         </div>
     </div>
 
+    <!-- MODALE CONFIGURAZIONE CHIAVE API GEMINI -->
+    <div class="modal-overlay center-mode" id="apiKeyModal" style="z-index: 2200;">
+        <div class="center-box">
+            <h2 style="font-size: 22px; margin-bottom: 15px; color: var(--primary);">Gestione Chiave API Gemini</h2>
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 15px;">
+                Modifica o incolla la tua chiave API di Gemini. Puoi selezionare il testo esistente, cancellarlo e inserire la nuova chiave.
+            </p>
+            <div class="form-group">
+                <input type="text" class="form-input" id="apiKeyInputKey" placeholder="Incolla qui la chiave API...">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="btn-action" onclick="saveApiKey()" style="flex: 2; margin-top:0;">Salva Chiave</button>
+                <button class="btn-action" onclick="removeApiKey()" style="background-color: var(--danger); flex: 1; margin-top:0;">Rimuovi</button>
+            </div>
+            <button class="btn-action" onclick="closeModal('apiKeyModal')" style="background-color: #444; margin-top: 10px;">Chiudi</button>
+        </div>
+    </div>
+
     <!-- WIZARD S.O.S. OBBLIGATORIO AL PRIMO AVVIO -->
     <div class="modal-overlay center-mode" id="sosWizardModal" style="z-index: 2500;">
         <div class="center-box sos-urgent">
@@ -649,15 +667,27 @@
         function openApiKeyPrompt() {
             closeModal('menuModal');
             const currentKey = localStorage.getItem('gemini_api_key') || '';
-            const newKey = prompt("Inserisci o incolla la tua Chiave API di Gemini:", currentKey);
-            if (newKey !== null) {
-                if (newKey.trim() !== "") {
-                    localStorage.setItem('gemini_api_key', newKey.trim());
-                    alert("Chiave API salvata con successo nel browser!");
-                } else {
-                    localStorage.removeItem('gemini_api_key');
-                    alert("Chiave API rimossa.");
-                }
+            document.getElementById('apiKeyInputKey').value = currentKey;
+            document.getElementById('apiKeyModal').classList.add('active');
+        }
+
+        function saveApiKey() {
+            const newKey = document.getElementById('apiKeyInputKey').value.trim();
+            if (newKey !== "") {
+                localStorage.setItem('gemini_api_key', newKey);
+                alert("Chiave API salvata con successo nel browser!");
+                closeModal('apiKeyModal');
+            } else {
+                alert("La chiave API non può essere vuota. Se desideri rimuoverla, usa il tasto Rimuovi.");
+            }
+        }
+
+        function removeApiKey() {
+            if (confirm("Sei sicuro di voler rimuovere la chiave API salvata?")) {
+                localStorage.removeItem('gemini_api_key');
+                document.getElementById('apiKeyInputKey').value = "";
+                alert("Chiave API rimossa.");
+                closeModal('apiKeyModal');
             }
         }
 
@@ -1035,7 +1065,6 @@
 
             const micBtn = document.getElementById('micBtn');
 
-            // Se è già attivo, un secondo tocco interrompe l'ascolto manualmente
             if (recognitionInstance) {
                 recognitionInstance.stop();
                 recognitionInstance = null;
@@ -1046,8 +1075,8 @@
 
             const recognition = new SpeechRecognition();
             recognition.lang = 'it-IT';
-            recognition.continuous = true;     // Ascolto continuo senza tagliarsi sulle pause
-            recognition.interimResults = true; // Mostra le parole mentre parli
+            recognition.continuous = true;
+            recognition.interimResults = true;
             recognitionInstance = recognition;
 
             micBtn.innerText = "🛑 Tocca per Fermare";
@@ -1099,7 +1128,6 @@
         }
 
         async function askAiInfo() {
-            // Se il microfono era ancora attivo, fermalo prima di inviare
             if (recognitionInstance) {
                 recognitionInstance.stop();
                 recognitionInstance = null;
