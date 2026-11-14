@@ -521,7 +521,7 @@
         </button>
     </div>
 
-    <!-- MODALE: MENU PRINCIPALE (CON NUOVO ORDINE DELLE VOCI) -->
+    <!-- MODALE: MENU PRINCIPALE -->
     <div class="modal-overlay" id="menuModal">
         <div class="sheet-container">
             <div class="sheet-header">
@@ -629,7 +629,7 @@
         </div>
     </div>
 
-    <!-- MODALE: POI -->
+    <!-- MODALE: POI (SCELTA CATEGORIA) -->
     <div class="modal-overlay" id="poiModal">
         <div class="sheet-container">
             <div class="sheet-header">
@@ -642,19 +642,40 @@
                         <span class="icon">💧</span>
                         <span>Fontane & Acqua Potabile</span>
                     </div>
+                    <div class="menu-item" onclick="searchPoi('distributori')">
+                        <span class="icon">⛽</span>
+                        <span>Distributori di Carburante</span>
+                    </div>
+                    <div class="menu-item" onclick="searchPoi('bar')">
+                        <span class="icon">🍺</span>
+                        <span>Bar & Pub</span>
+                    </div>
                     <div class="menu-item" onclick="searchPoi('rifugi')">
                         <span class="icon">🏡</span>
                         <span>Rifugi & Bivacchi (Montagna)</span>
                     </div>
                     <div class="menu-item" onclick="searchPoi('ristoranti')">
                         <span class="icon">🍕</span>
-                        <span>Ristoranti & Pizzerie (Città)</span>
+                        <span>Ristoranti & Pizzerie</span>
                     </div>
                     <div class="menu-item" onclick="searchPoi('farmacie')">
                         <span class="icon">🏥</span>
                         <span>Farmacie & Servizi</span>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE: RISULTATI POI (ORDINATI PER DISTANZA) -->
+    <div class="modal-overlay" id="poiResultsModal">
+        <div class="sheet-container">
+            <div class="sheet-header">
+                <div class="sheet-title" id="poiResultsTitle">Risultati Nelle Vicinanze</div>
+                <button class="close-btn" onclick="closeModal('poiResultsModal')">&times;</button>
+            </div>
+            <div class="sheet-body" id="poiResultsBody">
+                <p style="text-align:center; color:var(--text-muted); padding:20px;">Ricerca in corso...</p>
             </div>
         </div>
     </div>
@@ -791,6 +812,11 @@
         let waypointInterval = null;
         let activeTripStart = null; 
         let currentTrackColor = '#00bfff';
+
+        // Variabili per Navigazione POI
+        let activePoiDestination = null; // {name, lat, lng}
+        let activePoiPolyline = null;
+        let activePoiMarker = null;
 
         function checkLicenseAndSetup() {
             const now = new Date().getTime();
@@ -950,6 +976,10 @@
 
                 if (isTracking && !isPaused) {
                     map.panTo(latlng);
+                } else if (activePoiDestination) {
+                    // Modalità navigatore verso POI attivo: segui il movimento sulla mappa
+                    map.panTo(latlng);
+                    updatePoiNavigation();
                 }
             }
 
@@ -1345,31 +1375,121 @@
             document.getElementById('poiModal').classList.add('active');
         }
 
-        function searchPoi(type) {
-            closeModal('poiModal');
-            alert(`Punti di interesse (${type}) caricati.`);
+        // Funzione per calcolare la distanza in metri tra due coordinate (Formula di Haversine)
+        function getDistanceMeters(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Raggio della terra in metri
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
         }
 
-        function openMeteoModal() {
-            closeModal('menuModal');
-            let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
-            html += `<p style="font-size:13px; color:var(--text-muted); margin-bottom:5px;">Previsioni geolocalizzate (24h):</p>`;
-            const hours = ["06:00", "08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00", "00:00"];
-            const icons = ["🌅", "☀️", "☀️", "⛅", "⛅", "🌧️", "☁️", "🌙", "🌙", "🌙"];
-            const temps = ["14°C", "17°C", "21°C", "23°C", "22°C", "19°C", "16°C", "14°C", "12°C", "11°C"];
-            const descs = ["Alba", "Sole", "Sereno", "Nuvoloso", "Variabile", "Pioggia", "Coperto", "Notte", "Notte", "Sereno"];
+        // Cerca POI dal vivo tramite Overpass API (OpenStreetMap)
+        async function searchPoi(type) {
+            closeModal('poiModal');
+            document.getElementById('poiResultsTitle').innerText = `Cerca: ${type.toUpperCase()}`;
+            document.getElementById('poiResultsBody').innerHTML = `<p style="text-align:center; color:var(--text-muted); padding:20px;">⏳ Interrogazione server OpenStreetMap in corso...</p>`;
+            document.getElementById('poiResultsModal').classList.add('active');
 
-            for (let i = 0; i < hours.length; i++) {
-                html += `<div style="display:flex; justify-content:space-between; align-items:center; background:#2a2a2a; padding:10px 15px; border-radius:10px;">
-                    <span style="font-weight:bold; width:65px; color:var(--accent);">${hours[i]}</span>
-                    <span style="font-size:22px;">${icons[i]}</span>
-                    <span style="flex-grow:1; margin-left:12px; font-size:14px;">${descs[i]}</span>
-                    <span style="font-weight:bold; font-size:15px;">${temps[i]}</span>
-                </div>`;
+            let queryTag = "";
+            if (type === 'acqua') queryTag = 'node["amenity"="drinking_water"](around:15000,'+currentLat+','+currentLng+');way["amenity"="drinking_water"](around:15000,'+currentLat+','+currentLng+');';
+            else if (type === 'distributori') queryTag = 'node["amenity"="fuel"](around:15000,'+currentLat+','+currentLng+');way["amenity"="fuel"](around:15000,'+currentLat+','+currentLng+');';
+            else if (type === 'bar') queryTag = 'node["amenity"~"bar|pub|cafe"](around:15000,'+currentLat+','+currentLng+');way["amenity"~"bar|pub|cafe"](around:15000,'+currentLat+','+currentLng+');';
+            else if (type === 'rifugi') queryTag = 'node["tourism"~"alpine_hut|wilderness_hut"](around:30000,'+currentLat+','+currentLng+');way["tourism"~"alpine_hut|wilderness_hut"](around:30000,'+currentLat+','+currentLng+');';
+            else if (type === 'ristoranti') queryTag = 'node["amenity"~"restaurant|fast_food"](around:15000,'+currentLat+','+currentLng+');way["amenity"~"restaurant|fast_food"](around:15000,'+currentLat+','+currentLng+');';
+            else if (type === 'farmacie') queryTag = 'node["amenity"="pharmacy"](around:15000,'+currentLat+','+currentLng+');way["amenity"="pharmacy"](around:15000,'+currentLat+','+currentLng+');';
+
+            const overpassQuery = `[out:json];(${queryTag});out center;`;
+
+            try {
+                const response = await fetch('https://overpass-api.de/api/interpreter', {
+                    method: 'POST',
+                    body: overpassQuery
+                });
+                const data = await response.json();
+
+                if (!data.elements || data.elements.length === 0) {
+                    document.getElementById('poiResultsBody').innerHTML = `<p style="text-align:center; color:var(--text-muted); padding:20px;">Nessun risultato trovato nelle vicinanze.</p>`;
+                    return;
+                }
+
+                // Elabora e calcola le distanze
+                let results = data.elements.map(el => {
+                    const lat = el.lat || (el.center && el.center.lat);
+                    const lon = el.lon || (el.center && el.center.lon);
+                    const name = (el.tags && (el.tags.name || el.tags.brand || el.tags.operator)) || `${type.charAt(0).toUpperCase() + type.slice(1)} senza nome`;
+                    if (!lat || !lon) return null;
+                    const dist = getDistanceMeters(currentLat, currentLng, lat, lon);
+                    return { name, lat, lon, dist };
+                }).filter(item => item !== null);
+
+                // Ordina per distanza crescente (dal più vicino)
+                results.sort((a, b) => a.dist - b.dist);
+
+                let html = '<div class="menu-list">';
+                results.forEach((r, idx) => {
+                    const distFormatted = r.dist > 1000 ? (r.dist / 1000).toFixed(2) + ' km' : Math.round(r.dist) + ' m';
+                    html += `<div class="menu-item" style="justify-content:space-between;" onclick="startPoiNavigation('${r.name.replace(/'/g, "\\'")}', ${r.lat}, ${r.lon})">
+                        <div>
+                            <div style="font-size:17px;">📍 ${r.name}</div>
+                            <div style="font-size:13px; color:var(--accent);">Distanza: ${distFormatted}</div>
+                        </div>
+                        <span style="font-size:14px; background:var(--primary); padding:6px 12px; border-radius:8px; color:white;">Naviga</span>
+                    </div>`;
+                });
+                html += '</div>';
+                document.getElementById('poiResultsBody').innerHTML = html;
+
+            } catch (err) {
+                document.getElementById('poiResultsBody').innerHTML = `<p style="text-align:center; color:var(--danger); padding:20px;">Errore di connessione durante la ricerca POI.</p>`;
             }
-            html += '</div>';
-            document.getElementById('meteoBody').innerHTML = html;
-            document.getElementById('meteoModal').classList.add('active');
+        }
+
+        // Avvia la navigazione passo-passo verso il POI selezionato
+        function startPoiNavigation(name, lat, lng) {
+            closeModal('poiResultsModal');
+            activePoiDestination = { name, lat, lng };
+
+            // Pulisci vecchi elementi grafici di navigazione POI se presenti
+            if (activePoiMarker) map.removeLayer(activePoiMarker);
+            if (activePoiPolyline) map.removeLayer(activePoiPolyline);
+
+            // Aggiungi bandierina di arrivo
+            activePoiMarker = L.marker([lat, lng], {
+                icon: L.divIcon({ className: '', html: `<div style="background:var(--danger); color:white; padding:6px 10px; border-radius:12px; font-weight:bold; font-size:14px; border:2px solid white; box-shadow:0 4px 8px rgba(0,0,0,0.4);">🏁 ${name}</div>`, iconAnchor: [15, 15] })
+            }).addTo(map);
+
+            // Traccia linea diretta di navigazione
+            activePoiPolyline = L.polyline([[currentLat, currentLng], [lat, lng]], { color: '#ff8f00', weight: 6, dashArray: '8, 8', opacity: 0.9 }).addTo(map);
+
+            map.setView([lat, lng], 16);
+            speak(`Navigazione avviata verso ${name}.`);
+            alert(`Navigazione avviata verso "${name}"! La mappa ti guiderà passo dopo passo.`);
+        }
+
+        // Aggiorna in tempo reale la distanza rimanente e la guida vocale/mappa verso il POI
+        function updatePoiNavigation() {
+            if (!activePoiDestination) return;
+            const dist = getDistanceMeters(currentLat, currentLng, activePoiDestination.lat, activePoiDestination.lng);
+            
+            // Aggiorna la linea del percorso in tempo reale
+            if (activePoiPolyline) {
+                activePoiPolyline.setLatLngs([[currentLat, currentLng], [activePoiDestination.lat, activePoiDestination.lng]]);
+            }
+
+            // Se arrivato a destinazione (entro 20 metri)
+            if (dist < 20) {
+                speak(`Sei arrivato a destinazione: ${activePoiDestination.name}.`);
+                alert(`🎉 Sei arrivato a destinazione: ${activePoiDestination.name}!`);
+                activePoiDestination = null;
+                if (activePoiMarker) map.removeLayer(activePoiMarker);
+                if (activePoiPolyline) map.removeLayer(activePoiPolyline);
+                activePoiMarker = null;
+                activePoiPolyline = null;
+            }
         }
 
         function openFoldersModal() {
@@ -1413,6 +1533,28 @@
                 activeTripStart = pathCoordinates[0]; 
             }
             speak(`Percorso ${track.name} caricato.`);
+        }
+
+        function openMeteoModal() {
+            closeModal('menuModal');
+            let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
+            html += `<p style="font-size:13px; color:var(--text-muted); margin-bottom:5px;">Previsioni geolocalizzate (24h):</p>`;
+            const hours = ["06:00", "08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00", "00:00"];
+            const icons = ["🌅", "☀️", "☀️", "⛅", "⛅", "🌧️", "☁️", "🌙", "🌙", "🌙"];
+            const temps = ["14°C", "17°C", "21°C", "23°C", "22°C", "19°C", "16°C", "14°C", "12°C", "11°C"];
+            const descs = ["Alba", "Sole", "Sereno", "Nuvoloso", "Variabile", "Pioggia", "Coperto", "Notte", "Notte", "Sereno"];
+
+            for (let i = 0; i < hours.length; i++) {
+                html += `<div style="display:flex; justify-content:space-between; align-items:center; background:#2a2a2a; padding:10px 15px; border-radius:10px;">
+                    <span style="font-weight:bold; width:65px; color:var(--accent);">${hours[i]}</span>
+                    <span style="font-size:22px;">${icons[i]}</span>
+                    <span style="flex-grow:1; margin-left:12px; font-size:14px;">${descs[i]}</span>
+                    <span style="font-weight:bold; font-size:15px;">${temps[i]}</span>
+                </div>`;
+            }
+            html += '</div>';
+            document.getElementById('meteoBody').innerHTML = html;
+            document.getElementById('meteoModal').classList.add('active');
         }
 
         function openMenu() { document.getElementById('menuModal').classList.add('active'); }
