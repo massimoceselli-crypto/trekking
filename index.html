@@ -1185,6 +1185,17 @@
             document.getElementById('infoQueryText').focus();
         }
 
+        // Funzione per pulire il testo dai simboli di markdown (asterischi, cancelletti, ecc.) prima della lettura vocale
+        function cleanTextForSpeech(text) {
+            if (!text) return '';
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '$1') // Rimuove grassetto **testo**
+                .replace(/\*(.*?)\*/g, '$1')     // Rimuove corsivo *testo*
+                .replace(/#{1,6}\s?/g, '')       // Rimuove intestazioni #
+                .replace(/`{1,3}(.*?)`{1,3}/g, '$1') // Rimuove blocchi di codice
+                .replace(/\[(.*?)\]\((.*?)\)/g, '$1'); // Rimuove link [testo](url)
+        }
+
         async function askAiInfo() {
             if (recognitionInstance) {
                 recognitionInstance.stop();
@@ -1250,8 +1261,8 @@
 
                     if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
                         const aiAnswer = data.candidates[0].content.parts[0].text;
-                        responseBox.innerText = aiAnswer;
-                        speak(aiAnswer);
+                        responseBox.innerText = aiAnswer; // Visualizza il testo completo formattato
+                        speak(cleanTextForSpeech(aiAnswer)); // Legge ad alta voce solo il testo pulito senza asterischi
                         return;
                     } else {
                         console.error("Struttura inattesa:", data);
