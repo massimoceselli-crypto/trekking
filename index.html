@@ -29,7 +29,7 @@
 
         body, html {
             width: 100%;
-            height: 100%;
+            height: 100dvh;
             overflow: hidden;
             background-color: var(--bg-dark);
             color: var(--text-main);
@@ -37,16 +37,16 @@
 
         #map {
             width: 100%;
-            height: calc(100% - 140px); /* Spazio per plancia principale (75px) + barra tracciamento rapido (65px) */
+            height: calc(100dvh - 140px); /* Spazio per plancia principale (75px) + barra tracciamento rapido (65px) */
             position: absolute;
             top: 0;
             left: 0;
             z-index: 1;
         }
 
-        /* Barra Tracciamento Rapido in basso (sopra la plancia principale) */
+        /* Barra Tracciamento Rapido in basso (Fissa sopra la plancia principale) */
         .tracking-bar {
-            position: absolute;
+            position: fixed;
             bottom: 75px;
             left: 0;
             width: 100%;
@@ -56,13 +56,13 @@
             display: flex;
             justify-content: space-around;
             align-items: center;
-            z-index: 1000;
+            z-index: 2000;
             padding: 0 10px;
         }
 
-        /* Plancia in basso a 3 Tasti principali */
+        /* Plancia in basso a 3 Tasti principali (Fissa in fondo) */
         .bottom-bar {
-            position: absolute;
+            position: fixed;
             bottom: 0;
             left: 0;
             width: 100%;
@@ -72,7 +72,7 @@
             display: flex;
             justify-content: space-around;
             align-items: center;
-            z-index: 1000;
+            z-index: 2001;
             padding: 0 10px;
         }
 
@@ -119,7 +119,7 @@
             border: 2px solid #ffffff;
             padding: 10px 18px;
             border-radius: 25px;
-            z-index: 1500;
+            z-index: 2500;
             font-size: 16px;
             font-weight: bold;
             display: flex;
@@ -182,9 +182,9 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: 100%;
+            height: 100dvh;
             background-color: rgba(0, 0, 0, 0.85);
-            z-index: 2000;
+            z-index: 3000;
             display: none;
             justify-content: center;
             align-items: flex-end;
@@ -353,7 +353,7 @@
             border: 2px solid var(--primary);
             padding: 8px 16px;
             border-radius: 20px;
-            z-index: 1000;
+            z-index: 2500;
             font-size: 13px;
             font-weight: bold;
             display: flex;
@@ -398,7 +398,7 @@
     </div>
 
     <!-- MODALE CONFIGURAZIONE CHIAVE API GEMINI -->
-    <div class="modal-overlay center-mode" id="apiKeyModal" style="z-index: 2200;">
+    <div class="modal-overlay center-mode" id="apiKeyModal" style="z-index: 3200;">
         <div class="center-box">
             <h2 style="font-size: 22px; margin-bottom: 15px; color: var(--primary);">Gestione Chiave API Gemini</h2>
             <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 15px;">
@@ -416,7 +416,7 @@
     </div>
 
     <!-- WIZARD S.O.S. OBBLIGATORIO AL PRIMO AVVIO -->
-    <div class="modal-overlay center-mode" id="sosWizardModal" style="z-index: 2500;">
+    <div class="modal-overlay center-mode" id="sosWizardModal" style="z-index: 3500;">
         <div class="center-box sos-urgent">
             <h2 style="font-size: 22px; margin-bottom: 10px; color: var(--danger); text-align: center;">🚨 CONFIGURAZIONE EMERGENZA S.O.S.</h2>
             <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 15px; text-align: center;">
@@ -458,7 +458,7 @@
     </div>
 
     <!-- MODALE ATTIVAZIONE S.O.S. -->
-    <div class="modal-overlay center-mode" id="sosActiveModal" style="z-index: 3000;">
+    <div class="modal-overlay center-mode" id="sosActiveModal" style="z-index: 4000;">
         <div class="center-box sos-urgent" style="text-align: center;">
             <div style="font-size: 50px; margin-bottom: 10px;">🆘</div>
             <h2 style="font-size: 24px; color: var(--danger); margin-bottom: 10px;">RICHIESTA SOCCORSO ATTIVA</h2>
@@ -489,7 +489,7 @@
     <!-- Mappa Leaflet -->
     <div id="map"></div>
 
-    <!-- BARRA TRACCIAMENTO RAPIDO (Sopra la plancia principale) -->
+    <!-- BARRA TRACCIAMENTO RAPIDO (Fissa sopra la plancia principale) -->
     <div class="tracking-bar">
         <button class="nav-btn" id="mainTrackBtn" onclick="toggleTracking()" style="background-color: var(--primary);">
             <span class="icon" id="mainTrackIcon">▶️</span>
@@ -505,7 +505,7 @@
         </button>
     </div>
 
-    <!-- Plancia in Basso a 3 Tasti -->
+    <!-- Plancia in Basso a 3 Tasti (Fissa in fondo) -->
     <div class="bottom-bar">
         <button class="nav-btn" onclick="openInfoWeb()">
             <span class="icon">ℹ️</span>
@@ -521,7 +521,7 @@
         </button>
     </div>
 
-    <!-- MODALE: MENU PRINCIPALE (Senza i comandi di tracciamento rapidi) -->
+    <!-- MODALE: MENU PRINCIPALE -->
     <div class="modal-overlay" id="menuModal">
         <div class="sheet-container">
             <div class="sheet-header">
@@ -790,7 +790,7 @@
         let gpsActive = false;
         let waypointInterval = null;
         let activeTripStart = null; 
-        let currentTrackColor = '#00bfff'; // Default Blu sgargiante per l'andata
+        let currentTrackColor = '#00bfff';
 
         function checkLicenseAndSetup() {
             const now = new Date().getTime();
