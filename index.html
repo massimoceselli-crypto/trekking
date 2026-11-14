@@ -521,7 +521,7 @@
         </button>
     </div>
 
-    <!-- MODALE: MENU PRINCIPALE -->
+    <!-- MODALE: MENU PRINCIPALE (CON NUOVO ORDINE DELLE VOCI) -->
     <div class="modal-overlay" id="menuModal">
         <div class="sheet-container">
             <div class="sheet-header">
@@ -530,25 +530,9 @@
             </div>
             <div class="sheet-body">
                 <div class="menu-list">
-                    <div class="menu-item" onclick="openApiKeyPrompt()">
-                        <span class="icon">⚙️</span>
-                        <span>Imposta Chiave API Gemini</span>
-                    </div>
-                    <div class="menu-item" onclick="openModelPrompt()">
-                        <span class="icon">🤖</span>
-                        <span>Imposta Modello Gemini</span>
-                    </div>
-                    <div class="menu-item" onclick="fetchAvailableModelsFromMenu()">
-                        <span class="icon">🔍</span>
-                        <span>Mostra Modelli Disponibili (Live)</span>
-                    </div>
-                    <div class="menu-item" onclick="openSosEditModal()">
-                        <span class="icon">🆘</span>
-                        <span>Modifica Contatti S.O.S.</span>
-                    </div>
-                    <div class="menu-item" onclick="toggleVoice()">
-                        <span class="icon" id="menuVoiceIcon">🔊</span>
-                        <span id="menuVoiceText">Voce: Attiva</span>
+                    <div class="menu-item" onclick="openFoldersModal()">
+                        <span class="icon">📁</span>
+                        <span>Cartelle Percorsi</span>
                     </div>
                     <div class="menu-item" onclick="startBacktrack()">
                         <span class="icon">↩️</span>
@@ -566,9 +550,25 @@
                         <span class="icon">⛅</span>
                         <span>Meteo 24 Ore (GPS Reale)</span>
                     </div>
-                    <div class="menu-item" onclick="openFoldersModal()">
-                        <span class="icon">📁</span>
-                        <span>Cartelle Percorsi</span>
+                    <div class="menu-item" onclick="toggleVoice()">
+                        <span class="icon" id="menuVoiceIcon">🔊</span>
+                        <span id="menuVoiceText">Voce: Attiva</span>
+                    </div>
+                    <div class="menu-item" onclick="openSosEditModal()">
+                        <span class="icon">🆘</span>
+                        <span>Modifica Contatti S.O.S.</span>
+                    </div>
+                    <div class="menu-item" onclick="openApiKeyPrompt()">
+                        <span class="icon">⚙️</span>
+                        <span>Imposta Chiave API Gemini</span>
+                    </div>
+                    <div class="menu-item" onclick="openModelPrompt()">
+                        <span class="icon">🤖</span>
+                        <span>Imposta Modello Gemini</span>
+                    </div>
+                    <div class="menu-item" onclick="fetchAvailableModelsFromMenu()">
+                        <span class="icon">🔍</span>
+                        <span>Mostra Modelli Disponibili (Live)</span>
                     </div>
                 </div>
             </div>
@@ -1392,11 +1392,11 @@
         }
 
         function deleteTrack(event, id) {
-            event.stopPropagation(); // Impedisce l'apertura/caricamento del percorso quando si clicca elimina
+            event.stopPropagation();
             if (confirm("Sei sicuro di voler eliminare definitivamente questo percorso salvato?")) {
                 savedTracks = savedTracks.filter(t => t.id !== id);
                 localStorage.setItem('sentierovivo_tracks', JSON.stringify(savedTracks));
-                openFoldersModal(); // Aggiorna la lista nella modale
+                openFoldersModal();
                 speak("Percorso eliminato.");
             }
         }
