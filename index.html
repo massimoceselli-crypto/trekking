@@ -768,7 +768,8 @@
         let currentLat = 43.5485;
         let currentLng = 10.3106;
         let gpsActive = false;
-        let waypointInterval = null; // Timer per waypoint automatici ogni 5 minuti
+        let waypointInterval = null;
+        let activeTripStart = null; // Memoria persistente della base di partenza
 
         function checkLicenseAndSetup() {
             const now = new Date().getTime();
@@ -956,9 +957,11 @@
                 pathCoordinates = [];
                 waypointsList = [];
                 
-                // Inserisce subito il waypoint 0 all'avvio del tracciamento
+                // Registra la coordinata di partenza della base in memoria persistente
                 if (userMarker) {
-                    addAutoWaypoint();
+                    const ll = userMarker.getLatLng();
+                    activeTripStart = [ll.lat, ll.lng];
+                    addAutoWaypoint(); // Waypoint 0 di partenza
                 }
 
                 // Avvia il timer per i waypoint automatici ogni 5 minuti (300000 ms)
@@ -1021,9 +1024,10 @@
         }
 
         function confirmSaveTrack() {
+            const trackName = document.getElementById('saveTrackName').value || 'Escursione';
             const trackData = {
                 id: Date.now(),
-                name: document.getElementById('saveTrackName').value || 'Escursione',
+                name: trackName,
                 folder: localStorage.getItem('sentierovivo_default_folder') || 'Trekking',
                 date: new Date().toLocaleDateString(),
                 coordinates: pathCoordinates,
@@ -1031,7 +1035,16 @@
             };
             savedTracks.push(trackData);
             localStorage.setItem('sentierovivo_tracks', JSON.stringify(savedTracks));
+            
+            // Azzeramento completo post-salvataggio per ripartire da zero
             isTracking = false;
+            activeTripStart = null; 
+            pathCoordinates = [];
+            waypointsList = [];
+            if (window.activePolyline) {
+                map.removeLayer(window.activePolyline);
+                window.activePolyline = null;
+            }
             if (waypointInterval) {
                 clearInterval(waypointInterval);
                 waypointInterval = null;
@@ -1039,7 +1052,7 @@
             document.getElementById('menuTrackIcon').innerText = '▶️';
             document.getElementById('menuTrackText').innerText = 'Avvia Tracciamento';
             closeModal('stopSaveModal');
-            speak("Percorso salvato.");
+            speak("Percorso salvato e dati azzerati.");
         }
 
         // ==========================================
@@ -1274,10 +1287,42 @@
             speak("Ritorno a ritroso attivato.");
         }
 
+        // ==========================================
+        // CREA NUOVO PERCORSO DI RIENTRO VERSO LA BASE
+        // ==========================================
         function createReturnLoop() {
             closeModal('menuModal');
-            speak("Calcolo anello di rientro.");
-            alert("Anello di rientro calcolato con analisi delle pendenze.");
+            if (!activeTripStart) {
+                alert("Nessuna base di partenza memorizzata. Avvia prima un percorso o caricalo dall'archivio.");
+                return;
+            }
+
+            // Avvia una nuova sessione di tracciamento per il ritorno
+            pathCoordinates = [];
+            waypointsList = [];
+            isTracking = true;
+            isPaused = false;
+
+            if (userMarker) {
+                const currentLL = userMarker.getLatLng();
+                pathCoordinates.push([currentLL.lat, currentLL.lng]);
+            }
+            pathCoordinates.push(activeTripStart);
+            redrawPath();
+
+            // Avvia timer per waypoint automatici anche nel rientro
+            if (waypointInterval) clearInterval(waypointInterval);
+            waypointInterval = setInterval(() => {
+                if (isTracking && !isPaused) {
+                    addAutoWaypoint();
+                }
+            }, 5 * 60 * 1000);
+
+            document.getElementById('menuTrackIcon').innerText = '⏹️';
+            document.getElementById('menuTrackText').innerText = 'Ferma Tracciamento';
+            
+            speak("Nuovo percorso di rientro avviato verso la base.");
+            alert("Percorso di rientro avviato! L'app sta registrando il ritorno alla base memorizzata.");
         }
 
         function openPoiModal() {
@@ -1326,7 +1371,10 @@
             closeModal('foldersModal');
             pathCoordinates = track.coordinates;
             redrawPath();
-            if (pathCoordinates.length > 0) map.setView(pathCoordinates[0], 15);
+            if (pathCoordinates.length > 0) {
+                map.setView(pathCoordinates[0], 15);
+                activeTripStart = pathCoordinates[0]; // Imposta la base dal percorso caricato
+            }
             speak(`Percorso ${track.name} caricato.`);
         }
 
