@@ -1185,15 +1185,14 @@
             document.getElementById('infoQueryText').focus();
         }
 
-        // Funzione per pulire il testo dai simboli di markdown (asterischi, cancelletti, ecc.) prima della lettura vocale
         function cleanTextForSpeech(text) {
             if (!text) return '';
             return text
-                .replace(/\*\*(.*?)\*\*/g, '$1') // Rimuove grassetto **testo**
-                .replace(/\*(.*?)\*/g, '$1')     // Rimuove corsivo *testo*
-                .replace(/#{1,6}\s?/g, '')       // Rimuove intestazioni #
-                .replace(/`{1,3}(.*?)`{1,3}/g, '$1') // Rimuove blocchi di codice
-                .replace(/\[(.*?)\]\((.*?)\)/g, '$1'); // Rimuove link [testo](url)
+                .replace(/\*\*(.*?)\*\*/g, '$1')
+                .replace(/\*(.*?)\*/g, '$1')
+                .replace(/#{1,6}\s?/g, '')
+                .replace(/`{1,3}(.*?)`{1,3}/g, '$1')
+                .replace(/\[(.*?)\]\((.*?)\)/g, '$1');
         }
 
         async function askAiInfo() {
@@ -1261,8 +1260,8 @@
 
                     if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
                         const aiAnswer = data.candidates[0].content.parts[0].text;
-                        responseBox.innerText = aiAnswer; // Visualizza il testo completo formattato
-                        speak(cleanTextForSpeech(aiAnswer)); // Legge ad alta voce solo il testo pulito senza asterischi
+                        responseBox.innerText = aiAnswer;
+                        speak(cleanTextForSpeech(aiAnswer));
                         return;
                     } else {
                         console.error("Struttura inattesa:", data);
@@ -1377,8 +1376,29 @@
             closeModal('menuModal');
             const container = document.getElementById('foldersListBody');
             container.innerHTML = savedTracks.length === 0 ? '<p style="text-align:center; color:var(--text-muted); padding:20px;">Nessun percorso salvato.</p>' : 
-                '<div class="menu-list">' + savedTracks.map(t => `<div class="menu-item" style="justify-content:space-between;" onclick="loadTrackScenario(${t.id})"><div><div style="font-size:18px;">📁 ${t.name}</div><div style="font-size:13px; color:var(--text-muted);">Cartella: ${t.folder} | ${t.date}</div></div><span style="font-size:14px; background:var(--primary); padding:6px 12px; border-radius:8px;">Carica</span></div>`).join('') + '</div>';
+                '<div class="menu-list">' + savedTracks.map(t => `
+                    <div class="menu-item" style="justify-content:space-between;" onclick="loadTrackScenario(${t.id})">
+                        <div>
+                            <div style="font-size:18px;">📁 ${t.name}</div>
+                            <div style="font-size:13px; color:var(--text-muted);">Cartella: ${t.folder} | ${t.date}</div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <span style="font-size:14px; background:var(--primary); padding:6px 12px; border-radius:8px;">Carica</span>
+                            <span onclick="deleteTrack(event, ${t.id})" style="font-size:14px; background:var(--danger); padding:6px 12px; border-radius:8px; color:white;">Elimina</span>
+                        </div>
+                    </div>
+                `).join('') + '</div>';
             document.getElementById('foldersModal').classList.add('active');
+        }
+
+        function deleteTrack(event, id) {
+            event.stopPropagation(); // Impedisce l'apertura/caricamento del percorso quando si clicca elimina
+            if (confirm("Sei sicuro di voler eliminare definitivamente questo percorso salvato?")) {
+                savedTracks = savedTracks.filter(t => t.id !== id);
+                localStorage.setItem('sentierovivo_tracks', JSON.stringify(savedTracks));
+                openFoldersModal(); // Aggiorna la lista nella modale
+                speak("Percorso eliminato.");
+            }
         }
 
         function loadTrackScenario(id) {
