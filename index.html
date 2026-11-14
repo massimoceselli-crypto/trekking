@@ -769,7 +769,8 @@
         let currentLng = 10.3106;
         let gpsActive = false;
         let waypointInterval = null;
-        let activeTripStart = null; // Memoria persistente della base di partenza
+        let activeTripStart = null; 
+        let currentTrackColor = '#00bfff'; // Default Blu sgargiante per l'andata
 
         function checkLicenseAndSetup() {
             const now = new Date().getTime();
@@ -946,7 +947,8 @@
         function redrawPath() {
             if (window.activePolyline) map.removeLayer(window.activePolyline);
             if (pathCoordinates.length > 1) {
-                window.activePolyline = L.polyline(pathCoordinates, { color: '#ff8f00', weight: 6, opacity: 0.9 }).addTo(map);
+                // Spessore portato a 8 (ingrandito) e colore personalizzato in base al tipo di percorso
+                window.activePolyline = L.polyline(pathCoordinates, { color: currentTrackColor, weight: 8, opacity: 0.95 }).addTo(map);
             }
         }
 
@@ -957,14 +959,15 @@
                 pathCoordinates = [];
                 waypointsList = [];
                 
-                // Registra la coordinata di partenza della base in memoria persistente
+                // Imposta il colore BLU SGARGIANTE per l'andata standard
+                currentTrackColor = '#00bfff';
+
                 if (userMarker) {
                     const ll = userMarker.getLatLng();
                     activeTripStart = [ll.lat, ll.lng];
                     addAutoWaypoint(); // Waypoint 0 di partenza
                 }
 
-                // Avvia il timer per i waypoint automatici ogni 5 minuti (300000 ms)
                 if (waypointInterval) clearInterval(waypointInterval);
                 waypointInterval = setInterval(() => {
                     if (isTracking && !isPaused) {
@@ -974,7 +977,7 @@
 
                 document.getElementById('menuTrackIcon').innerText = '⏹️';
                 document.getElementById('menuTrackText').innerText = 'Ferma Tracciamento';
-                speak("Registrazione percorso avviata con waypoint automatici.");
+                speak("Registrazione percorso di andata avviata.");
             } else {
                 stopTrackingSession();
             }
@@ -986,7 +989,7 @@
             const latlng = userMarker.getLatLng();
             const wpIndex = waypointsList.length;
             L.marker(latlng, {
-                icon: L.divIcon({ className: 'custom-badge', html: `<div style="background:#ff8f00; color:white; padding:4px 8px; border-radius:12px; font-weight:bold; font-size:12px; border:2px solid white;">📍 ${wpIndex}</div>` })
+                icon: L.divIcon({ className: 'custom-badge', html: `<div style="background:${currentTrackColor}; color:white; padding:4px 8px; border-radius:12px; font-weight:bold; font-size:12px; border:2px solid white;">📍 ${wpIndex}</div>` })
             }).addTo(map);
             waypointsList.push({ type: 'auto', index: wpIndex, latlng: latlng });
         }
@@ -1003,7 +1006,7 @@
             const latlng = userMarker.getLatLng();
             const wpIndex = waypointsList.length;
             L.marker(latlng, {
-                icon: L.divIcon({ className: 'custom-badge', html: `<div style="background:#ff8f00; color:white; padding:4px 8px; border-radius:12px; font-weight:bold; font-size:12px; border:2px solid white;">🏁 ${wpIndex}</div>` })
+                icon: L.divIcon({ className: 'custom-badge', html: `<div style="background:${currentTrackColor}; color:white; padding:4px 8px; border-radius:12px; font-weight:bold; font-size:12px; border:2px solid white;">🏁 ${wpIndex}</div>` })
             }).addTo(map);
             waypointsList.push({ type: 'manual', index: wpIndex, latlng: latlng });
             speak(`Bandierina manuale ${wpIndex} registrata.`);
@@ -1031,12 +1034,12 @@
                 folder: localStorage.getItem('sentierovivo_default_folder') || 'Trekking',
                 date: new Date().toLocaleDateString(),
                 coordinates: pathCoordinates,
-                waypoints: waypointsList
+                waypoints: waypointsList,
+                color: currentTrackColor // Salva il colore del tracciato
             };
             savedTracks.push(trackData);
             localStorage.setItem('sentierovivo_tracks', JSON.stringify(savedTracks));
             
-            // Azzeramento completo post-salvataggio per ripartire da zero
             isTracking = false;
             activeTripStart = null; 
             pathCoordinates = [];
@@ -1280,15 +1283,23 @@
             }
         }
 
+        // ==========================================
+        // RITORNO A RITROSO (ARANCIONE SGARGIANTE)
+        // ==========================================
         function startBacktrack() {
             closeModal('menuModal');
             if (pathCoordinates.length < 2) { alert("Registra prima un tratto."); return; }
-            L.polyline([...pathCoordinates].reverse(), { color: '#29b6f6', weight: 6, dashArray: '10, 10' }).addTo(map);
-            speak("Ritorno a ritroso attivato.");
+            
+            // Imposta Arancione Sgargiante per il ritorno a ritroso
+            currentTrackColor = '#ff5500';
+            
+            if (window.activePolyline) map.removeLayer(window.activePolyline);
+            window.activePolyline = L.polyline([...pathCoordinates].reverse(), { color: currentTrackColor, weight: 8, dashArray: '10, 10', opacity: 0.95 }).addTo(map);
+            speak("Ritorno a ritroso attivato in arancione.");
         }
 
         // ==========================================
-        // CREA NUOVO PERCORSO DI RIENTRO VERSO LA BASE
+        // CREA NUOVO PERCORSO DI RIENTRO (VERDE)
         // ==========================================
         function createReturnLoop() {
             closeModal('menuModal');
@@ -1297,7 +1308,9 @@
                 return;
             }
 
-            // Avvia una nuova sessione di tracciamento per il ritorno
+            // Imposta VERDE per il nuovo percorso di rientro
+            currentTrackColor = '#00e676';
+
             pathCoordinates = [];
             waypointsList = [];
             isTracking = true;
@@ -1310,7 +1323,6 @@
             pathCoordinates.push(activeTripStart);
             redrawPath();
 
-            // Avvia timer per waypoint automatici anche nel rientro
             if (waypointInterval) clearInterval(waypointInterval);
             waypointInterval = setInterval(() => {
                 if (isTracking && !isPaused) {
@@ -1321,8 +1333,8 @@
             document.getElementById('menuTrackIcon').innerText = '⏹️';
             document.getElementById('menuTrackText').innerText = 'Ferma Tracciamento';
             
-            speak("Nuovo percorso di rientro avviato verso la base.");
-            alert("Percorso di rientro avviato! L'app sta registrando il ritorno alla base memorizzata.");
+            speak("Nuovo percorso di rientro in verde avviato verso la base.");
+            alert("Percorso di rientro avviato in verde! L'app sta registrando il ritorno alla base memorizzata.");
         }
 
         function openPoiModal() {
@@ -1370,10 +1382,11 @@
             if (!track) return;
             closeModal('foldersModal');
             pathCoordinates = track.coordinates;
+            currentTrackColor = track.color || '#00bfff'; // Ripristina il colore salvato
             redrawPath();
             if (pathCoordinates.length > 0) {
                 map.setView(pathCoordinates[0], 15);
-                activeTripStart = pathCoordinates[0]; // Imposta la base dal percorso caricato
+                activeTripStart = pathCoordinates[0]; 
             }
             speak(`Percorso ${track.name} caricato.`);
         }
