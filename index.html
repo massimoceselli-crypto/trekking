@@ -37,14 +37,30 @@
 
         #map {
             width: 100%;
-            height: calc(100% - 75px);
+            height: calc(100% - 140px); /* Spazio per plancia principale (75px) + barra tracciamento rapido (65px) */
             position: absolute;
             top: 0;
             left: 0;
             z-index: 1;
         }
 
-        /* Plancia in basso a 3 Tasti */
+        /* Barra Tracciamento Rapido in basso (sopra la plancia principale) */
+        .tracking-bar {
+            position: absolute;
+            bottom: 75px;
+            left: 0;
+            width: 100%;
+            height: 65px;
+            background-color: var(--bg-card);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 1000;
+            padding: 0 10px;
+        }
+
+        /* Plancia in basso a 3 Tasti principali */
         .bottom-bar {
             position: absolute;
             bottom: 0;
@@ -62,13 +78,13 @@
 
         .nav-btn {
             flex: 1;
-            height: 55px;
-            margin: 0 5px;
+            height: 52px;
+            margin: 0 4px;
             background-color: var(--primary);
             color: var(--text-main);
             border: none;
             border-radius: 12px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
             display: flex;
             flex-direction: column;
@@ -85,12 +101,12 @@
         }
 
         .nav-btn span.icon {
-            font-size: 20px;
+            font-size: 18px;
             margin-bottom: 2px;
         }
 
         .nav-btn span.label {
-            font-size: 13px;
+            font-size: 12px;
         }
 
         /* Tasto S.O.S. in alto a destra */
@@ -473,6 +489,22 @@
     <!-- Mappa Leaflet -->
     <div id="map"></div>
 
+    <!-- BARRA TRACCIAMENTO RAPIDO (Sopra la plancia principale) -->
+    <div class="tracking-bar">
+        <button class="nav-btn" id="mainTrackBtn" onclick="toggleTracking()" style="background-color: var(--primary);">
+            <span class="icon" id="mainTrackIcon">▶️</span>
+            <span class="label" id="mainTrackText">Avvia</span>
+        </button>
+        <button class="nav-btn" onclick="pauseTracking()" style="background-color: #333;">
+            <span class="icon">⏸️</span>
+            <span class="label">Pausa</span>
+        </button>
+        <button class="nav-btn" onclick="openStopSave()" style="background-color: var(--danger);">
+            <span class="icon">⏹️</span>
+            <span class="label">Stop & Salva</span>
+        </button>
+    </div>
+
     <!-- Plancia in Basso a 3 Tasti -->
     <div class="bottom-bar">
         <button class="nav-btn" onclick="openInfoWeb()">
@@ -489,7 +521,7 @@
         </button>
     </div>
 
-    <!-- MODALE: MENU PRINCIPALE -->
+    <!-- MODALE: MENU PRINCIPALE (Senza i comandi di tracciamento rapidi) -->
     <div class="modal-overlay" id="menuModal">
         <div class="sheet-container">
             <div class="sheet-header">
@@ -513,18 +545,6 @@
                     <div class="menu-item" onclick="openSosEditModal()">
                         <span class="icon">🆘</span>
                         <span>Modifica Contatti S.O.S.</span>
-                    </div>
-                    <div class="menu-item" onclick="toggleTracking()">
-                        <span class="icon" id="menuTrackIcon">▶️</span>
-                        <span id="menuTrackText">Avvia Tracciamento</span>
-                    </div>
-                    <div class="menu-item" onclick="pauseTracking()">
-                        <span class="icon">⏸️</span>
-                        <span>Pausa Tracciamento</span>
-                    </div>
-                    <div class="menu-item" onclick="openStopSave()">
-                        <span class="icon">⏹️</span>
-                        <span>Stop & Salva Percorso</span>
                     </div>
                     <div class="menu-item" onclick="toggleVoice()">
                         <span class="icon" id="menuVoiceIcon">🔊</span>
@@ -947,7 +967,6 @@
         function redrawPath() {
             if (window.activePolyline) map.removeLayer(window.activePolyline);
             if (pathCoordinates.length > 1) {
-                // Spessore portato a 8 (ingrandito) e colore personalizzato in base al tipo di percorso
                 window.activePolyline = L.polyline(pathCoordinates, { color: currentTrackColor, weight: 8, opacity: 0.95 }).addTo(map);
             }
         }
@@ -958,14 +977,12 @@
             if (isTracking) {
                 pathCoordinates = [];
                 waypointsList = [];
-                
-                // Imposta il colore BLU SGARGIANTE per l'andata standard
                 currentTrackColor = '#00bfff';
 
                 if (userMarker) {
                     const ll = userMarker.getLatLng();
                     activeTripStart = [ll.lat, ll.lng];
-                    addAutoWaypoint(); // Waypoint 0 di partenza
+                    addAutoWaypoint();
                 }
 
                 if (waypointInterval) clearInterval(waypointInterval);
@@ -975,13 +992,12 @@
                     }
                 }, 5 * 60 * 1000);
 
-                document.getElementById('menuTrackIcon').innerText = '⏹️';
-                document.getElementById('menuTrackText').innerText = 'Ferma Tracciamento';
+                document.getElementById('mainTrackIcon').innerText = '⏹️';
+                document.getElementById('mainTrackText').innerText = 'Ferma';
                 speak("Registrazione percorso di andata avviata.");
             } else {
                 stopTrackingSession();
             }
-            closeModal('menuModal');
         }
 
         function addAutoWaypoint() {
@@ -998,7 +1014,6 @@
             if (!isTracking) { alert("Nessun percorso attivo."); return; }
             isPaused = !isPaused;
             speak(isPaused ? "Registrazione in pausa." : "Registrazione ripresa.");
-            closeModal('menuModal');
         }
 
         function addManualWaypoint() {
@@ -1013,7 +1028,6 @@
         }
 
         function openStopSave() {
-            closeModal('menuModal');
             document.getElementById('saveFolderNameDisplay').value = localStorage.getItem('sentierovivo_default_folder') || 'Trekking';
             document.getElementById('stopSaveModal').classList.add('active');
         }
@@ -1035,7 +1049,7 @@
                 date: new Date().toLocaleDateString(),
                 coordinates: pathCoordinates,
                 waypoints: waypointsList,
-                color: currentTrackColor // Salva il colore del tracciato
+                color: currentTrackColor
             };
             savedTracks.push(trackData);
             localStorage.setItem('sentierovivo_tracks', JSON.stringify(savedTracks));
@@ -1052,15 +1066,12 @@
                 clearInterval(waypointInterval);
                 waypointInterval = null;
             }
-            document.getElementById('menuTrackIcon').innerText = '▶️';
-            document.getElementById('menuTrackText').innerText = 'Avvia Tracciamento';
+            document.getElementById('mainTrackIcon').innerText = '▶️';
+            document.getElementById('mainTrackText').innerText = 'Avvia';
             closeModal('stopSaveModal');
             speak("Percorso salvato e dati azzerati.");
         }
 
-        // ==========================================
-        // GESTIONE COPIA & INTERRUZIONE AUDIO
-        // ==========================================
         function copyAiResponseToClipboard() {
             const text = document.getElementById('aiResponseBox').innerText;
             if (!text || text.trim() === "") {
@@ -1104,9 +1115,6 @@
             }
         }
 
-        // ==========================================
-        // RICONOSCIMENTO VOCALE CONTINUO E MANUALE
-        // ==========================================
         let recognitionInstance = null;
 
         function toggleVoiceRecognition() {
@@ -1162,9 +1170,6 @@
             recognition.start();
         }
 
-        // ==========================================
-        // INTEGRAZIONE ASSISTENTE
-        // ==========================================
         function openInfoWeb() {
             document.getElementById('infoGpsCoords').innerText = `Lat: ${currentLat.toFixed(5)}, Lng: ${currentLng.toFixed(5)} (${gpsActive ? 'GPS Attivo' : 'GPS in attesa'})`;
             document.getElementById('infoQueryText').value = "";
@@ -1283,34 +1288,22 @@
             }
         }
 
-        // ==========================================
-        // RITORNO A RITROSO (ARANCIONE SGARGIANTE)
-        // ==========================================
         function startBacktrack() {
             closeModal('menuModal');
             if (pathCoordinates.length < 2) { alert("Registra prima un tratto."); return; }
-            
-            // Imposta Arancione Sgargiante per il ritorno a ritroso
             currentTrackColor = '#ff5500';
-            
             if (window.activePolyline) map.removeLayer(window.activePolyline);
             window.activePolyline = L.polyline([...pathCoordinates].reverse(), { color: currentTrackColor, weight: 8, dashArray: '10, 10', opacity: 0.95 }).addTo(map);
             speak("Ritorno a ritroso attivato in arancione.");
         }
 
-        // ==========================================
-        // CREA NUOVO PERCORSO DI RIENTRO (VERDE)
-        // ==========================================
         function createReturnLoop() {
             closeModal('menuModal');
             if (!activeTripStart) {
                 alert("Nessuna base di partenza memorizzata. Avvia prima un percorso o caricalo dall'archivio.");
                 return;
             }
-
-            // Imposta VERDE per il nuovo percorso di rientro
             currentTrackColor = '#00e676';
-
             pathCoordinates = [];
             waypointsList = [];
             isTracking = true;
@@ -1330,8 +1323,8 @@
                 }
             }, 5 * 60 * 1000);
 
-            document.getElementById('menuTrackIcon').innerText = '⏹️';
-            document.getElementById('menuTrackText').innerText = 'Ferma Tracciamento';
+            document.getElementById('mainTrackIcon').innerText = '⏹️';
+            document.getElementById('mainTrackText').innerText = 'Ferma';
             
             speak("Nuovo percorso di rientro in verde avviato verso la base.");
             alert("Percorso di rientro avviato in verde! L'app sta registrando il ritorno alla base memorizzata.");
@@ -1382,7 +1375,7 @@
             if (!track) return;
             closeModal('foldersModal');
             pathCoordinates = track.coordinates;
-            currentTrackColor = track.color || '#00bfff'; // Ripristina il colore salvato
+            currentTrackColor = track.color || '#00bfff';
             redrawPath();
             if (pathCoordinates.length > 0) {
                 map.setView(pathCoordinates[0], 15);
