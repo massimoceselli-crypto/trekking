@@ -768,6 +768,7 @@
         let currentLat = 43.5485;
         let currentLng = 10.3106;
         let gpsActive = false;
+        let waypointInterval = null; // Timer per waypoint automatici ogni 5 minuti
 
         function checkLicenseAndSetup() {
             const now = new Date().getTime();
@@ -954,13 +955,37 @@
             if (isTracking) {
                 pathCoordinates = [];
                 waypointsList = [];
+                
+                // Inserisce subito il waypoint 0 all'avvio del tracciamento
+                if (userMarker) {
+                    addAutoWaypoint();
+                }
+
+                // Avvia il timer per i waypoint automatici ogni 5 minuti (300000 ms)
+                if (waypointInterval) clearInterval(waypointInterval);
+                waypointInterval = setInterval(() => {
+                    if (isTracking && !isPaused) {
+                        addAutoWaypoint();
+                    }
+                }, 5 * 60 * 1000);
+
                 document.getElementById('menuTrackIcon').innerText = '⏹️';
                 document.getElementById('menuTrackText').innerText = 'Ferma Tracciamento';
-                speak("Registrazione percorso avviata.");
+                speak("Registrazione percorso avviata con waypoint automatici.");
             } else {
-                openStopSave();
+                stopTrackingSession();
             }
             closeModal('menuModal');
+        }
+
+        function addAutoWaypoint() {
+            if (!userMarker) return;
+            const latlng = userMarker.getLatLng();
+            const wpIndex = waypointsList.length;
+            L.marker(latlng, {
+                icon: L.divIcon({ className: 'custom-badge', html: `<div style="background:#ff8f00; color:white; padding:4px 8px; border-radius:12px; font-weight:bold; font-size:12px; border:2px solid white;">📍 ${wpIndex}</div>` })
+            }).addTo(map);
+            waypointsList.push({ type: 'auto', index: wpIndex, latlng: latlng });
         }
 
         function pauseTracking() {
@@ -978,13 +1003,21 @@
                 icon: L.divIcon({ className: 'custom-badge', html: `<div style="background:#ff8f00; color:white; padding:4px 8px; border-radius:12px; font-weight:bold; font-size:12px; border:2px solid white;">🏁 ${wpIndex}</div>` })
             }).addTo(map);
             waypointsList.push({ type: 'manual', index: wpIndex, latlng: latlng });
-            speak(`Bandierina ${wpIndex} registrata.`);
+            speak(`Bandierina manuale ${wpIndex} registrata.`);
         }
 
         function openStopSave() {
             closeModal('menuModal');
             document.getElementById('saveFolderNameDisplay').value = localStorage.getItem('sentierovivo_default_folder') || 'Trekking';
             document.getElementById('stopSaveModal').classList.add('active');
+        }
+
+        function stopTrackingSession() {
+            if (waypointInterval) {
+                clearInterval(waypointInterval);
+                waypointInterval = null;
+            }
+            openStopSave();
         }
 
         function confirmSaveTrack() {
@@ -999,6 +1032,10 @@
             savedTracks.push(trackData);
             localStorage.setItem('sentierovivo_tracks', JSON.stringify(savedTracks));
             isTracking = false;
+            if (waypointInterval) {
+                clearInterval(waypointInterval);
+                waypointInterval = null;
+            }
             document.getElementById('menuTrackIcon').innerText = '▶️';
             document.getElementById('menuTrackText').innerText = 'Avvia Tracciamento';
             closeModal('stopSaveModal');
