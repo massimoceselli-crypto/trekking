@@ -976,12 +976,20 @@
     }
 
     function initMap() {
+    if (map) return; // Evita doppie inizializzazioni
     map = L.map('map', { zoomControl: false }).setView([43.5485, 10.3106], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // AGGIUNGI QUESTA RIGA:
-    setTimeout(() => { if(map) map.invalidateSize(); }, 200);
+    // Ricalcolo forzato dimensioni Leaflet dopo il caricamento
+    setTimeout(() => {
+        if (map) map.invalidateSize();
+    }, 300);
+
+    // Aggiorna la mappa se la finestra cambia dimensioni
+    window.addEventListener('resize', () => {
+        if (map) map.invalidateSize();
+    });
 
     if (navigator.geolocation) {
         navigator.geolocation.watchPosition(updatePosition, handleGeoError, { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 });
