@@ -975,24 +975,29 @@
         document.getElementById('sosActiveModal').classList.remove('active');
     }
 
-    function initMap() {
+   function initMap() {
     if (map) return; // Evita doppie inizializzazioni
+    
     map = L.map('map', { zoomControl: false }).setView([43.5485, 10.3106], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // Ricalcolo forzato dimensioni Leaflet dopo il caricamento
+    // FORZA IL RICALCOLO DELLE TESSERE DELLA MAPPA SUBITO
     setTimeout(() => {
-        if (map) map.invalidateSize();
-    }, 300);
+        if (map) {
+            map.invalidateSize();
+        }
+    }, 150);
 
-    // Aggiorna la mappa se la finestra cambia dimensioni
-    window.addEventListener('resize', () => {
-        if (map) map.invalidateSize();
-    });
-
+    // ATTIVAZIONE DEL GPS
     if (navigator.geolocation) {
-        navigator.geolocation.watchPosition(updatePosition, handleGeoError, { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 });
+        navigator.geolocation.watchPosition(updatePosition, handleGeoError, { 
+            enableHighAccuracy: true, 
+            maximumAge: 3000, 
+            timeout: 10000 
+        });
+    } else {
+        console.log("Geolocalizzazione non supportata dal browser");
     }
 }
 
