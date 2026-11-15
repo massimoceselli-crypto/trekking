@@ -6,6 +6,12 @@
     <title>SentieroVivo - Navigazione Escursionistica, Stradale & S.O.S.</title>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" />
+    
+    <!-- Icona personalizzata SentieroVivo incorporata per PWA / Cellulare -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%232e7d32'/><path d='M20 72 L50 28 L80 72 Z' fill='%23ffffff'/><circle cx='50' cy='48' r='11' fill='%23ff8f00'/></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%232e7d32'/><path d='M20 72 L50 28 L80 72 Z' fill='%23ffffff'/><circle cx='50' cy='48' r='11' fill='%23ff8f00'/></svg>">
+    <link rel="manifest" href='data:application/manifest+json;charset=utf-8,{"name":"SentieroVivo","short_name":"SentieroVivo","start_url":".","display":"standalone","background_color":"#121212","theme_color":"#2e7d32","icons":[{"src":"data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'><rect width=\'100\' height=\'100\' rx=\'22\' fill=\'%232e7d32\'/><path d=\'M20 72 L50 28 L80 72 Z\' fill=\'%23ffffff\'/><circle cx=\'50\' cy=\'48\' r=\'11\' fill=\'%23ff8f00\'/></svg>","sizes":"192x192","type":"image/svg+xml"},{"src":"data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'><rect width=\'100\' height=\'100\' rx=\'22\' fill=\'%232e7d32\'/><path d=\'M20 72 L50 28 L80 72 Z\' fill=\'%23ffffff\'/><circle cx=\'50\' cy=\'48\' r=\'11\' fill=\'%23ff8f00\'/></svg>","sizes":"512x512","type":"image/svg+xml"}]}'>
+
     <style>
         :root {
             --bg-dark: #121212;
@@ -849,8 +855,7 @@
     let activeTripStart = null; 
     let currentTrackColor = '#00bfff';
 
-    // Variabili per Navigazione Stradale OSRM & POI
-    let activePoiDestination = null; // {name, lat, lng}
+    let activePoiDestination = null;
     let activePoiPolyline = null;
     let activePoiMarker = null;
     let osrmRouteSteps = [];
@@ -1014,7 +1019,6 @@
             if (isTracking && !isPaused) {
                 map.panTo(latlng);
             } else if (activePoiDestination) {
-                // Auto-centraggio fluido in modalità navigatore stradale POI
                 map.panTo(latlng);
                 updatePoiNavigation();
             }
@@ -1415,7 +1419,6 @@
         return R * c;
     }
 
-    // Ricerca POI dal vivo tramite Overpass API (OpenStreetMap)
     async function searchPoi(type) {
         closeModal('poiModal');
         document.getElementById('poiResultsTitle').innerText = `Cerca: ${type.toUpperCase()}`;
@@ -1474,9 +1477,6 @@
         }
     }
 
-    // ==========================================
-    // NAVIGAZIONE STRADALE OSRM & CHECK AUTOVELOX
-    // ==========================================
     async function startPoiNavigation(name, lat, lng) {
         closeModal('poiResultsModal');
         activePoiDestination = { name, lat, lng };
@@ -1491,7 +1491,6 @@
         document.getElementById('turn-instruction-panel').style.display = 'block';
         document.getElementById('turn-instruction-panel').innerText = `Calcolo percorso stradale per "${name}"...`;
 
-        // Chiamata al motore OSRM per il routing stradale reale (Auto/Moto)
         const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${currentLng},${currentLat};${lng},${lat}?overview=full&geometries=geojson&steps=true`;
 
         try {
@@ -1505,7 +1504,6 @@
                 activePoiPolyline = L.polyline(coords, { color: '#00bcd4', weight: 6, opacity: 0.9 }).addTo(map);
                 map.fitBounds(activePoiPolyline.getBounds(), { padding: [50, 50] });
 
-                // Estrai istruzioni di svolta
                 osrmRouteSteps = route.legs[0].steps;
                 if (osrmRouteSteps && osrmRouteSteps.length > 0) {
                     const firstStep = osrmRouteSteps[0].maneuver;
@@ -1514,13 +1512,11 @@
                     speak(instructionText);
                 }
 
-                // Controlla autovelox lungo il percorso
                 checkSpeedCamerasAlongRoute([currentLat, currentLng], [lat, lng]);
             } else {
                 fallbackDirectNavigation(name, lat, lng);
             }
         } catch (err) {
-            console.error("Errore OSRM, uso linea diretta:", err);
             fallbackDirectNavigation(name, lat, lng);
         }
     }
