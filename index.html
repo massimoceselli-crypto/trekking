@@ -603,11 +603,10 @@
                     <div class="menu-item" onclick="fetchAvailableModelsFromMenu()">
                         <span class="icon">🔍</span> Mostra Modelli Disponibili (Live)
                     </div>
-                    <!-- Riquadro Chiave API / Modello Gemini aggiunto in fondo alla lista -->
-                    <div class="menu-item" style="background-color: #1a2e1a; border: 1px dashed var(--primary); cursor: default; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px 16px;">
-                        <div style="font-size: 14px; color: var(--accent); font-weight: bold;">🔑 Chiave API / Modello Gemini</div>
-                        <div style="font-size: 12px; color: var(--text-muted); word-break: break-all;">api: AQ.Ab8RN6I4UsYfswvuyPfNmknY192-71oWqGvNDPtg2A-VTDlc7g</div>
-                        <div style="font-size: 12px; color: var(--text-muted);">modello: Gemini-3.5-flash-lite</div>
+                    <!-- Riquadro Chiave API / Modello Gemini Protetto da Password -->
+                    <div class="menu-item" id="secureApiBox" onclick="unlockApiBox()" style="background-color: #1a2e1a; border: 1px dashed var(--primary); cursor: pointer; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px 16px;">
+                        <div style="font-size: 14px; color: var(--accent); font-weight: bold;">🔒 Chiave API / Modello Gemini (Protetta)</div>
+                        <div id="secureApiBoxContent" style="font-size: 12px; color: var(--text-muted);">Tocca qui e inserisci la password per sbloccare.</div>
                     </div>
                 </div>
             </div>
@@ -726,6 +725,24 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     
     <script>
+        // Funzione per sbloccare il riquadro API con password (default: Massimo2026)
+        function unlockApiBox() {
+            const pwd = prompt("Inserisci la password per sbloccare il riquadro API:");
+            if (pwd === "Massimo2026") {
+                const contentDiv = document.getElementById('secureApiBoxContent');
+                contentDiv.innerHTML = `
+                    <div style="font-size: 12px; color: var(--text-main); word-break: break-all; margin-top: 4px;">api: AQ.Ab8RN6I4UsYfswvuyPfNmknY192-71oWqGvNDPtg2A-VTDlc7g</div>
+                    <div style="font-size: 12px; color: var(--text-main); margin-top: 2px;">modello: Gemini-3.5-flash-lite</div>
+                `;
+                document.getElementById('secureApiBox').style.borderColor = 'var(--accent)';
+                document.getElementById('secureApiBox').querySelector('div').innerText = "🔓 Chiave API / Modello Gemini (Sbloccato)";
+                speak("Riquadro API sbloccato.");
+            } else if (pwd !== null) {
+                alert("Password errata!");
+                speak("Password errata.");
+            }
+        }
+
         function openApiKeyPrompt() {
             closeModal('menuModal');
             const currentKey = localStorage.getItem('gemini_api_key') || '';
