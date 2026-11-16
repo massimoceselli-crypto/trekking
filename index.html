@@ -1631,21 +1631,21 @@
             document.getElementById('meteoModal').classList.add('active');
         }
 
-        function openMenu() { document.getElementById('menuModal').classList.add('active'); }
-        
-        // Funzione closeModal aggiornata: se chiudi il menu, riblocca automaticamente il riquadro API
+        // Funzione openMenu aggiornata: ogni volta che apri il menu, riblocca automaticamente il riquadro
+        function openMenu() { 
+            const apiBox = document.getElementById('secureApiBox');
+            const apiTitle = document.getElementById('secureApiBoxTitle');
+            const apiContent = document.getElementById('secureApiBoxContent');
+            if (apiBox && apiTitle && apiContent) {
+                apiBox.style.borderColor = 'var(--primary)';
+                apiTitle.innerText = "🔒 Chiave API / Modello Gemini (Protetta)";
+                apiContent.innerText = "Tocca qui e inserisci la password per sbloccare.";
+            }
+            document.getElementById('menuModal').classList.add('active'); 
+        }
+
         function closeModal(id) { 
             document.getElementById(id).classList.remove('active'); 
-            if (id === 'menuModal') {
-                const apiBox = document.getElementById('secureApiBox');
-                const apiTitle = document.getElementById('secureApiBoxTitle');
-                const apiContent = document.getElementById('secureApiBoxContent');
-                if (apiBox && apiTitle && apiContent) {
-                    apiBox.style.borderColor = 'var(--primary)';
-                    apiTitle.innerText = "🔒 Chiave API / Modello Gemini (Protetta)";
-                    apiContent.innerText = "Tocca qui e inserisci la password per sbloccare.";
-                }
-            }
         }
 
         window.onload = checkLicenseAndSetup;
