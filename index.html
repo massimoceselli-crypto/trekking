@@ -605,7 +605,7 @@
                     </div>
                     <!-- Riquadro Chiave API / Modello Gemini Protetto da Password -->
                     <div class="menu-item" id="secureApiBox" onclick="unlockApiBox()" style="background-color: #1a2e1a; border: 1px dashed var(--primary); cursor: pointer; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px 16px;">
-                        <div style="font-size: 14px; color: var(--accent); font-weight: bold;">🔒 Chiave API / Modello Gemini (Protetta)</div>
+                        <div id="secureApiBoxTitle" style="font-size: 14px; color: var(--accent); font-weight: bold;">🔒 Chiave API / Modello Gemini (Protetta)</div>
                         <div id="secureApiBoxContent" style="font-size: 12px; color: var(--text-muted);">Tocca qui e inserisci la password per sbloccare.</div>
                     </div>
                 </div>
@@ -735,7 +735,7 @@
                     <div style="font-size: 12px; color: var(--text-main); margin-top: 2px;">modello: Gemini-3.5-flash-lite</div>
                 `;
                 document.getElementById('secureApiBox').style.borderColor = 'var(--accent)';
-                document.getElementById('secureApiBox').querySelector('div').innerText = "🔓 Chiave API / Modello Gemini (Sbloccato)";
+                document.getElementById('secureApiBoxTitle').innerText = "🔓 Chiave API / Modello Gemini (Sbloccato)";
                 speak("Riquadro API sbloccato.");
             } else if (pwd !== null) {
                 alert("Password errata!");
@@ -1632,7 +1632,21 @@
         }
 
         function openMenu() { document.getElementById('menuModal').classList.add('active'); }
-        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        
+        // Funzione closeModal aggiornata: se chiudi il menu, riblocca automaticamente il riquadro API
+        function closeModal(id) { 
+            document.getElementById(id).classList.remove('active'); 
+            if (id === 'menuModal') {
+                const apiBox = document.getElementById('secureApiBox');
+                const apiTitle = document.getElementById('secureApiBoxTitle');
+                const apiContent = document.getElementById('secureApiBoxContent');
+                if (apiBox && apiTitle && apiContent) {
+                    apiBox.style.borderColor = 'var(--primary)';
+                    apiTitle.innerText = "🔒 Chiave API / Modello Gemini (Protetta)";
+                    apiContent.innerText = "Tocca qui e inserisci la password per sbloccare.";
+                }
+            }
+        }
 
         window.onload = checkLicenseAndSetup;
     </script>
