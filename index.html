@@ -485,7 +485,7 @@
                 <label class="form-label">Contatto Emergenza 3 (Opzionale):</label>
                 <input type="text" id="sosContact3" class="form-input" placeholder="">
             </div>
-            <button class="btn-action" onclick="completeSosWizard()">Salva ed Esci</button>
+            <button class="btn-action" onclick="completeSosWizard()">Salva ed Avanti</button>
         </div>
     </div>
 
@@ -493,12 +493,26 @@
     <div id="setupWizardModal" class="modal-overlay center-mode">
         <div class="center-box">
             <h2 class="sheet-title" style="margin-bottom: 15px;">Cartella Percorsi</h2>
-            <p style="color: var(--text-muted); margin-bottom: 15px; font-size: 14px;">Nomina o personalizza la cartella principale in cui archiviare i tuoi percorsi.</p>
+            <p style="color: var(--text-muted); margin-bottom: 15px; font-size: 14px;">Nomina o personalizza la cartella principale in cui archiviare i tuoi percorsi futuri.</p>
             <div class="form-group">
                 <label class="form-label">Nome Cartella Principale:</label>
                 <input type="text" id="setupFolderName" class="form-input" value="Trekking">
             </div>
             <button class="btn-action" onclick="completeSetupWizard()">Conferma e Inizia</button>
+        </div>
+    </div>
+
+    <!-- Modale Registrazione Vocale / Nota Audio -->
+    <div id="voiceRecordModal" class="modal-overlay center-mode">
+        <div class="center-box">
+            <h2 class="sheet-title" style="margin-bottom: 15px;">🎙️ Registra Nota Vocale</h2>
+            <p style="color: var(--text-muted); margin-bottom: 15px; font-size: 14px;">Parla per registrare una nota vocale associata a questo punto del percorso (verrà inserita una bandierina audio progressiva).</p>
+            <div class="form-group">
+                <textarea id="voiceNoteText" class="form-input" rows="3" placeholder="Trascrizione o descrizione audio..."></textarea>
+            </div>
+            <button class="btn-action" id="recordAudioBtn" onclick="toggleAudioRecordingWaypoint()" style="background-color: var(--accent);">🎤 Avvia Registrazione Vocale</button>
+            <button class="btn-action" onclick="saveAudioWaypoint()" style="margin-top: 8px;">Salva Bandierina Vocale</button>
+            <button class="btn-action" onclick="closeModal('voiceRecordModal')" style="background-color: #444; margin-top: 8px;">Chiudi</button>
         </div>
     </div>
 
@@ -574,6 +588,9 @@
                 <div class="menu-list">
                     <div class="menu-item" onclick="openFoldersModal()">
                         <span class="icon">📁</span> Cartelle Percorsi
+                    </div>
+                    <div class="menu-item" onclick="openVoiceRecordModalFromMenu()">
+                        <span class="icon">🎙️</span> Registra un Vocale
                     </div>
                     <div class="menu-item" onclick="startBacktrack()">
                         <span class="icon">↩️</span> Ritorno a Ritroso (Backtrack)
@@ -855,7 +872,9 @@
         let activePoiPolyline = null;
         let activePoiMarker = null;
         let osrmRouteSteps = [];
+        let audioRecognitionInstance = null;
 
+        // Gestione Wizard Iniziali in sequenza rigorosa
         function checkLicenseAndSetup() {
             const now = new Date().getTime();
             let installDate = localStorage.getItem('sentierovivo_install');
@@ -983,7 +1002,7 @@
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
             L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-            // RIPRISTINO ISTANTANEO IN CASO DI CHIUSURA/CHIAMATA
+            // Ripristino istantaneo sessione attiva (antichiamata / anti-chiusura)
             restoreActiveSessionState();
 
             setTimeout(() => {
@@ -1003,7 +1022,6 @@
             }
         }
 
-        // Funzioni per il salvataggio persistente in tempo reale
         function saveActiveSessionState() {
             const sessionData = {
                 isTracking: isTracking,
@@ -1029,24 +1047,21 @@
                         activeTripStart = data.activeTripStart || null;
                         currentTrackColor = data.currentTrackColor || '#00bfff';
 
-                        // Ridisegna immediatamente la traccia salvata sulla mappa
                         redrawPath();
 
-                        // Ripristina i waypoint
                         waypointsList.forEach(wp => {
-                            const iconHtml = wp.type === 'auto' ? '📍 ' + wp.index : '🏁 ' + wp.index;
+                            let iconPrefix = '📍 ';
+                            if (wp.type === 'manual') iconPrefix = '🏁 ';
+                            else if (wp.type === 'audio') iconPrefix = '🎙️ ';
                             L.marker(wp.latlng, {
-                                icon: L.divIcon({ className: 'custom-badge', html: iconHtml })
+                                icon: L.divIcon({ className: 'custom-badge', html: iconPrefix + wp.index })
                             }).addTo(map);
                         });
 
-                        // Aggiorna lo stato dei pulsanti
                         document.getElementById('mainTrackIcon').innerText = isPaused ? '▶️' : '⏹️';
                         document.getElementById('mainTrackText').innerText = isPaused ? 'Riprendi' : 'Ferma';
 
-                        // Avviso vocale e visivo di ripristino avvenuto
                         speak("Tracciamento precedente ripristinato con successo.");
-                        console.log("Sessione attiva ripristinata con " + pathCoordinates.length + " punti.");
                     }
                 } catch(e) {
                     console.error("Errore nel ripristino sessione:", e);
@@ -1091,7 +1106,6 @@
             if (isTracking && !isPaused) {
                 pathCoordinates.push(latlng);
                 redrawPath();
-                // Salvataggio atomico istantaneo a ogni punto GPS
                 saveActiveSessionState();
             }
         }
@@ -1116,18 +1130,16 @@
                 waypointsList = [];
                 currentTrackColor = '#00bfff';
 
-                if (userMarker) {
-                    const ll = userMarker.getLatLng();
-                    activeTripStart = [ll.lat, ll.lng];
-                    addAutoWaypoint();
-                }
+                activeTripStart = [currentLat, currentLng];
+                addAutoWaypoint();
 
                 if (waypointInterval) clearInterval(waypointInterval);
+                // TIMER AUTOMATICO IMPOSTATO A 3 MINUTI (3 * 60 * 1000)
                 waypointInterval = setInterval(() => {
                     if (isTracking && !isPaused) {
                         addAutoWaypoint();
                     }
-                }, 5 * 60 * 1000);
+                }, 3 * 60 * 1000);
 
                 document.getElementById('mainTrackIcon').innerText = '⏹️';
                 document.getElementById('mainTrackText').innerText = 'Ferma';
@@ -1138,9 +1150,9 @@
             }
         }
 
+        // Waypoint automatico basato sulle coordinate correnti reali
         function addAutoWaypoint() {
-            if (!userMarker) return;
-            const latlng = userMarker.getLatLng();
+            const latlng = [currentLat, currentLng];
             const wpIndex = waypointsList.length;
             L.marker(latlng, {
                 icon: L.divIcon({ className: 'custom-badge', html: '📍 ' + wpIndex })
@@ -1156,9 +1168,10 @@
             speak(isPaused ? "Registrazione in pausa." : "Registrazione ripresa.");
         }
 
+        // Waypoint manuale basato sulle coordinate correnti reali
         function addManualWaypoint() {
-            if (!isTracking || !userMarker) { alert("Avvia prima la registrazione."); return; }
-            const latlng = userMarker.getLatLng();
+            if (!isTracking) { alert("Avvia prima la registrazione del percorso."); return; }
+            const latlng = [currentLat, currentLng];
             const wpIndex = waypointsList.length;
             L.marker(latlng, {
                 icon: L.divIcon({ className: 'custom-badge', html: '🏁 ' + wpIndex })
@@ -1166,6 +1179,81 @@
             waypointsList.push({ type: 'manual', index: wpIndex, latlng: latlng });
             saveActiveSessionState();
             speak("Bandierina manuale " + wpIndex + " registrata.");
+        }
+
+        // Gestione Registrazione Vocale / Nota Audio
+        function openVoiceRecordModalFromMenu() {
+            closeModal('menuModal');
+            if (!isTracking) { alert("Avvia prima la registrazione del percorso per associare una nota vocale."); return; }
+            document.getElementById('voiceNoteText').value = "";
+            document.getElementById('voiceRecordModal').classList.add('active');
+        }
+
+        function toggleAudioRecordingWaypoint() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert("Riconoscimento vocale non supportato dal browser.");
+                return;
+            }
+
+            const btn = document.getElementById('recordAudioBtn');
+            if (audioRecognitionInstance) {
+                audioRecognitionInstance.stop();
+                audioRecognitionInstance = null;
+                btn.innerText = "🎤 Avvia Registrazione Vocale";
+                btn.style.backgroundColor = "var(--accent)";
+                return;
+            }
+
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'it-IT';
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            audioRecognitionInstance = recognition;
+
+            btn.innerText = "🛑 Tocca per Fermare";
+            btn.style.backgroundColor = "var(--danger)";
+
+            let transcript = '';
+            recognition.onresult = function(event) {
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        transcript += event.results[i][0].transcript + " ";
+                    }
+                }
+                document.getElementById('voiceNoteText').value = transcript;
+            };
+
+            recognition.onerror = function(event) {
+                console.error("Errore audio:", event.error);
+            };
+
+            recognition.onend = function() {
+                btn.innerText = "🎤 Avvia Registrazione Vocale";
+                btn.style.backgroundColor = "var(--accent)";
+                audioRecognitionInstance = null;
+            };
+
+            recognition.start();
+        }
+
+        function saveAudioWaypoint() {
+            if (audioRecognitionInstance) {
+                audioRecognitionInstance.stop();
+                audioRecognitionInstance = null;
+            }
+            const noteText = document.getElementById('voiceNoteText').value.trim();
+            const latlng = [currentLat, currentLng];
+            const wpIndex = waypointsList.length;
+
+            L.marker(latlng, {
+                icon: L.divIcon({ className: 'custom-badge', html: '🎙️ ' + wpIndex })
+            }).addTo(map);
+
+            waypointsList.push({ type: 'audio', index: wpIndex, latlng: latlng, note: noteText });
+            saveActiveSessionState();
+            closeModal('voiceRecordModal');
+            speak("Bandierina vocale " + wpIndex + " salvata.");
         }
 
         function openStopSave() {
@@ -1195,7 +1283,6 @@
             savedTracks.push(trackData);
             localStorage.setItem('sentierovivo_tracks', JSON.stringify(savedTracks));
             
-            // Pulisci la sessione attiva solo al salvataggio definitivo
             localStorage.removeItem('sentierovivo_active_session');
 
             isTracking = false;
@@ -1456,10 +1543,7 @@
             isTracking = true;
             isPaused = false;
 
-            if (userMarker) {
-                const currentLL = userMarker.getLatLng();
-                pathCoordinates.push([currentLL.lat, currentLL.lng]);
-            }
+            pathCoordinates.push([currentLat, currentLng]);
             pathCoordinates.push(activeTripStart);
             redrawPath();
 
@@ -1468,7 +1552,7 @@
                 if (isTracking && !isPaused) {
                     addAutoWaypoint();
                 }
-            }, 5 * 60 * 1000);
+            }, 3 * 60 * 1000);
 
             document.getElementById('mainTrackIcon').innerText = '⏹️';
             document.getElementById('mainTrackText').innerText = 'Ferma';
