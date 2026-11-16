@@ -983,6 +983,9 @@
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
             L.control.zoom({ position: 'bottomright' }).addTo(map);
 
+            // RIPRISTINO ISTANTANEO IN CASO DI CHIUSURA/CHIAMATA
+            restoreActiveSessionState();
+
             setTimeout(() => {
                 if (map) {
                     map.invalidateSize();
@@ -997,6 +1000,57 @@
                 });
             } else {
                 console.log("Geolocalizzazione non supportata dal browser");
+            }
+        }
+
+        // Funzioni per il salvataggio persistente in tempo reale
+        function saveActiveSessionState() {
+            const sessionData = {
+                isTracking: isTracking,
+                isPaused: isPaused,
+                pathCoordinates: pathCoordinates,
+                waypointsList: waypointsList,
+                activeTripStart: activeTripStart,
+                currentTrackColor: currentTrackColor
+            };
+            localStorage.setItem('sentierovivo_active_session', JSON.stringify(sessionData));
+        }
+
+        function restoreActiveSessionState() {
+            const saved = localStorage.getItem('sentierovivo_active_session');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    if (data.isTracking && data.pathCoordinates && data.pathCoordinates.length > 0) {
+                        isTracking = data.isTracking;
+                        isPaused = data.isPaused || false;
+                        pathCoordinates = data.pathCoordinates;
+                        waypointsList = data.waypointsList || [];
+                        activeTripStart = data.activeTripStart || null;
+                        currentTrackColor = data.currentTrackColor || '#00bfff';
+
+                        // Ridisegna immediatamente la traccia salvata sulla mappa
+                        redrawPath();
+
+                        // Ripristina i waypoint
+                        waypointsList.forEach(wp => {
+                            const iconHtml = wp.type === 'auto' ? '📍 ' + wp.index : '🏁 ' + wp.index;
+                            L.marker(wp.latlng, {
+                                icon: L.divIcon({ className: 'custom-badge', html: iconHtml })
+                            }).addTo(map);
+                        });
+
+                        // Aggiorna lo stato dei pulsanti
+                        document.getElementById('mainTrackIcon').innerText = isPaused ? '▶️' : '⏹️';
+                        document.getElementById('mainTrackText').innerText = isPaused ? 'Riprendi' : 'Ferma';
+
+                        // Avviso vocale e visivo di ripristino avvenuto
+                        speak("Tracciamento precedente ripristinato con successo.");
+                        console.log("Sessione attiva ripristinata con " + pathCoordinates.length + " punti.");
+                    }
+                } catch(e) {
+                    console.error("Errore nel ripristino sessione:", e);
+                }
             }
         }
 
@@ -1037,6 +1091,8 @@
             if (isTracking && !isPaused) {
                 pathCoordinates.push(latlng);
                 redrawPath();
+                // Salvataggio atomico istantaneo a ogni punto GPS
+                saveActiveSessionState();
             }
         }
 
@@ -1075,6 +1131,7 @@
 
                 document.getElementById('mainTrackIcon').innerText = '⏹️';
                 document.getElementById('mainTrackText').innerText = 'Ferma';
+                saveActiveSessionState();
                 speak("Registrazione percorso di andata avviata.");
             } else {
                 stopTrackingSession();
@@ -1089,11 +1146,13 @@
                 icon: L.divIcon({ className: 'custom-badge', html: '📍 ' + wpIndex })
             }).addTo(map);
             waypointsList.push({ type: 'auto', index: wpIndex, latlng: latlng });
+            saveActiveSessionState();
         }
 
         function pauseTracking() {
             if (!isTracking) { alert("Nessun percorso attivo."); return; }
             isPaused = !isPaused;
+            saveActiveSessionState();
             speak(isPaused ? "Registrazione in pausa." : "Registrazione ripresa.");
         }
 
@@ -1105,6 +1164,7 @@
                 icon: L.divIcon({ className: 'custom-badge', html: '🏁 ' + wpIndex })
             }).addTo(map);
             waypointsList.push({ type: 'manual', index: wpIndex, latlng: latlng });
+            saveActiveSessionState();
             speak("Bandierina manuale " + wpIndex + " registrata.");
         }
 
@@ -1135,6 +1195,9 @@
             savedTracks.push(trackData);
             localStorage.setItem('sentierovivo_tracks', JSON.stringify(savedTracks));
             
+            // Pulisci la sessione attiva solo al salvataggio definitivo
+            localStorage.removeItem('sentierovivo_active_session');
+
             isTracking = false;
             activeTripStart = null; 
             pathCoordinates = [];
@@ -1409,6 +1472,7 @@
 
             document.getElementById('mainTrackIcon').innerText = '⏹️';
             document.getElementById('mainTrackText').innerText = 'Ferma';
+            saveActiveSessionState();
             
             speak("Nuovo percorso di rientro in verde avviato verso la base.");
         }
@@ -1631,7 +1695,6 @@
             document.getElementById('meteoModal').classList.add('active');
         }
 
-        // Funzione openMenu aggiornata: ogni volta che apri il menu, riblocca automaticamente il riquadro
         function openMenu() { 
             const apiBox = document.getElementById('secureApiBox');
             const apiTitle = document.getElementById('secureApiBoxTitle');
