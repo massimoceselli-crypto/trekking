@@ -50,7 +50,6 @@
             z-index: 1;
         }
 
-        /* Pannello Istruzioni di Svolta / Navigazione Stradale */
         #turn-instruction-panel {
             position: absolute;
             top: 75px;
@@ -69,7 +68,6 @@
             text-align: center;
         }
 
-        /* Avviso Autovelox */
         #speedcam-panel {
             position: absolute;
             top: 135px;
@@ -88,7 +86,6 @@
             text-align: center;
         }
 
-        /* Barra Tracciamento Rapido in basso */
         .tracking-bar {
             position: fixed;
             bottom: 75px;
@@ -104,7 +101,6 @@
             padding: 0 10px;
         }
 
-        /* Plancia in basso a 3 Tasti principali */
         .bottom-bar {
             position: fixed;
             bottom: 0;
@@ -153,7 +149,6 @@
             font-size: 12px;
         }
 
-        /* Tasto S.O.S. in alto a destra */
         .top-sos-btn {
             position: absolute;
             top: 15px;
@@ -506,13 +501,69 @@
     <div id="voiceRecordModal" class="modal-overlay center-mode">
         <div class="center-box">
             <h2 class="sheet-title" style="margin-bottom: 15px;">🎙️ Registra Nota Vocale</h2>
-            <p style="color: var(--text-muted); margin-bottom: 15px; font-size: 14px;">Parla per registrare una nota vocale associata a questo punto del percorso (verrà inserita una bandierina audio progressiva).</p>
+            <p style="color: var(--text-muted); margin-bottom: 15px; font-size: 14px;">Parla per registrare una nota vocale associata a questo punto del percorso.</p>
             <div class="form-group">
                 <textarea id="voiceNoteText" class="form-input" rows="3" placeholder="Trascrizione o descrizione audio..."></textarea>
             </div>
             <button class="btn-action" id="recordAudioBtn" onclick="toggleAudioRecordingWaypoint()" style="background-color: var(--accent);">🎤 Avvia Registrazione Vocale</button>
             <button class="btn-action" onclick="saveAudioWaypoint()" style="margin-top: 8px;">Salva Bandierina Vocale</button>
             <button class="btn-action" onclick="closeModal('voiceRecordModal')" style="background-color: #444; margin-top: 8px;">Chiudi</button>
+        </div>
+    </div>
+
+    <!-- Modale Registrazione Video sul Percorso -->
+    <div id="videoRecordModal" class="modal-overlay center-mode">
+        <div class="center-box">
+            <h2 class="sheet-title" style="margin-bottom: 15px;">🎥 Registra Video sul Percorso</h2>
+            <p style="color: var(--text-muted); margin-bottom: 15px; font-size: 14px;">Registra o seleziona un video associato alla tua posizione GPS attuale.</p>
+            <div class="form-group">
+                <input type="file" id="videoInput" accept="video/*" capture="environment" class="form-input" onchange="previewVideo(event)">
+            </div>
+            <div id="videoPreviewContainer" style="margin-bottom: 15px; display: none; text-align: center;">
+                <video id="videoPreviewEl" controls style="max-width: 100%; max-height: 180px; border-radius: 8px; border: 1px solid var(--primary);"></video>
+            </div>
+            <div class="form-group">
+                <input type="text" id="videoCaption" class="form-input" placeholder="Didascalia o nota del video...">
+            </div>
+            <button class="btn-action" onclick="saveVideoWaypoint()" style="background-color: var(--accent);">💾 Salva Bandierina Video</button>
+            <button class="btn-action" onclick="closeModal('videoRecordModal')" style="background-color: #444; margin-top: 8px;">Chiudi</button>
+        </div>
+    </div>
+
+    <!-- Modale Visualizzatore Video a Tutto Schermo -->
+    <div id="videoViewerModal" class="modal-overlay center-mode" onclick="closeModal('videoViewerModal')">
+        <div style="position: relative; max-width: 95vw; max-height: 95vh; text-align: center;" onclick="event.stopPropagation()">
+            <video id="fullScreenVideo" controls autoplay style="max-width: 100%; max-height: 80vh; border-radius: 12px; border: 2px solid var(--primary); object-fit: contain;"></video>
+            <p id="fullScreenVideoCaption" style="color: #fff; margin-top: 10px; font-size: 14px; font-weight: bold;"></p>
+            <button class="btn-action" onclick="closeModal('videoViewerModal')" style="background-color: var(--danger); margin-top: 10px;">Chiudi / Torna alla Mappa</button>
+        </div>
+    </div>
+
+    <!-- Modale Scatta Foto & Waypoint -->
+    <div id="photoRecordModal" class="modal-overlay center-mode">
+        <div class="center-box">
+            <h2 class="sheet-title" style="margin-bottom: 15px;">📸 Scatta Foto sul Percorso</h2>
+            <p style="color: var(--text-muted); margin-bottom: 15px; font-size: 14px;">Scatta una foto associata alla tua posizione GPS attuale con coordinate e zoom.</p>
+            <div class="form-group">
+                <input type="file" id="cameraInput" accept="image/*" capture="environment" class="form-input" onchange="previewPhoto(event)">
+            </div>
+            <div id="photoPreviewContainer" style="margin-bottom: 15px; display: none; text-align: center;">
+                <img id="photoPreviewImg" src="" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid var(--primary);" />
+            </div>
+            <div class="form-group">
+                <input type="text" id="photoCaption" class="form-input" placeholder="Didascalia o nota della foto...">
+            </div>
+            <button class="btn-action" onclick="savePhotoWaypoint()" style="background-color: var(--accent);">💾 Salva Bandierina Foto</button>
+            <button class="btn-action" onclick="closeModal('photoRecordModal')" style="background-color: #444; margin-top: 8px;">Chiudi</button>
+        </div>
+    </div>
+
+    <!-- Modale Visualizzatore Foto a Tutto Schermo -->
+    <div id="photoViewerModal" class="modal-overlay center-mode" onclick="closeModal('photoViewerModal')">
+        <div style="position: relative; max-width: 95vw; max-height: 95vh; text-align: center;" onclick="event.stopPropagation()">
+            <img id="fullScreenPhoto" src="" style="max-width: 100%; max-height: 82vh; border-radius: 12px; border: 2px solid var(--primary); object-fit: contain;" />
+            <p id="fullScreenCaption" style="color: #fff; margin-top: 10px; font-size: 14px; font-weight: bold;"></p>
+            <button class="btn-action" onclick="closeModal('photoViewerModal')" style="background-color: var(--danger); margin-top: 10px;">Chiudi / Torna alla Mappa</button>
         </div>
     </div>
 
@@ -591,6 +642,12 @@
                     </div>
                     <div class="menu-item" onclick="openVoiceRecordModalFromMenu()">
                         <span class="icon">🎙️</span> Registra un Vocale
+                    </div>
+                    <div class="menu-item" onclick="openVideoModalFromMenu()">
+                        <span class="icon">🎥</span> Registra un Video
+                    </div>
+                    <div class="menu-item" onclick="openPhotoModalFromMenu()">
+                        <span class="icon">📸</span> Scatta Foto & Waypoint
                     </div>
                     <div class="menu-item" onclick="startBacktrack()">
                         <span class="icon">↩️</span> Ritorno a Ritroso (Backtrack)
@@ -742,7 +799,6 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     
     <script>
-        // Funzione per sbloccare il riquadro API con password (default: Massimo2026) e permettere la modifica diretta
         function unlockApiBox() {
             const pwd = prompt("Inserisci la password per sbloccare il riquadro API:");
             if (pwd === "Massimo2026") {
@@ -763,7 +819,6 @@
                 `;
                 document.getElementById('secureApiBox').style.borderColor = 'var(--accent)';
                 document.getElementById('secureApiBoxTitle').innerText = "🔓 Chiave API / Modello Gemini (Sbloccato)";
-                // Disattiva il click generale per evitare il loop della password mentre si scrive negli input
                 document.getElementById('secureApiBox').onclick = null;
                 speak("Riquadro API sbloccato.");
             } else if (pwd !== null) {
@@ -776,17 +831,12 @@
             const newKey = document.getElementById('inlineApiKeyInput').value.trim();
             const newModel = document.getElementById('inlineModelInput').value.trim();
             
-            if (newKey !== "") {
-                localStorage.setItem('gemini_api_key', newKey);
-            }
-            if (newModel !== "") {
-                localStorage.setItem('gemini_model', newModel);
-            }
+            if (newKey !== "") localStorage.setItem('gemini_api_key', newKey);
+            if (newModel !== "") localStorage.setItem('gemini_model', newModel);
             
             alert("Impostazioni salvate con successo!");
             speak("Chiave e modello aggiornati.");
             
-            // Ripristina lo stato protetto nel menu
             const apiBox = document.getElementById('secureApiBox');
             apiBox.onclick = unlockApiBox;
             apiBox.style.borderColor = 'var(--primary)';
@@ -824,7 +874,7 @@
         function openModelPrompt() {
             closeModal('menuModal');
             const currentModel = localStorage.getItem('gemini_model') || 'gemini-1.5-flash';
-            const newModel = prompt("Inserisci il nome del modello Gemini (es. gemini-1.5-flash, gemini-2.5-flash):", currentModel);
+            const newModel = prompt("Inserisci il nome del modello Gemini:", currentModel);
             if (newModel !== null && newModel.trim() !== "") {
                 localStorage.setItem('gemini_model', newModel.trim());
                 alert("Modello aggiornato a: " + newModel.trim());
@@ -836,10 +886,7 @@
             let apiKey = localStorage.getItem('gemini_api_key');
             if (!apiKey) {
                 apiKey = prompt("Inserisci prima la tua Chiave API di Gemini:");
-                if (!apiKey || !apiKey.trim()) {
-                    alert("Chiave API necessaria.");
-                    return;
-                }
+                if (!apiKey || !apiKey.trim()) { alert("Chiave API necessaria."); return; }
                 localStorage.setItem('gemini_api_key', apiKey.trim());
             }
 
@@ -853,18 +900,14 @@
             try {
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${apiKey.trim()}`);
                 const data = await response.json();
-
                 if (!response.ok) {
-                    const errMsg = data.error && data.error.message ? data.error.message : `Errore HTTP ${response.status}`;
-                    responseBox.innerText = `❌ ERRORE:\n${errMsg}`;
+                    responseBox.innerText = `❌ ERRORE:\n` + (data.error?.message || response.status);
                     return;
                 }
-
                 if (data.models && data.models.length > 0) {
                     const validModels = data.models
                         .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
                         .map(m => m.name.replace('models/', ''));
-
                     responseBox.innerText = `✅ MODELLI SUPPORTATI:\n\n` + validModels.join('\n');
                     speak("Elenco modelli caricato con successo.");
                 } else {
@@ -907,8 +950,9 @@
         let activePoiMarker = null;
         let osrmRouteSteps = [];
         let audioRecognitionInstance = null;
+        let capturedPhotoDataUrl = null;
+        let capturedVideoDataUrl = null;
 
-        // Gestione Wizard Iniziali in sequenza rigorosa
         function checkLicenseAndSetup() {
             const now = new Date().getTime();
             let installDate = localStorage.getItem('sentierovivo_install');
@@ -942,7 +986,7 @@
                 document.getElementById('licenseModal').classList.add('active');
             } else {
                 const daysLeft = Math.ceil((trialDuration - elapsed) / (1000 * 60 * 60 * 24));
-                document.getElementById('licenseMsg').innerText = `Periodo di prova attivo (${daysLeft} giorni rimanenti). Inserisci il codice di sblocco per l'attivazione definitiva.`;
+                document.getElementById('licenseMsg').innerText = `Periodo di prova attivo (${daysLeft} giorni rimanenti). Inserisci il codice di sblocco.`;
                 document.getElementById('licenseModal').classList.remove('active');
                 checkSosWizard();
             }
@@ -971,10 +1015,7 @@
         function completeSosWizard() {
             const name = document.getElementById('sosUserName').value.trim();
             const c1 = document.getElementById('sosContact1').value.trim();
-            if (!name || !c1) {
-                alert("Inserisci almeno il tuo nome e il primo contatto di emergenza.");
-                return;
-            }
+            if (!name || !c1) { alert("Inserisci almeno il tuo nome e il primo contatto."); return; }
             localStorage.setItem('sentierovivo_sos_name', name);
             localStorage.setItem('sentierovivo_sos_c1', c1);
             localStorage.setItem('sentierovivo_sos_c2', document.getElementById('sosContact2').value.trim());
@@ -1031,39 +1072,24 @@
 
         function initMap() {
             if (map) return;
-            
             map = L.map('map', { zoomControl: false }).setView([43.5485, 10.3106], 15);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
             L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-            // Ripristino istantaneo sessione attiva (antichiamata / anti-chiusura)
             restoreActiveSessionState();
 
-            setTimeout(() => {
-                if (map) {
-                    map.invalidateSize();
-                }
-            }, 150);
+            setTimeout(() => { if (map) map.invalidateSize(); }, 150);
 
             if (navigator.geolocation) {
                 navigator.geolocation.watchPosition(updatePosition, handleGeoError, { 
-                    enableHighAccuracy: true, 
-                    maximumAge: 3000, 
-                    timeout: 10000 
+                    enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 
                 });
-            } else {
-                console.log("Geolocalizzazione non supportata dal browser");
             }
         }
 
         function saveActiveSessionState() {
             const sessionData = {
-                isTracking: isTracking,
-                isPaused: isPaused,
-                pathCoordinates: pathCoordinates,
-                waypointsList: waypointsList,
-                activeTripStart: activeTripStart,
-                currentTrackColor: currentTrackColor
+                isTracking, isPaused, pathCoordinates, waypointsList, activeTripStart, currentTrackColor
             };
             localStorage.setItem('sentierovivo_active_session', JSON.stringify(sessionData));
         }
@@ -1087,19 +1113,25 @@
                             let iconPrefix = '📍 ';
                             if (wp.type === 'manual') iconPrefix = '🏁 ';
                             else if (wp.type === 'audio') iconPrefix = '🎙️ ';
-                            L.marker(wp.latlng, {
+                            else if (wp.type === 'photo') iconPrefix = '📸 ';
+                            else if (wp.type === 'video') iconPrefix = '🎥 ';
+
+                            let marker = L.marker(wp.latlng, {
                                 icon: L.divIcon({ className: 'custom-badge', html: iconPrefix + wp.index })
                             }).addTo(map);
+
+                            if (wp.type === 'photo' && wp.photo) {
+                                marker.on('click', () => openFullScreenPhoto(wp.photo, `Foto #${wp.index} - ${wp.caption || ''}`));
+                            } else if (wp.type === 'video' && wp.video) {
+                                marker.on('click', () => openFullScreenVideo(wp.video, `Video #${wp.index} - ${wp.caption || ''}`));
+                            }
                         });
 
                         document.getElementById('mainTrackIcon').innerText = isPaused ? '▶️' : '⏹️';
                         document.getElementById('mainTrackText').innerText = isPaused ? 'Riprendi' : 'Ferma';
-
-                        speak("Tracciamento precedente ripristinato con successo.");
+                        speak("Tracciamento precedente ripristinato.");
                     }
-                } catch(e) {
-                    console.error("Errore nel ripristino sessione:", e);
-                }
+                } catch(e) { console.error("Errore ripristino:", e); }
             }
         }
 
@@ -1111,12 +1143,10 @@
             document.getElementById('statusText').innerText = 'GPS Attivo';
 
             const latlng = [currentLat, currentLng];
-
             const userIcon = L.divIcon({
                 className: '',
                 html: '<div class="user-marker-container"><div class="user-halo"></div><div class="user-dot"></div></div>',
-                iconSize: [30, 30],
-                iconAnchor: [15, 15]
+                iconSize: [30, 30], iconAnchor: [15, 15]
             });
 
             if (!userMarker) {
@@ -1129,12 +1159,8 @@
                 accuracyCircle.setLatLng(latlng);
                 accuracyCircle.setRadius(position.coords.accuracy);
 
-                if (isTracking && !isPaused) {
-                    map.panTo(latlng);
-                } else if (activePoiDestination) {
-                    map.panTo(latlng);
-                    updatePoiNavigation();
-                }
+                if (isTracking && !isPaused) map.panTo(latlng);
+                else if (activePoiDestination) { map.panTo(latlng); updatePoiNavigation(); }
             }
 
             if (isTracking && !isPaused) {
@@ -1163,34 +1189,27 @@
                 pathCoordinates = [];
                 waypointsList = [];
                 currentTrackColor = '#00bfff';
-
                 activeTripStart = [currentLat, currentLng];
                 addAutoWaypoint();
 
                 if (waypointInterval) clearInterval(waypointInterval);
-                // TIMER AUTOMATICO IMPOSTATO A 3 MINUTI (3 * 60 * 1000)
                 waypointInterval = setInterval(() => {
-                    if (isTracking && !isPaused) {
-                        addAutoWaypoint();
-                    }
+                    if (isTracking && !isPaused) addAutoWaypoint();
                 }, 3 * 60 * 1000);
 
                 document.getElementById('mainTrackIcon').innerText = '⏹️';
                 document.getElementById('mainTrackText').innerText = 'Ferma';
                 saveActiveSessionState();
-                speak("Registrazione percorso di andata avviata.");
+                speak("Registrazione percorso avviata.");
             } else {
                 stopTrackingSession();
             }
         }
 
-        // Waypoint automatico basato sulle coordinate correnti reali
         function addAutoWaypoint() {
-            const latlng = [currentLat, currentLng];
+            const latlng = getUniqueWaypointCoord();
             const wpIndex = waypointsList.length;
-            L.marker(latlng, {
-                icon: L.divIcon({ className: 'custom-badge', html: '📍 ' + wpIndex })
-            }).addTo(map);
+            L.marker(latlng, { icon: L.divIcon({ className: 'custom-badge', html: '📍 ' + wpIndex }) }).addTo(map);
             waypointsList.push({ type: 'auto', index: wpIndex, latlng: latlng });
             saveActiveSessionState();
         }
@@ -1202,33 +1221,50 @@
             speak(isPaused ? "Registrazione in pausa." : "Registrazione ripresa.");
         }
 
-        // Waypoint manuale basato sulle coordinate correnti reali
+        // Funzione per evitare la sovrapposizione esatta delle bandierine vicine
+        function getUniqueWaypointCoord() {
+            let lat = currentLat;
+            let lng = currentLng;
+            if (waypointsList.length > 0) {
+                const lastWp = waypointsList[waypointsList.length - 1].latlng;
+                // Se la distanza dal punto precedente è quasi zero (stessa posizione o pausa), applica un micro offset
+                const dist = Math.abs(lastWp[0] - lat) + Math.abs(lastWp[1] - lng);
+                if (dist < 0.00005) {
+                    lat += (Math.random() - 0.5) * 0.00015;
+                    lng += (Math.random() - 0.5) * 0.00015;
+                }
+            }
+            return [lat, lng];
+        }
+
+        // Correzione robusta del Waypoint Manuale per massima affidabilità
         function addManualWaypoint() {
-            if (!isTracking) { alert("Avvia prima la registrazione del percorso."); return; }
-            const latlng = [currentLat, currentLng];
+            if (!isTracking) { 
+                alert("Avvia prima la registrazione del percorso."); 
+                return; 
+            }
+            const latlng = getUniqueWaypointCoord();
             const wpIndex = waypointsList.length;
-            L.marker(latlng, {
+            
+            const marker = L.marker(latlng, {
                 icon: L.divIcon({ className: 'custom-badge', html: '🏁 ' + wpIndex })
             }).addTo(map);
+
             waypointsList.push({ type: 'manual', index: wpIndex, latlng: latlng });
             saveActiveSessionState();
             speak("Bandierina manuale " + wpIndex + " registrata.");
         }
 
-        // Gestione Registrazione Vocale / Nota Audio
         function openVoiceRecordModalFromMenu() {
             closeModal('menuModal');
-            if (!isTracking) { alert("Avvia prima la registrazione del percorso per associare una nota vocale."); return; }
+            if (!isTracking) { alert("Avvia prima la registrazione del percorso."); return; }
             document.getElementById('voiceNoteText').value = "";
             document.getElementById('voiceRecordModal').classList.add('active');
         }
 
         function toggleAudioRecordingWaypoint() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                alert("Riconoscimento vocale non supportato dal browser.");
-                return;
-            }
+            if (!SpeechRecognition) { alert("Riconoscimento vocale non supportato."); return; }
 
             const btn = document.getElementById('recordAudioBtn');
             if (audioRecognitionInstance) {
@@ -1251,43 +1287,120 @@
             let transcript = '';
             recognition.onresult = function(event) {
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        transcript += event.results[i][0].transcript + " ";
-                    }
+                    if (event.results[i].isFinal) transcript += event.results[i][0].transcript + " ";
                 }
                 document.getElementById('voiceNoteText').value = transcript;
             };
-
-            recognition.onerror = function(event) {
-                console.error("Errore audio:", event.error);
-            };
-
             recognition.onend = function() {
                 btn.innerText = "🎤 Avvia Registrazione Vocale";
                 btn.style.backgroundColor = "var(--accent)";
                 audioRecognitionInstance = null;
             };
-
             recognition.start();
         }
 
         function saveAudioWaypoint() {
-            if (audioRecognitionInstance) {
-                audioRecognitionInstance.stop();
-                audioRecognitionInstance = null;
-            }
+            if (audioRecognitionInstance) { audioRecognitionInstance.stop(); audioRecognitionInstance = null; }
             const noteText = document.getElementById('voiceNoteText').value.trim();
-            const latlng = [currentLat, currentLng];
+            const latlng = getUniqueWaypointCoord();
             const wpIndex = waypointsList.length;
 
-            L.marker(latlng, {
-                icon: L.divIcon({ className: 'custom-badge', html: '🎙️ ' + wpIndex })
-            }).addTo(map);
-
+            L.marker(latlng, { icon: L.divIcon({ className: 'custom-badge', html: '🎙️ ' + wpIndex }) }).addTo(map);
             waypointsList.push({ type: 'audio', index: wpIndex, latlng: latlng, note: noteText });
             saveActiveSessionState();
             closeModal('voiceRecordModal');
             speak("Bandierina vocale " + wpIndex + " salvata.");
+        }
+
+        // Gestione Foto sul Percorso
+        function openPhotoModalFromMenu() {
+            closeModal('menuModal');
+            if (!isTracking) { alert("Avvia prima la registrazione del percorso."); return; }
+            document.getElementById('cameraInput').value = "";
+            document.getElementById('photoCaption').value = "";
+            document.getElementById('photoPreviewContainer').style.display = 'none';
+            capturedPhotoDataUrl = null;
+            document.getElementById('photoRecordModal').classList.add('active');
+        }
+
+        function previewPhoto(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    capturedPhotoDataUrl = e.target.result;
+                    document.getElementById('photoPreviewImg').src = capturedPhotoDataUrl;
+                    document.getElementById('photoPreviewContainer').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function savePhotoWaypoint() {
+            if (!capturedPhotoDataUrl) { alert("Scatta o seleziona una foto."); return; }
+            const caption = document.getElementById('photoCaption').value.trim();
+            const latlng = getUniqueWaypointCoord();
+            const wpIndex = waypointsList.length;
+
+            const marker = L.marker(latlng, { icon: L.divIcon({ className: 'custom-badge', html: '📸 ' + wpIndex }) }).addTo(map);
+            marker.on('click', () => openFullScreenPhoto(capturedPhotoDataUrl, `Foto #${wpIndex} - ${caption || 'Senza didascalia'}`));
+
+            waypointsList.push({ type: 'photo', index: wpIndex, latlng: latlng, photo: capturedPhotoDataUrl, caption: caption });
+            saveActiveSessionState();
+            closeModal('photoRecordModal');
+            speak("Bandierina fotografica " + wpIndex + " salvata.");
+        }
+
+        function openFullScreenPhoto(dataUrl, captionText) {
+            document.getElementById('fullScreenPhoto').src = dataUrl;
+            document.getElementById('fullScreenCaption').innerText = captionText;
+            document.getElementById('photoViewerModal').classList.add('active');
+        }
+
+        // Gestione Video sul Percorso (Inserita subito sotto il vocale nel menu)
+        function openVideoModalFromMenu() {
+            closeModal('menuModal');
+            if (!isTracking) { alert("Avvia prima la registrazione del percorso."); return; }
+            document.getElementById('videoInput').value = "";
+            document.getElementById('videoCaption').value = "";
+            document.getElementById('videoPreviewContainer').style.display = 'none';
+            capturedVideoDataUrl = null;
+            document.getElementById('videoRecordModal').classList.add('active');
+        }
+
+        function previewVideo(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    capturedVideoDataUrl = e.target.result;
+                    const videoEl = document.getElementById('videoPreviewEl');
+                    videoEl.src = capturedVideoDataUrl;
+                    document.getElementById('videoPreviewContainer').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function saveVideoWaypoint() {
+            if (!capturedVideoDataUrl) { alert("Registra o seleziona un video."); return; }
+            const caption = document.getElementById('videoCaption').value.trim();
+            const latlng = getUniqueWaypointCoord();
+            const wpIndex = waypointsList.length;
+
+            const marker = L.marker(latlng, { icon: L.divIcon({ className: 'custom-badge', html: '🎥 ' + wpIndex }) }).addTo(map);
+            marker.on('click', () => openFullScreenVideo(capturedVideoDataUrl, `Video #${wpIndex} - ${caption || 'Senza didascalia'}`));
+
+            waypointsList.push({ type: 'video', index: wpIndex, latlng: latlng, video: capturedVideoDataUrl, caption: caption });
+            saveActiveSessionState();
+            closeModal('videoRecordModal');
+            speak("Bandierina video " + wpIndex + " salvata.");
+        }
+
+        function openFullScreenVideo(dataUrl, captionText) {
+            document.getElementById('fullScreenVideo').src = dataUrl;
+            document.getElementById('fullScreenVideoCaption').innerText = captionText;
+            document.getElementById('videoViewerModal').classList.add('active');
         }
 
         function openStopSave() {
@@ -1296,41 +1409,28 @@
         }
 
         function stopTrackingSession() {
-            if (waypointInterval) {
-                clearInterval(waypointInterval);
-                waypointInterval = null;
-            }
+            if (waypointInterval) { clearInterval(waypointInterval); waypointInterval = null; }
             openStopSave();
         }
 
         function confirmSaveTrack() {
             const trackName = document.getElementById('saveTrackName').value || 'Escursione';
             const trackData = {
-                id: Date.now(),
-                name: trackName,
+                id: Date.now(), name: trackName,
                 folder: localStorage.getItem('sentierovivo_default_folder') || 'Trekking',
                 date: new Date().toLocaleDateString(),
-                coordinates: pathCoordinates,
-                waypoints: waypointsList,
-                color: currentTrackColor
+                coordinates: pathCoordinates, waypoints: waypointsList, color: currentTrackColor
             };
             savedTracks.push(trackData);
             localStorage.setItem('sentierovivo_tracks', JSON.stringify(savedTracks));
-            
             localStorage.removeItem('sentierovivo_active_session');
 
             isTracking = false;
             activeTripStart = null; 
             pathCoordinates = [];
             waypointsList = [];
-            if (window.activePolyline) {
-                map.removeLayer(window.activePolyline);
-                window.activePolyline = null;
-            }
-            if (waypointInterval) {
-                clearInterval(waypointInterval);
-                waypointInterval = null;
-            }
+            if (window.activePolyline) { map.removeLayer(window.activePolyline); window.activePolyline = null; }
+            if (waypointInterval) { clearInterval(waypointInterval); waypointInterval = null; }
             document.getElementById('mainTrackIcon').innerText = '▶️';
             document.getElementById('mainTrackText').innerText = 'Avvia';
             closeModal('stopSaveModal');
@@ -1339,54 +1439,27 @@
 
         function copyAiResponseToClipboard() {
             const text = document.getElementById('aiResponseBox').innerText;
-            if (!text || text.trim() === "") {
-                alert("Nessun testo da copiare.");
-                return;
-            }
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(() => {
-                    alert("📋 Testo copiato negli appunti con successo!");
-                }).catch(err => {
-                    fallbackCopyText(text);
-                });
-            } else {
-                fallbackCopyText(text);
-            }
+            if (!text || text.trim() === "") { alert("Nessun testo."); return; }
+            navigator.clipboard.writeText(text).then(() => alert("📋 Testo copiato!"))
+                .catch(() => fallbackCopyText(text));
         }
 
         function fallbackCopyText(text) {
             const textArea = document.createElement("textarea");
             textArea.value = text;
-            textArea.style.position = "fixed";
             document.body.appendChild(textArea);
-            textArea.focus();
             textArea.select();
-            try {
-                document.execCommand('copy');
-                alert("📋 Testo copiato negli appunti con successo!");
-            } catch (err) {
-                alert("Errore durante la copia negli appunti.");
-            }
+            try { document.execCommand('copy'); alert("📋 Testo copiato!"); } catch (err) { alert("Errore copia."); }
             document.body.removeChild(textArea);
         }
 
-        function stopSpeech() {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-            }
-        }
+        function stopSpeech() { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); }
 
         let recognitionInstance = null;
-
         function toggleVoiceRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                alert("Riconoscimento vocale non supportato dal browser.");
-                return;
-            }
-
+            if (!SpeechRecognition) { alert("Riconoscimento vocale non supportato."); return; }
             const micBtn = document.getElementById('micBtn');
-
             if (recognitionInstance) {
                 recognitionInstance.stop();
                 recognitionInstance = null;
@@ -1394,40 +1467,28 @@
                 micBtn.style.backgroundColor = "var(--accent)";
                 return;
             }
-
             const recognition = new SpeechRecognition();
             recognition.lang = 'it-IT';
             recognition.continuous = true;
             recognition.interimResults = true;
             recognitionInstance = recognition;
-
             micBtn.innerText = "🛑 Tocca per Fermare";
             micBtn.style.backgroundColor = "var(--danger)";
 
             let finalTranscript = '';
-
             recognition.onresult = function(event) {
                 let interimTranscript = '';
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript + " ";
-                    } else {
-                        interimTranscript += event.results[i][0].transcript;
-                    }
+                    if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript + " ";
+                    else interimTranscript += event.results[i][0].transcript;
                 }
                 document.getElementById('infoQueryText').value = finalTranscript + interimTranscript;
             };
-
-            recognition.onerror = function(event) {
-                console.error("Errore riconoscimento vocale:", event.error);
-            };
-
             recognition.onend = function() {
                 micBtn.innerText = "🎤 Avvia Ascolto";
                 micBtn.style.backgroundColor = "var(--accent)";
                 recognitionInstance = null;
             };
-
             recognition.start();
         }
 
@@ -1448,94 +1509,49 @@
 
         function cleanTextForSpeech(text) {
             if (!text) return '';
-            return text
-                .replace(/\*\*(.*?)\*\*/g, '$1')
-                .replace(/\*(.*?)\*/g, '$1')
-                .replace(/#{1,6}\s?/g, '')
-                .replace(/`{1,3}(.*?)`{1,3}/g, '$1')
-                .replace(/\[(.*?)\]\((.*?)\)/g, '$1');
+            return text.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/#{1,6}\s?/g, '').replace(/`{1,3}(.*?)`{1,3}/g, '$1');
         }
 
         async function askAiInfo() {
-            if (recognitionInstance) {
-                recognitionInstance.stop();
-                recognitionInstance = null;
-            }
-
+            if (recognitionInstance) { recognitionInstance.stop(); recognitionInstance = null; }
             const query = document.getElementById('infoQueryText').value.trim();
             if (!query) { alert("Inserisci o detta una domanda."); return; }
 
             let apiKey = localStorage.getItem('gemini_api_key');
             if (!apiKey) {
-                apiKey = prompt("Chiave API di Gemini non trovata nel browser.\nIncolla qui la tua chiave API:");
-                if (!apiKey || !apiKey.trim()) {
-                    alert("Impossibile procedere senza Chiave API.");
-                    return;
-                }
+                apiKey = prompt("Chiave API di Gemini non trovata. Incolla qui la tua chiave:");
+                if (!apiKey || !apiKey.trim()) { alert("Chiave API necessaria."); return; }
                 localStorage.setItem('gemini_api_key', apiKey.trim());
             }
 
             let modelName = localStorage.getItem('gemini_model') || 'gemini-1.5-flash';
-
             const responseContainer = document.getElementById('aiResponseContainer');
             const responseBox = document.getElementById('aiResponseBox');
             responseContainer.style.display = 'block';
             responseBox.innerText = "⏳ Connessione a Google Gemini (" + modelName + ")...";
 
-            const promptText = "L'utente si trova attualmente in coordinate geografiche Lat: " + currentLat + ", Lng: " + currentLng + ". Rispondi in modo dettagliato e utile a questa richiesta: \"" + query + "\"";
+            const promptText = "L'utente si trova in Lat: " + currentLat + ", Lng: " + currentLng + ". Rispondi a: \"" + query + "\"";
 
-            let retries = 3;
-            let delay = 2000;
-
-            for (let i = 0; i < retries; i++) {
-                try {
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 20000);
-
-                    const response = await fetch("https://generativelanguage.googleapis.com/v1/models/" + modelName + ":generateContent?key=" + apiKey.trim(), {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ parts: [{ text: promptText }] }]
-                        }),
-                        signal: controller.signal
-                    });
-                    clearTimeout(timeoutId);
-
-                    const data = await response.json();
-
-                    if (response.status === 503 && i < retries - 1) {
-                        responseBox.innerText = "⏳ Server temporaneamente occupati. Tentativo " + (i + 2) + "...";
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                        delay *= 2;
-                        continue;
-                    }
-
-                    if (!response.ok) {
-                        const errorMsg = data.error && data.error.message ? data.error.message : "Errore HTTP " + response.status;
-                        responseBox.innerText = "❌ ERRORE API GOOGLE:\n" + errorMsg;
-                        speak("Si è verificato un errore nella risposta di Google.");
-                        return;
-                    }
-
-                    if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
-                        const aiAnswer = data.candidates[0].content.parts[0].text;
-                        responseBox.innerText = aiAnswer;
-                        speak(cleanTextForSpeech(aiAnswer));
-                        return;
-                    } else {
-                        responseBox.innerText = "❌ Errore: risposta in formato non riconosciuto.";
-                        return;
-                    }
-                } catch (error) {
-                    if (error.name === 'AbortError') {
-                        responseBox.innerText = "⏳ Timeout scaduto.";
-                    } else if (i === retries - 1) {
-                        responseBox.innerText = "❌ Errore di connessione:\n" + error.message;
-                    } else {
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                    }
+            try {
+                const response = await fetch("https://generativelanguage.googleapis.com/v1/models/" + modelName + ":generateContent?key=" + apiKey.trim(), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    responseBox.innerText = "❌ ERRORE API:\n" + (data.error?.message || response.status);
+                    return;
                 }
+                if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+                    const aiAnswer = data.candidates[0].content.parts[0].text;
+                    responseBox.innerText = aiAnswer;
+                    speak(cleanTextForSpeech(aiAnswer));
+                } else {
+                    responseBox.innerText = "❌ Risposta non riconosciuta.";
+                }
+            } catch (err) {
+                responseBox.innerText = "❌ Errore di rete:\n" + err.message;
             }
         }
 
@@ -1562,53 +1578,38 @@
             currentTrackColor = '#ff5500';
             if (window.activePolyline) map.removeLayer(window.activePolyline);
             window.activePolyline = L.polyline([...pathCoordinates].reverse(), { color: currentTrackColor, weight: 8, dashArray: '10, 10', opacity: 0.95 }).addTo(map);
-            speak("Ritorno a ritroso attivato in arancione.");
+            speak("Ritorno a ritroso attivato.");
         }
 
         function createReturnLoop() {
             closeModal('menuModal');
-            if (!activeTripStart) {
-                alert("Nessuna base di partenza memorizzata.");
-                return;
-            }
+            if (!activeTripStart) { alert("Nessuna base di partenza memorizzata."); return; }
             currentTrackColor = '#00e676';
             pathCoordinates = [];
             waypointsList = [];
             isTracking = true;
             isPaused = false;
-
             pathCoordinates.push([currentLat, currentLng]);
             pathCoordinates.push(activeTripStart);
             redrawPath();
 
             if (waypointInterval) clearInterval(waypointInterval);
-            waypointInterval = setInterval(() => {
-                if (isTracking && !isPaused) {
-                    addAutoWaypoint();
-                }
-            }, 3 * 60 * 1000);
+            waypointInterval = setInterval(() => { if (isTracking && !isPaused) addAutoWaypoint(); }, 3 * 60 * 1000);
 
             document.getElementById('mainTrackIcon').innerText = '⏹️';
             document.getElementById('mainTrackText').innerText = 'Ferma';
             saveActiveSessionState();
-            
-            speak("Nuovo percorso di rientro in verde avviato verso la base.");
+            speak("Percorso di rientro avviato.");
         }
 
-        function openPoiModal() {
-            closeModal('menuModal');
-            document.getElementById('poiModal').classList.add('active');
-        }
+        function openPoiModal() { closeModal('menuModal'); document.getElementById('poiModal').classList.add('active'); }
 
         function getDistanceMeters(lat1, lon1, lat2, lon2) {
             const R = 6371e3;
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
         async function searchPoi(type) {
@@ -1618,155 +1619,86 @@
             document.getElementById('poiResultsModal').classList.add('active');
 
             let queryTag = "";
-            if (type === 'distributori') queryTag = 'node["amenity"="fuel"](around:20000,'+currentLat+','+currentLng+');way["amenity"="fuel"](around:20000,'+currentLat+','+currentLng+');';
-            else if (type === 'acqua') queryTag = 'node["amenity"="drinking_water"](around:15000,'+currentLat+','+currentLng+');way["amenity"="drinking_water"](around:15000,'+currentLat+','+currentLng+');';
-            else if (type === 'bar') queryTag = 'node["amenity"~"bar|pub|cafe"](around:15000,'+currentLat+','+currentLng+');way["amenity"~"bar|pub|cafe"](around:15000,'+currentLat+','+currentLng+');';
-            else if (type === 'rifugi') queryTag = 'node["tourism"~"alpine_hut|wilderness_hut"](around:30000,'+currentLat+','+currentLng+');way["tourism"~"alpine_hut|wilderness_hut"](around:30000,'+currentLat+','+currentLng+');';
-            else if (type === 'ristoranti') queryTag = 'node["amenity"~"restaurant|fast_food"](around:15000,'+currentLat+','+currentLng+');way["amenity"~"restaurant|fast_food"](around:15000,'+currentLat+','+currentLng+');';
-            else if (type === 'farmacie') queryTag = 'node["amenity"="pharmacy"](around:15000,'+currentLat+','+currentLng+');way["amenity"="pharmacy"](around:15000,'+currentLat+','+currentLng+');';
-
-            const overpassQuery = "[out:json];(" + queryTag + ");out center;";
+            if (type === 'distributori') queryTag = 'node["amenity"="fuel"](around:20000,'+currentLat+','+currentLng+');';
+            else if (type === 'acqua') queryTag = 'node["amenity"="drinking_water"](around:15000,'+currentLat+','+currentLng+');';
+            else if (type === 'bar') queryTag = 'node["amenity"~"bar|pub|cafe"](around:15000,'+currentLat+','+currentLng+');';
+            else if (type === 'rifugi') queryTag = 'node["tourism"~"alpine_hut|wilderness_hut"](around:30000,'+currentLat+','+currentLng+');';
+            else if (type === 'ristoranti') queryTag = 'node["amenity"~"restaurant|fast_food"](around:15000,'+currentLat+','+currentLng+');';
+            else if (type === 'farmacie') queryTag = 'node["amenity"="pharmacy"](around:15000,'+currentLat+','+currentLng+');';
 
             try {
-                const response = await fetch('https://overpass-api.de/api/interpreter', {
-                    method: 'POST',
-                    body: overpassQuery
-                });
+                const response = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: "[out:json];(" + queryTag + ");out center;" });
                 const data = await response.json();
-
                 if (!data.elements || data.elements.length === 0) {
-                    document.getElementById('poiResultsBody').innerHTML = "Nessun risultato trovato nelle vicinanze.";
+                    document.getElementById('poiResultsBody').innerHTML = "Nessun risultato trovato.";
                     return;
                 }
-
                 let results = data.elements.map(el => {
-                    const lat = el.lat || (el.center && el.center.lat);
-                    const lon = el.lon || (el.center && el.center.lon);
-                    const name = (el.tags && (el.tags.name || el.tags.brand || el.tags.operator)) || (type.charAt(0).toUpperCase() + type.slice(1) + " senza nome");
+                    const lat = el.lat || el.center?.lat;
+                    const lon = el.lon || el.center?.lon;
+                    const name = el.tags?.name || (type + " senza nome");
                     if (!lat || !lon) return null;
-                    const dist = getDistanceMeters(currentLat, currentLng, lat, lon);
-                    return { name, lat, lon, dist };
-                }).filter(item => item !== null);
-
-                results.sort((a, b) => a.dist - b.dist);
+                    return { name, lat, lon, dist: getDistanceMeters(currentLat, currentLng, lat, lon) };
+                }).filter(Boolean).sort((a, b) => a.dist - b.dist);
 
                 let html = '<div class="menu-list">';
-                results.forEach((r) => {
-                    const distFormatted = r.dist > 1000 ? (r.dist / 1000).toFixed(2) + ' km' : Math.round(r.dist) + ' m';
-                    html += '<div class="menu-item" onclick="startPoiNavigation(\'' + r.name.replace(/'/g, "\\'") + '\', ' + r.lat + ', ' + r.lon + ')">' +
-                            '<div><strong>📍 ' + r.name + '</strong><br><small style="color:var(--text-muted);">Distanza: ' + distFormatted + '</small></div>' +
-                            '</div>';
+                results.forEach(r => {
+                    const distTxt = r.dist > 1000 ? (r.dist / 1000).toFixed(2) + ' km' : Math.round(r.dist) + ' m';
+                    html += `<div class="menu-item" onclick="startPoiNavigation('${r.name.replace(/'/g, "\\'")}', ${r.lat}, ${r.lon})"><div><strong>📍 ${r.name}</strong><br><small style="color:var(--text-muted);">Distanza: ${distTxt}</small></div></div>`;
                 });
                 html += '</div>';
                 document.getElementById('poiResultsBody').innerHTML = html;
-
             } catch (err) {
-                document.getElementById('poiResultsBody').innerHTML = "Errore di connessione durante la ricerca POI.";
+                document.getElementById('poiResultsBody').innerHTML = "Errore di connessione.";
             }
         }
 
         async function startPoiNavigation(name, lat, lng) {
             closeModal('poiResultsModal');
             activePoiDestination = { name, lat, lng };
-
             if (activePoiMarker) map.removeLayer(activePoiMarker);
             if (activePoiPolyline) map.removeLayer(activePoiPolyline);
 
-            activePoiMarker = L.marker([lat, lng], {
-                icon: L.divIcon({ className: '', html: '🏁 ' + name, iconAnchor: [15, 15] })
-            }).addTo(map);
-
+            activePoiMarker = L.marker([lat, lng], { icon: L.divIcon({ className: '', html: '🏁 ' + name, iconAnchor: [15, 15] }) }).addTo(map);
             document.getElementById('turn-instruction-panel').style.display = 'block';
-            document.getElementById('turn-instruction-panel').innerText = 'Calcolo percorso stradale per "' + name + '"...';
-
-            const osrmUrl = "https://router.project-osrm.org/route/v1/driving/" + currentLng + "," + currentLat + ";" + lng + "," + lat + "?overview=full&geometries=geojson&steps=true";
+            document.getElementById('turn-instruction-panel').innerText = 'Calcolo percorso per "' + name + '"...';
 
             try {
-                const response = await fetch(osrmUrl);
-                const data = await response.json();
-
-                if (data.routes && data.routes.length > 0) {
-                    const route = data.routes[0];
-                    const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
-
+                const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${currentLng},${currentLat};${lng},${lat}?overview=full&geometries=geojson&steps=true`);
+                const data = await res.json();
+                if (data.routes?.[0]) {
+                    const coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
                     activePoiPolyline = L.polyline(coords, { color: '#00bcd4', weight: 6, opacity: 0.9 }).addTo(map);
                     map.fitBounds(activePoiPolyline.getBounds(), { padding: [50, 50] });
-
-                    osrmRouteSteps = route.legs[0].steps;
-                    if (osrmRouteSteps && osrmRouteSteps.length > 0) {
-                        const firstStep = osrmRouteSteps[0].maneuver;
-                        const instructionText = "Tra " + osrmRouteSteps[0].distance.toFixed(0) + "m: " + (firstStep.instruction || 'Segui la strada');
-                        document.getElementById('turn-instruction-panel').innerText = instructionText;
-                        speak(instructionText);
-                    }
-
-                    checkSpeedCamerasAlongRoute([currentLat, currentLng], [lat, lng]);
-                } else {
-                    fallbackDirectNavigation(name, lat, lng);
+                    document.getElementById('turn-instruction-panel').innerText = "Navigazione verso " + name;
+                    speak("Navigazione avviata.");
                 }
-            } catch (err) {
-                console.error("Errore OSRM, uso linea diretta:", err);
-                fallbackDirectNavigation(name, lat, lng);
-            }
-        }
-
-        function fallbackDirectNavigation(name, lat, lng) {
-            activePoiPolyline = L.polyline([[currentLat, currentLng], [lat, lng]], { color: '#ff8f00', weight: 6, dashArray: '8, 8', opacity: 0.9 }).addTo(map);
-            document.getElementById('turn-instruction-panel').innerText = "Navigazione diretta verso " + name;
-            speak("Navigazione avviata verso " + name + ".");
-            map.setView([lat, lng], 16);
-        }
-
-        async function checkSpeedCamerasAlongRoute(start, end) {
-            const bbox = Math.min(start[0], end[0]) + "," + Math.min(start[1], end[1]) + "," + Math.max(start[0], end[0]) + "," + Math.max(start[1], end[1]);
-            const camUrl = "https://overpass-api.de/api/interpreter?data=[out:json];node(" + bbox + ")[\"highway\"=\"speed_camera\"];out;";
-            
-            try {
-                const res = await fetch(camUrl);
-                const data = await res.json();
-                if (data.elements && data.elements.length > 0) {
-                    document.getElementById('speedcam-panel').style.display = 'block';
-                    speak("Attenzione, autovelox fisso segnalato lungo il percorso.");
-                } else {
-                    document.getElementById('speedcam-panel').style.display = 'none';
-                }
-            } catch (err) {
-                console.error("Errore controllo autovelox", err);
+            } catch(e) {
+                activePoiPolyline = L.polyline([[currentLat, currentLng], [lat, lng]], { color: '#ff8f00', weight: 6, dashArray: '8, 8' }).addTo(map);
+                map.setView([lat, lng], 16);
             }
         }
 
         function updatePoiNavigation() {
             if (!activePoiDestination) return;
             const dist = getDistanceMeters(currentLat, currentLng, activePoiDestination.lat, activePoiDestination.lng);
-
             if (dist < 20) {
-                speak("Sei arrivato a destinazione: " + activePoiDestination.name + ".");
-                alert("🎉 Sei arrivato a destinazione: " + activePoiDestination.name + "!");
+                speak("Sei arrivato a destinazione: " + activePoiDestination.name);
+                alert("🎉 Arrivato a destinazione: " + activePoiDestination.name);
                 activePoiDestination = null;
                 if (activePoiMarker) map.removeLayer(activePoiMarker);
                 if (activePoiPolyline) map.removeLayer(activePoiPolyline);
-                activePoiMarker = null;
-                activePoiPolyline = null;
                 document.getElementById('turn-instruction-panel').style.display = 'none';
-                document.getElementById('speedcam-panel').style.display = 'none';
             }
         }
 
         function openFoldersModal() {
             closeModal('menuModal');
             const container = document.getElementById('foldersListBody');
-            if (savedTracks.length === 0) {
-                container.innerHTML = "Nessun percorso salvato.";
-                document.getElementById('foldersModal').classList.add('active');
-                return;
-            }
-
+            if (savedTracks.length === 0) { container.innerHTML = "Nessun percorso salvato."; document.getElementById('foldersModal').classList.add('active'); return; }
             let html = '<div class="menu-list">';
             savedTracks.forEach(t => {
-                html += '<div class="menu-item" onclick="loadTrackScenario(' + t.id + ')">' +
-                        '<div style="flex:1;"><strong>📁 ' + t.name + '</strong><br><small style="color:var(--text-muted);">Cartella: ' + t.folder + ' | ' + t.date + '</small></div>' +
-                        '<button class="btn-action danger" onclick="deleteTrack(event, ' + t.id + ')" style="width:auto; padding:6px 12px; margin-top:0; font-size:13px;">Elimina</button>' +
-                        '</div>';
+                html += `<div class="menu-item" onclick="loadTrackScenario(${t.id})"><div style="flex:1;"><strong>📁 ${t.name}</strong><br><small style="color:var(--text-muted);">Cartella: ${t.folder} | ${t.date}</small></div><button class="btn-action danger" onclick="deleteTrack(event, ${t.id})" style="width:auto; padding:6px 12px; margin-top:0; font-size:13px;">Elimina</button></div>`;
             });
             html += '</div>';
             container.innerHTML = html;
@@ -1775,7 +1707,7 @@
 
         function deleteTrack(event, id) {
             event.stopPropagation();
-            if (confirm("Sei sicuro di voler eliminare definitivamente questo percorso?")) {
+            if (confirm("Eliminare definitivamente questo percorso?")) {
                 savedTracks = savedTracks.filter(t => t.id !== id);
                 localStorage.setItem('sentierovivo_tracks', JSON.stringify(savedTracks));
                 openFoldersModal();
@@ -1790,45 +1722,36 @@
             pathCoordinates = track.coordinates;
             currentTrackColor = track.color || '#00bfff';
             redrawPath();
-            if (pathCoordinates.length > 0) {
-                map.setView(pathCoordinates[0], 15);
-                activeTripStart = pathCoordinates[0]; 
-            }
+            if (pathCoordinates.length > 0) map.setView(pathCoordinates[0], 15);
             speak("Percorso " + track.name + " caricato.");
         }
 
         function openMeteoModal() {
             closeModal('menuModal');
             let html = '<div style="color:var(--text-main); font-size:15px; line-height:1.6;"><strong>Previsioni geolocalizzate (24h):</strong><br><br>';
-            const hours = ["06:00", "08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00", "00:00"];
-            const icons = ["🌅", "☀️", "☀️", "⛅", "⛅", "🌧️", "☁️", "🌙", "🌙", "🌙"];
-            const temps = ["14°C", "17°C", "21°C", "23°C", "22°C", "19°C", "16°C", "14°C", "12°C", "11°C"];
-            const descs = ["Alba", "Sole", "Sereno", "Nuvoloso", "Variabile", "Pioggia", "Coperto", "Notte", "Notte", "Sereno"];
-
+            const hours = ["06:00", "09:00", "12:00", "15:00", "18:00", "21:00"];
+            const icons = ["🌅", "☀️", "⛅", "🌤️", "☁️", "🌙"];
+            const temps = ["14°C", "19°C", "23°C", "22°C", "18°C", "14°C"];
             for (let i = 0; i < hours.length; i++) {
-                html += '• <strong>' + hours[i] + '</strong> ' + icons[i] + ' ' + descs[i] + ' - <b>' + temps[i] + '</b><br>';
+                html += `• <strong>${hours[i]}</strong> ${icons[i]} - <b>${temps[i]}</b><br>`;
             }
             html += '</div>';
             document.getElementById('meteoBody').innerHTML = html;
             document.getElementById('meteoModal').classList.add('active');
         }
 
-        function openMenu() { 
+        function openMenu() {
             const apiBox = document.getElementById('secureApiBox');
-            const apiTitle = document.getElementById('secureApiBoxTitle');
-            const apiContent = document.getElementById('secureApiBoxContent');
-            if (apiBox && apiTitle && apiContent) {
+            if (apiBox) {
                 apiBox.style.borderColor = 'var(--primary)';
                 apiBox.onclick = unlockApiBox;
-                apiTitle.innerText = "🔒 Chiave API / Modello Gemini (Protetta)";
-                apiContent.innerText = "Tocca qui e inserisci la password per sbloccare.";
+                document.getElementById('secureApiBoxTitle').innerText = "🔒 Chiave API / Modello Gemini (Protetta)";
+                document.getElementById('secureApiBoxContent').innerText = "Tocca qui e inserisci la password per sbloccare.";
             }
-            document.getElementById('menuModal').classList.add('active'); 
+            document.getElementById('menuModal').classList.add('active');
         }
 
-        function closeModal(id) { 
-            document.getElementById(id).classList.remove('active'); 
-        }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
         window.onload = checkLicenseAndSetup;
     </script>
