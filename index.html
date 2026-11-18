@@ -742,22 +742,56 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     
     <script>
-        // Funzione per sbloccare il riquadro API con password (default: Massimo2026)
+        // Funzione per sbloccare il riquadro API con password (default: Massimo2026) e permettere la modifica diretta
         function unlockApiBox() {
             const pwd = prompt("Inserisci la password per sbloccare il riquadro API:");
             if (pwd === "Massimo2026") {
+                const currentApiKey = localStorage.getItem('gemini_api_key') || '';
+                const currentModel = localStorage.getItem('gemini_model') || 'gemini-1.5-flash';
+                
                 const contentDiv = document.getElementById('secureApiBoxContent');
                 contentDiv.innerHTML = `
-                    <div style="font-size: 12px; color: var(--text-main); word-break: break-all; margin-top: 4px;">api: AQ.Ab8RN6I4UsYfswvuyPfNmknY192-71oWqGvNDPtg2A-VTDlc7g</div>
-                    <div style="font-size: 12px; color: var(--text-main); margin-top: 2px;">modello: Gemini-3.5-flash-lite</div>
+                    <div style="font-size: 13px; color: var(--text-main); margin-top: 6px; width: 100%;" onclick="event.stopPropagation();">
+                        <label style="display:block; color:var(--accent); font-weight:bold; margin-bottom:2px;">api:</label>
+                        <input type="text" id="inlineApiKeyInput" value="${currentApiKey}" style="width: 100%; padding: 8px; background: #121212; border: 1px solid var(--primary); color: #fff; border-radius: 6px; font-size: 13px;" placeholder="Incolla qui la chiave AQ...">
+                    </div>
+                    <div style="font-size: 13px; color: var(--text-main); margin-top: 10px; width: 100%;" onclick="event.stopPropagation();">
+                        <label style="display:block; color:var(--accent); font-weight:bold; margin-bottom:2px;">modello:</label>
+                        <input type="text" id="inlineModelInput" value="${currentModel}" style="width: 100%; padding: 8px; background: #121212; border: 1px solid var(--primary); color: #fff; border-radius: 6px; font-size: 13px;">
+                    </div>
+                    <button class="btn-action" onclick="event.stopPropagation(); saveInlineApiSettings();" style="margin-top: 12px; padding: 10px; font-size: 14px; background-color: var(--primary);">💾 Salva Nuova Chiave & Modello</button>
                 `;
                 document.getElementById('secureApiBox').style.borderColor = 'var(--accent)';
                 document.getElementById('secureApiBoxTitle').innerText = "🔓 Chiave API / Modello Gemini (Sbloccato)";
+                // Disattiva il click generale per evitare il loop della password mentre si scrive negli input
+                document.getElementById('secureApiBox').onclick = null;
                 speak("Riquadro API sbloccato.");
             } else if (pwd !== null) {
                 alert("Password errata!");
                 speak("Password errata.");
             }
+        }
+
+        function saveInlineApiSettings() {
+            const newKey = document.getElementById('inlineApiKeyInput').value.trim();
+            const newModel = document.getElementById('inlineModelInput').value.trim();
+            
+            if (newKey !== "") {
+                localStorage.setItem('gemini_api_key', newKey);
+            }
+            if (newModel !== "") {
+                localStorage.setItem('gemini_model', newModel);
+            }
+            
+            alert("Impostazioni salvate con successo!");
+            speak("Chiave e modello aggiornati.");
+            
+            // Ripristina lo stato protetto nel menu
+            const apiBox = document.getElementById('secureApiBox');
+            apiBox.onclick = unlockApiBox;
+            apiBox.style.borderColor = 'var(--primary)';
+            document.getElementById('secureApiBoxTitle').innerText = "🔒 Chiave API / Modello Gemini (Protetta)";
+            document.getElementById('secureApiBoxContent').innerText = "Tocca qui e inserisci la password per sbloccare.";
         }
 
         function openApiKeyPrompt() {
@@ -1785,6 +1819,7 @@
             const apiContent = document.getElementById('secureApiBoxContent');
             if (apiBox && apiTitle && apiContent) {
                 apiBox.style.borderColor = 'var(--primary)';
+                apiBox.onclick = unlockApiBox;
                 apiTitle.innerText = "🔒 Chiave API / Modello Gemini (Protetta)";
                 apiContent.innerText = "Tocca qui e inserisci la password per sbloccare.";
             }
