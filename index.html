@@ -41,13 +41,19 @@
             background-color: #ffffff;
         }
 
-        #map {
+        #map-container {
             width: 100vw;
             height: 100vh;
             position: fixed;
             top: 0;
             left: 0;
             z-index: 1;
+            transition: transform 0.2s ease-out;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
         }
 
         #turn-instruction-panel {
@@ -424,6 +430,7 @@
             font-weight: bold;
             border: 1px solid var(--primary);
             white-space: nowrap;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -487,13 +494,27 @@
     <!-- Modale Configurazione Iniziale Cartella -->
     <div id="setupWizardModal" class="modal-overlay center-mode">
         <div class="center-box">
-            <h2 class="sheet-title" style="margin-bottom: 15px;">Cartella Percorsi</h2>
-            <p style="color: var(--text-muted); margin-bottom: 15px; font-size: 14px;">Nomina o personalizza la cartella principale in cui archiviare i tuoi percorsi futuri.</p>
+            <h2 class="sheet-title" style="margin-bottom: 15px;">Cartella Percorsi Principale</h2>
+            <p style="color: var(--text-muted); margin-bottom: 15px; font-size: 14px;">Crea la cartella principale (es. Trekking) per l'archiviazione dei percorsi. Questa scelta verrà richiesta SOLO questa prima volta.</p>
             <div class="form-group">
                 <label class="form-label">Nome Cartella Principale:</label>
                 <input type="text" id="setupFolderName" class="form-input" value="Trekking">
             </div>
-            <button class="btn-action" onclick="completeSetupWizard()">Conferma e Inizia</button>
+            <button class="btn-action" onclick="completeSetupWizard()">Conferma Cartella Principale</button>
+        </div>
+    </div>
+
+    <!-- Modale Avvio Nuovo Percorso -->
+    <div id="startTrackModal" class="modal-overlay center-mode">
+        <div class="center-box">
+            <h2 class="sheet-title" style="margin-bottom: 15px;">▶️ Avvio Nuovo Percorso</h2>
+            <p style="color: var(--text-muted); margin-bottom: 15px; font-size: 14px;">Inserisci il nome del percorso prima di iniziare la registrazione.</p>
+            <div class="form-group">
+                <label class="form-label">Nome Percorso:</label>
+                <input type="text" id="newTrackNameInput" class="form-input" placeholder="Es. Passeggiata in centro">
+            </div>
+            <button class="btn-action" onclick="confirmStartTracking()">Inizia Registrazione</button>
+            <button class="btn-action" onclick="closeModal('startTrackModal')" style="background-color: #444; margin-top: 8px;">Annulla</button>
         </div>
     </div>
 
@@ -501,13 +522,26 @@
     <div id="voiceRecordModal" class="modal-overlay center-mode">
         <div class="center-box">
             <h2 class="sheet-title" style="margin-bottom: 15px;">🎙️ Registra Nota Vocale</h2>
-            <p style="color: var(--text-muted); margin-bottom: 15px; font-size: 14px;">Parla per registrare una nota vocale associata a questo punto del percorso.</p>
+            <p style="color: var(--text-muted); margin-bottom: 15px; font-size: 14px;">Parla o scrivi per salvare una nota audio in questo punto.</p>
             <div class="form-group">
                 <textarea id="voiceNoteText" class="form-input" rows="3" placeholder="Trascrizione o descrizione audio..."></textarea>
             </div>
             <button class="btn-action" id="recordAudioBtn" onclick="toggleAudioRecordingWaypoint()" style="background-color: var(--accent);">🎤 Avvia Registrazione Vocale</button>
             <button class="btn-action" onclick="saveAudioWaypoint()" style="margin-top: 8px;">Salva Bandierina Vocale</button>
             <button class="btn-action" onclick="closeModal('voiceRecordModal')" style="background-color: #444; margin-top: 8px;">Chiudi</button>
+        </div>
+    </div>
+
+    <!-- Modale Riproduttore Audio Vocale -->
+    <div id="audioPlayerModal" class="modal-overlay center-mode">
+        <div class="center-box">
+            <h2 class="sheet-title" style="margin-bottom: 15px;">🎙️ Nota Vocale Salvata</h2>
+            <p id="audioPlayerIndexDisplay" style="color: var(--accent); font-weight: bold; margin-bottom: 10px;"></p>
+            <div class="form-group">
+                <div id="audioPlayerText" class="form-input" style="background: #1e293b; min-height: 80px; white-space: pre-wrap;"></div>
+            </div>
+            <button class="btn-action" onclick="playAudioNoteSpeech()" style="background-color: var(--accent);">🔊 Ascolta Nota Audio</button>
+            <button class="btn-action" onclick="closeModal('audioPlayerModal')" style="background-color: #444; margin-top: 8px;">Chiudi</button>
         </div>
     </div>
 
@@ -593,8 +627,10 @@
         <span>🆘</span> S.O.S.
     </button>
 
-    <!-- Contenitore della Mappa -->
-    <div id="map"></div>
+    <!-- Contenitore Ruotabile della Mappa -->
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
 
     <!-- Barra di Tracciamento Rapido in basso -->
     <div class="tracking-bar">
@@ -662,8 +698,8 @@
                         <span class="icon">⛅</span> Meteo 24 Ore (GPS Reale)
                     </div>
                     <div class="menu-item" onclick="toggleVoice()">
-                        <span class="icon" id="menuVoiceIcon">🔊</span>
-                        <span id="menuVoiceText">Voce: Attiva</span>
+                        <span class="icon" id="menuVoiceIcon">🔇</span>
+                        <span id="menuVoiceText">Voce: Disattivata</span>
                     </div>
                     <div class="menu-item" onclick="openSosEditModal()">
                         <span class="icon">🆘</span> Modifica Contatti S.O.S.
@@ -719,11 +755,11 @@
         </div>
     </div>
 
-    <!-- Modale Salvataggio GPX -->
+    <!-- Modale Salvataggio Percorso -->
     <div id="stopSaveModal" class="modal-overlay">
         <div class="sheet-container">
             <div class="sheet-header">
-                <div class="sheet-title">Salva Percorso GPX</div>
+                <div class="sheet-title">Salva Percorso</div>
                 <button class="close-btn" onclick="closeModal('stopSaveModal')">&times;</button>
             </div>
             <div class="sheet-body">
@@ -733,9 +769,10 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Cartella di Salvataggio:</label>
-                    <input type="text" id="saveFolderNameDisplay" class="form-input">
+                    <input type="text" id="saveFolderNameDisplay" class="form-input" placeholder="Scegli o inserisci una cartella">
+                    <small style="color: var(--text-muted); font-size: 12px; margin-top: 4px; display: block;">Puoi lasciare la cartella predefinita o scriverne una nuova al momento.</small>
                 </div>
-                <button class="btn-action" onclick="confirmSaveTrack()">Salva Definitivamente</button>
+                <button class="btn-action" onclick="confirmSaveTrack()">💾 Salva Definitivamente</button>
             </div>
         </div>
     </div>
@@ -934,7 +971,7 @@
         let map, userMarker, accuracyCircle;
         let isTracking = false;
         let isPaused = false;
-        let voiceActive = true;
+        let voiceActive = false; // Voce disattivata di default all'avvio
         let pathCoordinates = [];
         let waypointsList = [];
         let savedTracks = JSON.parse(localStorage.getItem('sentierovivo_tracks') || '[]');
@@ -944,6 +981,7 @@
         let waypointInterval = null;
         let activeTripStart = null; 
         let currentTrackColor = '#00bfff';
+        let currentTrackName = '';
 
         let activePoiDestination = null;
         let activePoiPolyline = null;
@@ -952,6 +990,10 @@
         let audioRecognitionInstance = null;
         let capturedPhotoDataUrl = null;
         let capturedVideoDataUrl = null;
+        let selectedAudioNoteForSpeech = '';
+
+        // Bussola e orientamento mappa in senso di marcia
+        let deviceHeading = 0;
 
         function checkLicenseAndSetup() {
             const now = new Date().getTime();
@@ -1035,6 +1077,7 @@
         }
 
         function checkFirstRunWizard() {
+            // Richiesto SOLO ed esclusivamente al primo avvio in assoluto
             if (!localStorage.getItem('sentierovivo_setup_done')) {
                 document.getElementById('setupWizardModal').classList.add('active');
             } else {
@@ -1072,24 +1115,50 @@
 
         function initMap() {
             if (map) return;
-            map = L.map('map', { zoomControl: false }).setView([43.5485, 10.3106], 15);
+            map = L.map('map', { zoomControl: false }).setView([43.5485, 10.3106], 16);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
             L.control.zoom({ position: 'bottomright' }).addTo(map);
 
             restoreActiveSessionState();
+            initHeadingSensors();
 
             setTimeout(() => { if (map) map.invalidateSize(); }, 150);
 
             if (navigator.geolocation) {
                 navigator.geolocation.watchPosition(updatePosition, handleGeoError, { 
-                    enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 
+                    enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 
                 });
+            }
+        }
+
+        // Sensori di orientamento dispositivo per ruotare la mappa verso il senso di marcia
+        function initHeadingSensors() {
+            if (window.DeviceOrientationEvent) {
+                window.addEventListener('deviceorientation', function(e) {
+                    let heading = e.alpha;
+                    if (e.webkitCompassHeading) {
+                        heading = e.webkitCompassHeading; // Per dispositivi iOS/Safari
+                    }
+                    if (heading !== null && heading !== undefined) {
+                        deviceHeading = heading;
+                        orientMapToHeading();
+                    }
+                }, true);
+            }
+        }
+
+        function orientMapToHeading() {
+            if (isTracking && !isPaused) {
+                const container = document.getElementById('map-container');
+                if (container) {
+                    container.style.transform = `rotate(${-deviceHeading}deg)`;
+                }
             }
         }
 
         function saveActiveSessionState() {
             const sessionData = {
-                isTracking, isPaused, pathCoordinates, waypointsList, activeTripStart, currentTrackColor
+                isTracking, isPaused, pathCoordinates, waypointsList, activeTripStart, currentTrackColor, currentTrackName
             };
             localStorage.setItem('sentierovivo_active_session', JSON.stringify(sessionData));
         }
@@ -1106,33 +1175,39 @@
                         waypointsList = data.waypointsList || [];
                         activeTripStart = data.activeTripStart || null;
                         currentTrackColor = data.currentTrackColor || '#00bfff';
+                        currentTrackName = data.currentTrackName || '';
 
                         redrawPath();
-
-                        waypointsList.forEach(wp => {
-                            let iconPrefix = '📍 ';
-                            if (wp.type === 'manual') iconPrefix = '🏁 ';
-                            else if (wp.type === 'audio') iconPrefix = '🎙️ ';
-                            else if (wp.type === 'photo') iconPrefix = '📸 ';
-                            else if (wp.type === 'video') iconPrefix = '🎥 ';
-
-                            let marker = L.marker(wp.latlng, {
-                                icon: L.divIcon({ className: 'custom-badge', html: iconPrefix + wp.index })
-                            }).addTo(map);
-
-                            if (wp.type === 'photo' && wp.photo) {
-                                marker.on('click', () => openFullScreenPhoto(wp.photo, `Foto #${wp.index} - ${wp.caption || ''}`));
-                            } else if (wp.type === 'video' && wp.video) {
-                                marker.on('click', () => openFullScreenVideo(wp.video, `Video #${wp.index} - ${wp.caption || ''}`));
-                            }
-                        });
+                        renderAllWaypointsOnMap();
 
                         document.getElementById('mainTrackIcon').innerText = isPaused ? '▶️' : '⏹️';
                         document.getElementById('mainTrackText').innerText = isPaused ? 'Riprendi' : 'Ferma';
-                        speak("Tracciamento precedente ripristinato.");
                     }
                 } catch(e) { console.error("Errore ripristino:", e); }
             }
+        }
+
+        function renderAllWaypointsOnMap() {
+            waypointsList.forEach(wp => {
+                let iconPrefix = '📍 ';
+                if (wp.type === 'manual') iconPrefix = '🏁 ';
+                else if (wp.type === 'audio') iconPrefix = '🎙️ ';
+                else if (wp.type === 'photo') iconPrefix = '📸 ';
+                else if (wp.type === 'video') iconPrefix = '🎥 ';
+
+                let marker = L.marker(wp.latlng, {
+                    icon: L.divIcon({ className: 'custom-badge', html: iconPrefix + wp.index })
+                }).addTo(map);
+
+                // Eventi di apertura diretta per ogni tipologia di bandierina
+                if (wp.type === 'photo' && wp.photo) {
+                    marker.on('click', () => openFullScreenPhoto(wp.photo, `Foto #${wp.index} - ${wp.caption || ''}`));
+                } else if (wp.type === 'video' && wp.video) {
+                    marker.on('click', () => openFullScreenVideo(wp.video, `Video #${wp.index} - ${wp.caption || ''}`));
+                } else if (wp.type === 'audio') {
+                    marker.on('click', () => openAudioPlayerModal(wp.index, wp.note));
+                }
+            });
         }
 
         function updatePosition(position) {
@@ -1141,6 +1216,11 @@
             gpsActive = true;
             document.getElementById('statusDot').classList.add('active');
             document.getElementById('statusText').innerText = 'GPS Attivo';
+
+            if (position.coords.heading !== null && position.coords.heading !== undefined && !isNaN(position.coords.heading)) {
+                deviceHeading = position.coords.heading;
+                orientMapToHeading();
+            }
 
             const latlng = [currentLat, currentLng];
             const userIcon = L.divIcon({
@@ -1182,28 +1262,38 @@
             }
         }
 
+        // Tasto Avvia: chiede subito il nome del percorso prima di registrare
         function toggleTracking() {
-            isTracking = !isTracking;
-            isPaused = false;
-            if (isTracking) {
-                pathCoordinates = [];
-                waypointsList = [];
-                currentTrackColor = '#00bfff';
-                activeTripStart = [currentLat, currentLng];
-                addAutoWaypoint();
-
-                if (waypointInterval) clearInterval(waypointInterval);
-                waypointInterval = setInterval(() => {
-                    if (isTracking && !isPaused) addAutoWaypoint();
-                }, 3 * 60 * 1000);
-
-                document.getElementById('mainTrackIcon').innerText = '⏹️';
-                document.getElementById('mainTrackText').innerText = 'Ferma';
-                saveActiveSessionState();
-                speak("Registrazione percorso avviata.");
+            if (!isTracking) {
+                document.getElementById('newTrackNameInput').value = "";
+                document.getElementById('startTrackModal').classList.add('active');
             } else {
                 stopTrackingSession();
             }
+        }
+
+        function confirmStartTracking() {
+            const trackName = document.getElementById('newTrackNameInput').value.trim() || 'Nuovo Percorso';
+            currentTrackName = trackName;
+            document.getElementById('startTrackModal').classList.remove('active');
+
+            isTracking = true;
+            isPaused = false;
+            pathCoordinates = [];
+            waypointsList = [];
+            currentTrackColor = '#00bfff';
+            activeTripStart = [currentLat, currentLng];
+            addAutoWaypoint();
+
+            if (waypointInterval) clearInterval(waypointInterval);
+            waypointInterval = setInterval(() => {
+                if (isTracking && !isPaused) addAutoWaypoint();
+            }, 3 * 60 * 1000);
+
+            document.getElementById('mainTrackIcon').innerText = '⏹️';
+            document.getElementById('mainTrackText').innerText = 'Ferma';
+            saveActiveSessionState();
+            speak("Registrazione percorso avviata.");
         }
 
         function addAutoWaypoint() {
@@ -1221,13 +1311,11 @@
             speak(isPaused ? "Registrazione in pausa." : "Registrazione ripresa.");
         }
 
-        // Funzione per evitare la sovrapposizione esatta delle bandierine vicine
         function getUniqueWaypointCoord() {
             let lat = currentLat;
             let lng = currentLng;
             if (waypointsList.length > 0) {
                 const lastWp = waypointsList[waypointsList.length - 1].latlng;
-                // Se la distanza dal punto precedente è quasi zero (stessa posizione o pausa), applica un micro offset
                 const dist = Math.abs(lastWp[0] - lat) + Math.abs(lastWp[1] - lng);
                 if (dist < 0.00005) {
                     lat += (Math.random() - 0.5) * 0.00015;
@@ -1237,7 +1325,6 @@
             return [lat, lng];
         }
 
-        // Correzione robusta del Waypoint Manuale per massima affidabilità
         function addManualWaypoint() {
             if (!isTracking) { 
                 alert("Avvia prima la registrazione del percorso."); 
@@ -1246,7 +1333,7 @@
             const latlng = getUniqueWaypointCoord();
             const wpIndex = waypointsList.length;
             
-            const marker = L.marker(latlng, {
+            L.marker(latlng, {
                 icon: L.divIcon({ className: 'custom-badge', html: '🏁 ' + wpIndex })
             }).addTo(map);
 
@@ -1305,11 +1392,31 @@
             const latlng = getUniqueWaypointCoord();
             const wpIndex = waypointsList.length;
 
-            L.marker(latlng, { icon: L.divIcon({ className: 'custom-badge', html: '🎙️ ' + wpIndex }) }).addTo(map);
+            const marker = L.marker(latlng, { icon: L.divIcon({ className: 'custom-badge', html: '🎙️ ' + wpIndex }) }).addTo(map);
+            marker.on('click', () => openAudioPlayerModal(wpIndex, noteText));
+
             waypointsList.push({ type: 'audio', index: wpIndex, latlng: latlng, note: noteText });
             saveActiveSessionState();
             closeModal('voiceRecordModal');
             speak("Bandierina vocale " + wpIndex + " salvata.");
+        }
+
+        function openAudioPlayerModal(index, noteText) {
+            selectedAudioNoteForSpeech = noteText || 'Nessuna trascrizione presente.';
+            document.getElementById('audioPlayerIndexDisplay').innerText = `Nota Audio Bandierina #${index}`;
+            document.getElementById('audioPlayerText').innerText = selectedAudioNoteForSpeech;
+            document.getElementById('audioPlayerModal').classList.add('active');
+        }
+
+        function playAudioNoteSpeech() {
+            if (selectedAudioNoteForSpeech) {
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                    const utterance = new SpeechSynthesisUtterance(selectedAudioNoteForSpeech);
+                    utterance.lang = 'it-IT';
+                    window.speechSynthesis.speak(utterance);
+                }
+            }
         }
 
         // Gestione Foto sul Percorso
@@ -1357,7 +1464,7 @@
             document.getElementById('photoViewerModal').classList.add('active');
         }
 
-        // Gestione Video sul Percorso (Inserita subito sotto il vocale nel menu)
+        // Gestione Video sul Percorso
         function openVideoModalFromMenu() {
             closeModal('menuModal');
             if (!isTracking) { alert("Avvia prima la registrazione del percorso."); return; }
@@ -1404,6 +1511,7 @@
         }
 
         function openStopSave() {
+            document.getElementById('saveTrackName').value = currentTrackName || 'Escursione';
             document.getElementById('saveFolderNameDisplay').value = localStorage.getItem('sentierovivo_default_folder') || 'Trekking';
             document.getElementById('stopSaveModal').classList.add('active');
         }
@@ -1413,28 +1521,43 @@
             openStopSave();
         }
 
+        // Riparato salvataggio effettivo con scelta flessibile della cartella
         function confirmSaveTrack() {
-            const trackName = document.getElementById('saveTrackName').value || 'Escursione';
+            const trackName = document.getElementById('saveTrackName').value.trim() || 'Escursione';
+            const folderName = document.getElementById('saveFolderNameDisplay').value.trim() || 'Trekking';
+
             const trackData = {
-                id: Date.now(), name: trackName,
-                folder: localStorage.getItem('sentierovivo_default_folder') || 'Trekking',
-                date: new Date().toLocaleDateString(),
-                coordinates: pathCoordinates, waypoints: waypointsList, color: currentTrackColor
+                id: Date.now(), 
+                name: trackName,
+                folder: folderName,
+                date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0,5),
+                coordinates: pathCoordinates, 
+                waypoints: waypointsList, 
+                color: currentTrackColor
             };
+
             savedTracks.push(trackData);
             localStorage.setItem('sentierovivo_tracks', JSON.stringify(savedTracks));
             localStorage.removeItem('sentierovivo_active_session');
 
             isTracking = false;
+            isPaused = false;
             activeTripStart = null; 
             pathCoordinates = [];
             waypointsList = [];
+            currentTrackName = '';
+
+            const container = document.getElementById('map-container');
+            if (container) container.style.transform = 'rotate(0deg)';
+
             if (window.activePolyline) { map.removeLayer(window.activePolyline); window.activePolyline = null; }
             if (waypointInterval) { clearInterval(waypointInterval); waypointInterval = null; }
+
             document.getElementById('mainTrackIcon').innerText = '▶️';
             document.getElementById('mainTrackText').innerText = 'Avvia';
             closeModal('stopSaveModal');
-            speak("Percorso salvato e dati azzerati.");
+            alert(`✅ Percorso "${trackName}" salvato con successo nella cartella "${folderName}"!`);
+            speak("Percorso salvato con successo.");
         }
 
         function copyAiResponseToClipboard() {
@@ -1698,7 +1821,13 @@
             if (savedTracks.length === 0) { container.innerHTML = "Nessun percorso salvato."; document.getElementById('foldersModal').classList.add('active'); return; }
             let html = '<div class="menu-list">';
             savedTracks.forEach(t => {
-                html += `<div class="menu-item" onclick="loadTrackScenario(${t.id})"><div style="flex:1;"><strong>📁 ${t.name}</strong><br><small style="color:var(--text-muted);">Cartella: ${t.folder} | ${t.date}</small></div><button class="btn-action danger" onclick="deleteTrack(event, ${t.id})" style="width:auto; padding:6px 12px; margin-top:0; font-size:13px;">Elimina</button></div>`;
+                html += `<div class="menu-item" onclick="loadTrackScenario(${t.id})">
+                    <div style="flex:1;">
+                        <strong>📁 ${t.name}</strong><br>
+                        <small style="color:var(--text-muted);">Cartella: ${t.folder || 'Trekking'} | ${t.date}</small>
+                    </div>
+                    <button class="btn-action danger" onclick="deleteTrack(event, ${t.id})" style="width:auto; padding:6px 12px; margin-top:0; font-size:13px;">Elimina</button>
+                </div>`;
             });
             html += '</div>';
             container.innerHTML = html;
@@ -1715,14 +1844,24 @@
             }
         }
 
+        // Caricamento percorso salvato con ripristino interattivo di tutte le bandierine
         function loadTrackScenario(id) {
             const track = savedTracks.find(t => t.id === id);
             if (!track) return;
             closeModal('foldersModal');
-            pathCoordinates = track.coordinates;
+            
+            pathCoordinates = track.coordinates || [];
+            waypointsList = track.waypoints || [];
             currentTrackColor = track.color || '#00bfff';
+            currentTrackName = track.name;
+            
             redrawPath();
-            if (pathCoordinates.length > 0) map.setView(pathCoordinates[0], 15);
+            renderAllWaypointsOnMap();
+
+            if (pathCoordinates.length > 0) {
+                map.setView(pathCoordinates[0], 16);
+                activeTripStart = pathCoordinates[0];
+            }
             speak("Percorso " + track.name + " caricato.");
         }
 
@@ -1757,3 +1896,4 @@
     </script>
 </body>
 </html>
+Gemini è un'AI e può fare errori, anche in merito a persone. La
