@@ -443,6 +443,30 @@
             white-space: nowrap;
             cursor: pointer;
         }
+
+        .folder-choice-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .folder-choice-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 10px;
+            border: 2px solid var(--border);
+            background-color: #2a2a2a;
+            color: var(--text-main);
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .folder-choice-btn.active {
+            border-color: var(--accent);
+            background-color: #3b2b12;
+            color: #ffd180;
+        }
     </style>
 </head>
 <body>
@@ -783,9 +807,17 @@
                     <input type="text" id="saveTrackName" class="form-input" placeholder="Es. Escursione Monte Matanna">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Cartella di Salvataggio:</label>
-                    <input type="text" id="saveFolderNameDisplay" class="form-input" placeholder="Scegli o inserisci una cartella">
-                    <small style="color: var(--text-muted); font-size: 12px; margin-top: 4px; display: block;">Puoi lasciare la cartella predefinita o scriverne una nuova al momento.</small>
+                    <label class="form-label">Dove vuoi salvare il percorso?</label>
+                    <div class="folder-choice-row">
+                        <button type="button" id="btnExistingFolderMode" class="folder-choice-btn active" onclick="setFolderSaveMode('existing')">📁 Cartella Esistente</button>
+                        <button type="button" id="btnNewFolderMode" class="folder-choice-btn" onclick="setFolderSaveMode('new')">➕ Crea Nuova Cartella</button>
+                    </div>
+                    <div id="existingFolderBox">
+                        <select id="saveExistingFolderSelect" class="form-input"></select>
+                    </div>
+                    <div id="newFolderBox" style="display: none; margin-top: 8px;">
+                        <input type="text" id="saveNewFolderInput" class="form-input" placeholder="Scrivi il nome della nuova cartella...">
+                    </div>
                 </div>
                 <button class="btn-action" onclick="confirmSaveTrack()">💾 Salva Definitivamente</button>
             </div>
@@ -853,6 +885,7 @@
     <script>
         let isTrialExpiredOrTampered = false;
         let openedLicenseFromMenu = false;
+        let folderSaveMode = 'existing';
 
         function unlockApiBox() {
             const pwd = prompt("Inserisci la password per sbloccare il riquadro API:");
@@ -1219,6 +1252,14 @@
             }
             activeWaypointMarkers.forEach(m => map.removeLayer(m));
             activeWaypointMarkers = [];
+
+            if (map) {
+                map.eachLayer(layer => {
+                    if (layer instanceof L.Polyline && !(layer instanceof L.Polygon) && layer !== accuracyCircle && layer !== activePoiPolyline) {
+                        map.removeLayer(layer);
+                    }
+                });
+            }
         }
 
         function renderAllWaypointsOnMap() {
@@ -1549,9 +1590,44 @@
             document.getElementById('videoViewerModal').classList.add('active');
         }
 
+        function getKnownFolders() {
+            const set = new Set();
+            const defFolder = localStorage.getItem('sentierovivo_default_folder') || 'Trekking';
+            set.add(defFolder);
+            savedTracks.forEach(t => {
+                if (t.folder && t.folder.trim()) set.add(t.folder.trim());
+            });
+            return Array.from(set);
+        }
+
+        function setFolderSaveMode(mode) {
+            folderSaveMode = mode;
+            const btnExisting = document.getElementById('btnExistingFolderMode');
+            const btnNew = document.getElementById('btnNewFolderMode');
+            const existingBox = document.getElementById('existingFolderBox');
+            const newBox = document.getElementById('newFolderBox');
+
+            if (mode === 'new') {
+                btnNew.classList.add('active');
+                btnExisting.classList.remove('active');
+                existingBox.style.display = 'none';
+                newBox.style.display = 'block';
+                document.getElementById('saveNewFolderInput').focus();
+            } else {
+                btnExisting.classList.add('active');
+                btnNew.classList.remove('active');
+                existingBox.style.display = 'block';
+                newBox.style.display = 'none';
+            }
+        }
+
         function openStopSave() {
             document.getElementById('saveTrackName').value = currentTrackName || 'Escursione';
-            document.getElementById('saveFolderNameDisplay').value = localStorage.getItem('sentierovivo_default_folder') || 'Trekking';
+            const folders = getKnownFolders();
+            const selectEl = document.getElementById('saveExistingFolderSelect');
+            selectEl.innerHTML = folders.map(f => `<option value="${f}">${f}</option>`).join('');
+            document.getElementById('saveNewFolderInput').value = '';
+            setFolderSaveMode('existing');
             document.getElementById('stopSaveModal').classList.add('active');
         }
 
@@ -1562,7 +1638,19 @@
 
         function confirmSaveTrack() {
             const trackName = document.getElementById('saveTrackName').value.trim() || 'Escursione';
-            const folderName = document.getElementById('saveFolderNameDisplay').value.trim() || 'Trekking';
+            let folderName = localStorage.getItem('sentierovivo_default_folder') || 'Trekking';
+
+            if (folderSaveMode === 'new') {
+                const typedNewFolder = document.getElementById('saveNewFolderInput').value.trim();
+                if (!typedNewFolder) {
+                    alert("Inserisci il nome della nuova cartella oppure seleziona una cartella esistente.");
+                    return;
+                }
+                folderName = typedNewFolder;
+                localStorage.setItem('sentierovivo_default_folder', folderName);
+            } else {
+                folderName = document.getElementById('saveExistingFolderSelect').value || folderName;
+            }
 
             const trackData = {
                 id: Date.now(), 
@@ -1590,7 +1678,7 @@
             document.getElementById('mainTrackIcon').innerText = '▶️';
             document.getElementById('mainTrackText').innerText = 'Avvia';
             closeModal('stopSaveModal');
-            alert(`✅ Percorso "${trackName}" salvato con successo nella cartella "${folderName}"!`);
+            alert(`✅ Percorso "${trackName}" salvato nella cartella "${folderName}"!`);
             speak("Percorso salvato con successo.");
         }
 
