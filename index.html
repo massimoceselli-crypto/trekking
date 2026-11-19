@@ -36,19 +36,18 @@
             margin: 0;
             padding: 0;
             width: 100vw;
-            height: 100vh;
+            height: 100dvh;
             overflow: hidden;
-            background-color: #ffffff;
+            background-color: #121212;
         }
 
         #map-container {
             width: 100vw;
-            height: 100vh;
+            height: 100dvh;
             position: fixed;
             top: 0;
             left: 0;
             z-index: 1;
-            transition: transform 0.2s ease-out;
         }
 
         #map {
@@ -193,31 +192,43 @@
 
         .user-marker-container {
             position: relative;
-            width: 30px;
-            height: 30px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .user-halo {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 30px;
-            height: 30px;
-            background-color: rgba(46, 125, 50, 0.4);
+            width: 34px;
+            height: 34px;
+            background-color: rgba(46, 125, 50, 0.35);
             border-radius: 50%;
             animation: userPulseHalo 2s infinite ease-out;
         }
 
-        .user-dot {
+        .user-pointer {
+            position: relative;
+            width: 0;
+            height: 0;
+            border-left: 9px solid transparent;
+            border-right: 9px solid transparent;
+            border-bottom: 20px solid #2e7d32;
+            filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.75));
+            transform-origin: center center;
+            transition: transform 0.15s linear;
+        }
+
+        .user-pointer::after {
+            content: '';
             position: absolute;
-            top: 10px;
-            left: 10px;
-            width: 10px;
-            height: 10px;
-            background-color: #2e7d32;
-            border: 2px solid #ffffff;
+            top: 8px;
+            left: -4px;
+            width: 8px;
+            height: 8px;
+            background-color: #ffffff;
             border-radius: 50%;
-            box-shadow: 0 0 4px rgba(0,0,0,0.5);
         }
 
         .modal-overlay {
@@ -449,6 +460,7 @@
                 <input type="text" id="licenseInputKey" class="form-input" placeholder="Inserisci codice chiave...">
             </div>
             <button class="btn-action" onclick="verifyLicenseKey()">Attiva Licenza</button>
+            <button id="licenseCloseBtn" class="btn-action" onclick="closeLicenseModal()" style="background-color: #444; margin-top: 8px;">Chiudi</button>
         </div>
     </div>
 
@@ -627,7 +639,7 @@
         <span>🆘</span> S.O.S.
     </button>
 
-    <!-- Contenitore Ruotabile della Mappa -->
+    <!-- Contenitore Stabile della Mappa -->
     <div id="map-container">
         <div id="map"></div>
     </div>
@@ -703,6 +715,9 @@
                     </div>
                     <div class="menu-item" onclick="openSosEditModal()">
                         <span class="icon">🆘</span> Modifica Contatti S.O.S.
+                    </div>
+                    <div class="menu-item" onclick="openLicenseModalFromMenu()">
+                        <span class="icon">🔑</span> Inserisci Codice Licenza
                     </div>
                     <div class="menu-item" onclick="openApiKeyPrompt()">
                         <span class="icon">⚙️</span> Imposta Chiave API Gemini
@@ -836,6 +851,9 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     
     <script>
+        let isTrialExpiredOrTampered = false;
+        let openedLicenseFromMenu = false;
+
         function unlockApiBox() {
             const pwd = prompt("Inserisci la password per sbloccare il riquadro API:");
             if (pwd === "Massimo2026") {
@@ -969,9 +987,10 @@
         ];
 
         let map, userMarker, accuracyCircle;
+        let activeWaypointMarkers = [];
         let isTracking = false;
         let isPaused = false;
-        let voiceActive = false; // Voce disattivata di default all'avvio
+        let voiceActive = false;
         let pathCoordinates = [];
         let waypointsList = [];
         let savedTracks = JSON.parse(localStorage.getItem('sentierovivo_tracks') || '[]');
@@ -982,6 +1001,7 @@
         let activeTripStart = null; 
         let currentTrackColor = '#00bfff';
         let currentTrackName = '';
+        let hasCenteredOnce = false;
 
         let activePoiDestination = null;
         let activePoiPolyline = null;
@@ -992,7 +1012,6 @@
         let capturedVideoDataUrl = null;
         let selectedAudioNoteForSpeech = '';
 
-        // Bussola e orientamento mappa in senso di marcia
         let deviceHeading = 0;
 
         function checkLicenseAndSetup() {
@@ -1000,6 +1019,9 @@
             let installDate = localStorage.getItem('sentierovivo_install');
             let maxRecordedTime = localStorage.getItem('sentierovivo_maxtime');
             let isActivated = localStorage.getItem('sentierovivo_activated') === 'true';
+
+            isTrialExpiredOrTampered = false;
+            openedLicenseFromMenu = false;
 
             if (isActivated) {
                 document.getElementById('licenseModal').classList.remove('active');
@@ -1012,7 +1034,9 @@
                 localStorage.setItem('sentierovivo_maxtime', now);
             } else {
                 if (now < maxRecordedTime) {
+                    isTrialExpiredOrTampered = true;
                     document.getElementById('licenseMsg').innerText = "Rilevata manomissione dell'orologio di sistema! Inserisci il codice di sblocco.";
+                    document.getElementById('licenseCloseBtn').style.display = 'none';
                     document.getElementById('licenseModal').classList.add('active');
                     return;
                 } else {
@@ -1024,23 +1048,53 @@
             const elapsed = now - parseInt(installDate);
 
             if (elapsed > trialDuration) {
+                isTrialExpiredOrTampered = true;
                 document.getElementById('licenseMsg').innerText = "Periodo di prova di 30 giorni scaduto. Inserisci il codice di sblocco.";
+                document.getElementById('licenseCloseBtn').style.display = 'none';
                 document.getElementById('licenseModal').classList.add('active');
             } else {
                 const daysLeft = Math.ceil((trialDuration - elapsed) / (1000 * 60 * 60 * 24));
-                document.getElementById('licenseMsg').innerText = `Periodo di prova attivo (${daysLeft} giorni rimanenti). Inserisci il codice di sblocco.`;
+                document.getElementById('licenseMsg').innerText = `Periodo di prova attivo (${daysLeft} giorni rimanenti). Puoi inserire un codice di sblocco anche ora.`;
+                document.getElementById('licenseCloseBtn').style.display = 'block';
                 document.getElementById('licenseModal').classList.remove('active');
                 checkSosWizard();
             }
+        }
+
+        function openLicenseModalFromMenu() {
+            closeModal('menuModal');
+            openedLicenseFromMenu = true;
+            const now = new Date().getTime();
+            const installDate = parseInt(localStorage.getItem('sentierovivo_install') || now);
+            const trialDuration = 30 * 24 * 60 * 60 * 1000;
+            const daysLeft = Math.max(0, Math.ceil((trialDuration - (now - installDate)) / (1000 * 60 * 60 * 24)));
+            const isActivated = localStorage.getItem('sentierovivo_activated') === 'true';
+
+            document.getElementById('licenseInputKey').value = '';
+            document.getElementById('licenseCloseBtn').style.display = isTrialExpiredOrTampered ? 'none' : 'block';
+            document.getElementById('licenseMsg').innerText = isActivated
+                ? "Licenza già attivata su questo dispositivo."
+                : `Periodo di prova attivo (${daysLeft} giorni rimanenti). Inserisci il codice per attivare subito.`;
+            document.getElementById('licenseModal').classList.add('active');
+        }
+
+        function closeLicenseModal() {
+            document.getElementById('licenseModal').classList.remove('active');
+            openedLicenseFromMenu = false;
         }
 
         function verifyLicenseKey() {
             const key = document.getElementById('licenseInputKey').value.trim();
             if (key === "MassimoMaster2026" || key === "SentieroVIP" || authorizedClientKeys.includes(key)) {
                 localStorage.setItem('sentierovivo_activated', 'true');
+                isTrialExpiredOrTampered = false;
                 document.getElementById('licenseModal').classList.remove('active');
                 alert("Licenza attivata con successo!");
-                checkSosWizard();
+                if (!openedLicenseFromMenu) {
+                    checkSosWizard();
+                } else {
+                    openedLicenseFromMenu = false;
+                }
             } else {
                 alert("Codice chiave non valido. Riprova.");
             }
@@ -1077,7 +1131,6 @@
         }
 
         function checkFirstRunWizard() {
-            // Richiesto SOLO ed esclusivamente al primo avvio in assoluto
             if (!localStorage.getItem('sentierovivo_setup_done')) {
                 document.getElementById('setupWizardModal').classList.add('active');
             } else {
@@ -1114,15 +1167,19 @@
         }
 
         function initMap() {
-            if (map) return;
-            map = L.map('map', { zoomControl: false }).setView([43.5485, 10.3106], 16);
+            if (map) {
+                map.invalidateSize();
+                return;
+            }
+            map = L.map('map', { zoomControl: false }).setView([currentLat, currentLng], 16);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
             L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-            restoreActiveSessionState();
             initHeadingSensors();
 
-            setTimeout(() => { if (map) map.invalidateSize(); }, 150);
+            setTimeout(() => {
+                if (map) map.invalidateSize();
+            }, 200);
 
             if (navigator.geolocation) {
                 navigator.geolocation.watchPosition(updatePosition, handleGeoError, { 
@@ -1131,63 +1188,43 @@
             }
         }
 
-        // Sensori di orientamento dispositivo per ruotare la mappa verso il senso di marcia
         function initHeadingSensors() {
             if (window.DeviceOrientationEvent) {
                 window.addEventListener('deviceorientation', function(e) {
                     let heading = e.alpha;
-                    if (e.webkitCompassHeading) {
-                        heading = e.webkitCompassHeading; // Per dispositivi iOS/Safari
+                    if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null) {
+                        heading = e.webkitCompassHeading;
+                    } else if (heading !== null && heading !== undefined) {
+                        heading = (360 - heading) % 360;
                     }
-                    if (heading !== null && heading !== undefined) {
+                    if (heading !== null && heading !== undefined && !isNaN(heading)) {
                         deviceHeading = heading;
-                        orientMapToHeading();
+                        updatePointerRotation();
                     }
                 }, true);
             }
         }
 
-        function orientMapToHeading() {
-            if (isTracking && !isPaused) {
-                const container = document.getElementById('map-container');
-                if (container) {
-                    container.style.transform = `rotate(${-deviceHeading}deg)`;
-                }
+        function updatePointerRotation() {
+            const pointerEl = document.getElementById('userDirectionPointer');
+            if (pointerEl) {
+                pointerEl.style.transform = `rotate(${deviceHeading}deg)`;
             }
         }
 
-        function saveActiveSessionState() {
-            const sessionData = {
-                isTracking, isPaused, pathCoordinates, waypointsList, activeTripStart, currentTrackColor, currentTrackName
-            };
-            localStorage.setItem('sentierovivo_active_session', JSON.stringify(sessionData));
-        }
-
-        function restoreActiveSessionState() {
-            const saved = localStorage.getItem('sentierovivo_active_session');
-            if (saved) {
-                try {
-                    const data = JSON.parse(saved);
-                    if (data.isTracking && data.pathCoordinates && data.pathCoordinates.length > 0) {
-                        isTracking = data.isTracking;
-                        isPaused = data.isPaused || false;
-                        pathCoordinates = data.pathCoordinates;
-                        waypointsList = data.waypointsList || [];
-                        activeTripStart = data.activeTripStart || null;
-                        currentTrackColor = data.currentTrackColor || '#00bfff';
-                        currentTrackName = data.currentTrackName || '';
-
-                        redrawPath();
-                        renderAllWaypointsOnMap();
-
-                        document.getElementById('mainTrackIcon').innerText = isPaused ? '▶️' : '⏹️';
-                        document.getElementById('mainTrackText').innerText = isPaused ? 'Riprendi' : 'Ferma';
-                    }
-                } catch(e) { console.error("Errore ripristino:", e); }
+        function clearMapOverlays() {
+            if (window.activePolyline) {
+                map.removeLayer(window.activePolyline);
+                window.activePolyline = null;
             }
+            activeWaypointMarkers.forEach(m => map.removeLayer(m));
+            activeWaypointMarkers = [];
         }
 
         function renderAllWaypointsOnMap() {
+            activeWaypointMarkers.forEach(m => map.removeLayer(m));
+            activeWaypointMarkers = [];
+
             waypointsList.forEach(wp => {
                 let iconPrefix = '📍 ';
                 if (wp.type === 'manual') iconPrefix = '🏁 ';
@@ -1199,7 +1236,6 @@
                     icon: L.divIcon({ className: 'custom-badge', html: iconPrefix + wp.index })
                 }).addTo(map);
 
-                // Eventi di apertura diretta per ogni tipologia di bandierina
                 if (wp.type === 'photo' && wp.photo) {
                     marker.on('click', () => openFullScreenPhoto(wp.photo, `Foto #${wp.index} - ${wp.caption || ''}`));
                 } else if (wp.type === 'video' && wp.video) {
@@ -1207,6 +1243,8 @@
                 } else if (wp.type === 'audio') {
                     marker.on('click', () => openAudioPlayerModal(wp.index, wp.note));
                 }
+
+                activeWaypointMarkers.push(marker);
             });
         }
 
@@ -1219,34 +1257,38 @@
 
             if (position.coords.heading !== null && position.coords.heading !== undefined && !isNaN(position.coords.heading)) {
                 deviceHeading = position.coords.heading;
-                orientMapToHeading();
             }
 
             const latlng = [currentLat, currentLng];
             const userIcon = L.divIcon({
                 className: '',
-                html: '<div class="user-marker-container"><div class="user-halo"></div><div class="user-dot"></div></div>',
-                iconSize: [30, 30], iconAnchor: [15, 15]
+                html: `<div class="user-marker-container"><div class="user-halo"></div><div id="userDirectionPointer" class="user-pointer" style="transform: rotate(${deviceHeading}deg);"></div></div>`,
+                iconSize: [36, 36],
+                iconAnchor: [18, 18]
             });
 
             if (!userMarker) {
                 userMarker = L.marker(latlng, { icon: userIcon }).addTo(map);
                 accuracyCircle = L.circle(latlng, { radius: position.coords.accuracy, color: '#2e7d32', weight: 1, fillColor: '#2e7d32', fillOpacity: 0.15 }).addTo(map);
-                map.setView(latlng, 16);
+                if (!hasCenteredOnce) {
+                    map.setView(latlng, 16);
+                    hasCenteredOnce = true;
+                }
             } else {
                 userMarker.setLatLng(latlng);
                 userMarker.setIcon(userIcon);
                 accuracyCircle.setLatLng(latlng);
                 accuracyCircle.setRadius(position.coords.accuracy);
+                updatePointerRotation();
 
-                if (isTracking && !isPaused) map.panTo(latlng);
-                else if (activePoiDestination) { map.panTo(latlng); updatePoiNavigation(); }
+                if (activePoiDestination) {
+                    updatePoiNavigation();
+                }
             }
 
             if (isTracking && !isPaused) {
                 pathCoordinates.push(latlng);
                 redrawPath();
-                saveActiveSessionState();
             }
         }
 
@@ -1262,7 +1304,6 @@
             }
         }
 
-        // Tasto Avvia: chiede subito il nome del percorso prima di registrare
         function toggleTracking() {
             if (!isTracking) {
                 document.getElementById('newTrackNameInput').value = "";
@@ -1277,12 +1318,14 @@
             currentTrackName = trackName;
             document.getElementById('startTrackModal').classList.remove('active');
 
+            clearMapOverlays();
             isTracking = true;
             isPaused = false;
-            pathCoordinates = [];
+            pathCoordinates = [[currentLat, currentLng]];
             waypointsList = [];
             currentTrackColor = '#00bfff';
             activeTripStart = [currentLat, currentLng];
+            map.setView([currentLat, currentLng], 16);
             addAutoWaypoint();
 
             if (waypointInterval) clearInterval(waypointInterval);
@@ -1292,22 +1335,20 @@
 
             document.getElementById('mainTrackIcon').innerText = '⏹️';
             document.getElementById('mainTrackText').innerText = 'Ferma';
-            saveActiveSessionState();
             speak("Registrazione percorso avviata.");
         }
 
         function addAutoWaypoint() {
             const latlng = getUniqueWaypointCoord();
             const wpIndex = waypointsList.length;
-            L.marker(latlng, { icon: L.divIcon({ className: 'custom-badge', html: '📍 ' + wpIndex }) }).addTo(map);
+            const marker = L.marker(latlng, { icon: L.divIcon({ className: 'custom-badge', html: '📍 ' + wpIndex }) }).addTo(map);
+            activeWaypointMarkers.push(marker);
             waypointsList.push({ type: 'auto', index: wpIndex, latlng: latlng });
-            saveActiveSessionState();
         }
 
         function pauseTracking() {
             if (!isTracking) { alert("Nessun percorso attivo."); return; }
             isPaused = !isPaused;
-            saveActiveSessionState();
             speak(isPaused ? "Registrazione in pausa." : "Registrazione ripresa.");
         }
 
@@ -1333,12 +1374,12 @@
             const latlng = getUniqueWaypointCoord();
             const wpIndex = waypointsList.length;
             
-            L.marker(latlng, {
+            const marker = L.marker(latlng, {
                 icon: L.divIcon({ className: 'custom-badge', html: '🏁 ' + wpIndex })
             }).addTo(map);
+            activeWaypointMarkers.push(marker);
 
             waypointsList.push({ type: 'manual', index: wpIndex, latlng: latlng });
-            saveActiveSessionState();
             speak("Bandierina manuale " + wpIndex + " registrata.");
         }
 
@@ -1394,9 +1435,9 @@
 
             const marker = L.marker(latlng, { icon: L.divIcon({ className: 'custom-badge', html: '🎙️ ' + wpIndex }) }).addTo(map);
             marker.on('click', () => openAudioPlayerModal(wpIndex, noteText));
+            activeWaypointMarkers.push(marker);
 
             waypointsList.push({ type: 'audio', index: wpIndex, latlng: latlng, note: noteText });
-            saveActiveSessionState();
             closeModal('voiceRecordModal');
             speak("Bandierina vocale " + wpIndex + " salvata.");
         }
@@ -1419,7 +1460,6 @@
             }
         }
 
-        // Gestione Foto sul Percorso
         function openPhotoModalFromMenu() {
             closeModal('menuModal');
             if (!isTracking) { alert("Avvia prima la registrazione del percorso."); return; }
@@ -1451,9 +1491,9 @@
 
             const marker = L.marker(latlng, { icon: L.divIcon({ className: 'custom-badge', html: '📸 ' + wpIndex }) }).addTo(map);
             marker.on('click', () => openFullScreenPhoto(capturedPhotoDataUrl, `Foto #${wpIndex} - ${caption || 'Senza didascalia'}`));
+            activeWaypointMarkers.push(marker);
 
             waypointsList.push({ type: 'photo', index: wpIndex, latlng: latlng, photo: capturedPhotoDataUrl, caption: caption });
-            saveActiveSessionState();
             closeModal('photoRecordModal');
             speak("Bandierina fotografica " + wpIndex + " salvata.");
         }
@@ -1464,7 +1504,6 @@
             document.getElementById('photoViewerModal').classList.add('active');
         }
 
-        // Gestione Video sul Percorso
         function openVideoModalFromMenu() {
             closeModal('menuModal');
             if (!isTracking) { alert("Avvia prima la registrazione del percorso."); return; }
@@ -1497,9 +1536,9 @@
 
             const marker = L.marker(latlng, { icon: L.divIcon({ className: 'custom-badge', html: '🎥 ' + wpIndex }) }).addTo(map);
             marker.on('click', () => openFullScreenVideo(capturedVideoDataUrl, `Video #${wpIndex} - ${caption || 'Senza didascalia'}`));
+            activeWaypointMarkers.push(marker);
 
             waypointsList.push({ type: 'video', index: wpIndex, latlng: latlng, video: capturedVideoDataUrl, caption: caption });
-            saveActiveSessionState();
             closeModal('videoRecordModal');
             speak("Bandierina video " + wpIndex + " salvata.");
         }
@@ -1521,7 +1560,6 @@
             openStopSave();
         }
 
-        // Riparato salvataggio effettivo con scelta flessibile della cartella
         function confirmSaveTrack() {
             const trackName = document.getElementById('saveTrackName').value.trim() || 'Escursione';
             const folderName = document.getElementById('saveFolderNameDisplay').value.trim() || 'Trekking';
@@ -1538,7 +1576,6 @@
 
             savedTracks.push(trackData);
             localStorage.setItem('sentierovivo_tracks', JSON.stringify(savedTracks));
-            localStorage.removeItem('sentierovivo_active_session');
 
             isTracking = false;
             isPaused = false;
@@ -1547,10 +1584,7 @@
             waypointsList = [];
             currentTrackName = '';
 
-            const container = document.getElementById('map-container');
-            if (container) container.style.transform = 'rotate(0deg)';
-
-            if (window.activePolyline) { map.removeLayer(window.activePolyline); window.activePolyline = null; }
+            clearMapOverlays();
             if (waypointInterval) { clearInterval(waypointInterval); waypointInterval = null; }
 
             document.getElementById('mainTrackIcon').innerText = '▶️';
@@ -1697,7 +1731,7 @@
 
         function startBacktrack() {
             closeModal('menuModal');
-            if (pathCoordinates.length < 2) { alert("Registra prima un tratto."); return; }
+            if (pathCoordinates.length < 2) { alert("Registra o carica prima un percorso."); return; }
             currentTrackColor = '#ff5500';
             if (window.activePolyline) map.removeLayer(window.activePolyline);
             window.activePolyline = L.polyline([...pathCoordinates].reverse(), { color: currentTrackColor, weight: 8, dashArray: '10, 10', opacity: 0.95 }).addTo(map);
@@ -1708,12 +1742,11 @@
             closeModal('menuModal');
             if (!activeTripStart) { alert("Nessuna base di partenza memorizzata."); return; }
             currentTrackColor = '#00e676';
-            pathCoordinates = [];
+            pathCoordinates = [[currentLat, currentLng], activeTripStart];
             waypointsList = [];
+            clearMapOverlays();
             isTracking = true;
             isPaused = false;
-            pathCoordinates.push([currentLat, currentLng]);
-            pathCoordinates.push(activeTripStart);
             redrawPath();
 
             if (waypointInterval) clearInterval(waypointInterval);
@@ -1721,7 +1754,6 @@
 
             document.getElementById('mainTrackIcon').innerText = '⏹️';
             document.getElementById('mainTrackText').innerText = 'Ferma';
-            saveActiveSessionState();
             speak("Percorso di rientro avviato.");
         }
 
@@ -1844,12 +1876,12 @@
             }
         }
 
-        // Caricamento percorso salvato con ripristino interattivo di tutte le bandierine
         function loadTrackScenario(id) {
             const track = savedTracks.find(t => t.id === id);
             if (!track) return;
             closeModal('foldersModal');
             
+            clearMapOverlays();
             pathCoordinates = track.coordinates || [];
             waypointsList = track.waypoints || [];
             currentTrackColor = track.color || '#00bfff';
@@ -1896,4 +1928,3 @@
     </script>
 </body>
 </html>
-Gemini è un'AI e può fare errori, anche in merito a persone. La
