@@ -887,6 +887,10 @@
         let openedLicenseFromMenu = false;
         let folderSaveMode = 'existing';
 
+        const SINGLE_DRAFT_KEY = 'sentierovivo_single_draft';
+        const AUTO_WP_INTERVAL_MS = 3 * 60 * 1000;
+        let lastAutoWpTime = 0;
+
         function unlockApiBox() {
             const pwd = prompt("Inserisci la password per sbloccare il riquadro API:");
             if (pwd === "Massimo2026") {
@@ -1045,6 +1049,109 @@
         let selectedAudioNoteForSpeech = '';
 
         let deviceHeading = 0;
+
+        // --- Gestione Singola Bozza su uscita temporanea (chiamata o cambio app) ---
+        function saveSingleDraftOnLeave() {
+            if (!isTracking) return;
+            try {
+                const draftData = {
+                    active: true,
+                    isPaused: isPaused,
+                    name: currentTrackName || 'Percorso',
+                    color: currentTrackColor,
+                    startPoint: activeTripStart,
+                    coordinates: pathCoordinates,
+                    waypoints: waypointsList,
+                    lastAutoWpTime: lastAutoWpTime,
+                    savedAt: Date.now()
+                };
+                localStorage.setItem(SINGLE_DRAFT_KEY, JSON.stringify(draftData));
+            } catch (err) {
+                console.warn("Impossibile salvare la bozza (possibile limite memoria per media):", err);
+            }
+        }
+
+        function clearSingleDraft() {
+            localStorage.removeItem(SINGLE_DRAFT_KEY);
+        }
+
+        function startThreeMinuteWaypointTimer() {
+            if (waypointInterval) clearInterval(waypointInterval);
+            if (!lastAutoWpTime) lastAutoWpTime = Date.now();
+
+            waypointInterval = setInterval(() => {
+                if (isTracking && !isPaused) {
+                    addAutoWaypoint();
+                    lastAutoWpTime = Date.now();
+                }
+            }, AUTO_WP_INTERVAL_MS);
+        }
+
+        function checkMissedThreeMinuteWaypoints() {
+            if (!isTracking || isPaused || !lastAutoWpTime) return;
+            const now = Date.now();
+            if (now - lastAutoWpTime >= AUTO_WP_INTERVAL_MS) {
+                addAutoWaypoint();
+                lastAutoWpTime = now;
+            }
+        }
+
+        function restoreSingleDraftIfPresent() {
+            const raw = localStorage.getItem(SINGLE_DRAFT_KEY);
+            if (!raw) return;
+
+            try {
+                const draft = JSON.parse(raw);
+                if (!draft || !draft.active || !Array.isArray(draft.coordinates) || draft.coordinates.length === 0) {
+                    return;
+                }
+
+                const riprendi = confirm(
+                    `È stata trovata una bozza del percorso "${draft.name}". Vuoi ripristinarla e continuare?`
+                );
+
+                if (riprendi) {
+                    clearMapOverlays();
+                    isTracking = true;
+                    isPaused = !!draft.isPaused;
+                    currentTrackName = draft.name;
+                    currentTrackColor = draft.color || '#00bfff';
+                    activeTripStart = draft.startPoint || draft.coordinates[0];
+                    pathCoordinates = draft.coordinates;
+                    waypointsList = Array.isArray(draft.waypoints) ? draft.waypoints : [];
+                    lastAutoWpTime = draft.lastAutoWpTime || Date.now();
+
+                    redrawPath();
+                    renderAllWaypointsOnMap();
+                    startThreeMinuteWaypointTimer();
+
+                    document.getElementById('mainTrackIcon').innerText = '⏹️';
+                    document.getElementById('mainTrackText').innerText = 'Ferma';
+
+                    const lastPt = pathCoordinates[pathCoordinates.length - 1];
+                    if (lastPt && map) map.setView(lastPt, 16);
+
+                    checkMissedThreeMinuteWaypoints();
+                    speak("Bozza ripristinata.");
+                } else {
+                    clearSingleDraft();
+                }
+            } catch (err) {
+                clearSingleDraft();
+            }
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                saveSingleDraftOnLeave();
+            } else {
+                checkMissedThreeMinuteWaypoints();
+            }
+        });
+
+        window.addEventListener('pagehide', () => {
+            saveSingleDraftOnLeave();
+        });
 
         function checkLicenseAndSetup() {
             const now = new Date().getTime();
@@ -1210,8 +1317,11 @@
             initHeadingSensors();
 
             setTimeout(() => {
-                if (map) map.invalidateSize();
-            }, 200);
+                if (map) {
+                    map.invalidateSize();
+                    restoreSingleDraftIfPresent();
+                }
+            }, 250);
 
             if (navigator.geolocation) {
                 navigator.geolocation.watchPosition(updatePosition, handleGeoError, { 
@@ -1329,6 +1439,7 @@
             if (isTracking && !isPaused) {
                 pathCoordinates.push(latlng);
                 redrawPath();
+                checkMissedThreeMinuteWaypoints();
             }
         }
 
@@ -1358,26 +1469,21 @@
             currentTrackName = trackName;
             document.getElementById('startTrackModal').classList.remove('active');
 
+            clearSingleDraft();
             clearMapOverlays();
             isTracking = true;
             isPaused = false;
             
-            // Garantisce il punto di partenza alle coordinate correnti
             pathCoordinates = [[currentLat, currentLng]];
             waypointsList = [];
             currentTrackColor = '#00bfff';
             activeTripStart = [currentLat, currentLng];
+            lastAutoWpTime = Date.now();
             
             map.setView([currentLat, currentLng], 16);
             
-            // Primo Waypoint automatico di avvio
             addAutoWaypoint();
-
-            // Avvio del timer ogni 3 minuti
-            if (waypointInterval) clearInterval(waypointInterval);
-            waypointInterval = setInterval(() => {
-                if (isTracking && !isPaused) addAutoWaypoint();
-            }, 3 * 60 * 1000);
+            startThreeMinuteWaypointTimer();
 
             document.getElementById('mainTrackIcon').innerText = '⏹️';
             document.getElementById('mainTrackText').innerText = 'Ferma';
@@ -1394,11 +1500,13 @@
             const marker = L.marker(latlng, { icon: L.divIcon({ className: 'custom-badge', html: '📍 ' + wpIndex }) }).addTo(map);
             activeWaypointMarkers.push(marker);
             waypointsList.push({ type: 'auto', index: wpIndex, latlng: latlng });
+            lastAutoWpTime = Date.now();
         }
 
         function pauseTracking() {
             if (!isTracking) { alert("Nessun percorso attivo."); return; }
             isPaused = !isPaused;
+            if (!isPaused) lastAutoWpTime = Date.now();
             speak(isPaused ? "Registrazione in pausa." : "Registrazione ripresa.");
         }
 
@@ -1664,14 +1772,17 @@
             savedTracks.push(trackData);
             localStorage.setItem('sentierovivo_tracks', JSON.stringify(savedTracks));
 
+            // Annullamento automatico della bozza al salvataggio definitivo
+            clearSingleDraft();
+
             isTracking = false;
             isPaused = false;
             activeTripStart = null; 
             pathCoordinates = [];
             waypointsList = [];
             currentTrackName = '';
+            lastAutoWpTime = 0;
 
-            // Pulizia mappa eseguita SOLO ORA dopo la conferma del salvataggio
             clearMapOverlays();
             if (waypointInterval) { clearInterval(waypointInterval); waypointInterval = null; }
 
@@ -1835,10 +1946,9 @@
             clearMapOverlays();
             isTracking = true;
             isPaused = false;
+            lastAutoWpTime = Date.now();
             redrawPath();
-
-            if (waypointInterval) clearInterval(waypointInterval);
-            waypointInterval = setInterval(() => { if (isTracking && !isPaused) addAutoWaypoint(); }, 3 * 60 * 1000);
+            startThreeMinuteWaypointTimer();
 
             document.getElementById('mainTrackIcon').innerText = '⏹️';
             document.getElementById('mainTrackText').innerText = 'Ferma';
