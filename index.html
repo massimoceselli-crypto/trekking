@@ -1039,7 +1039,6 @@
         let activePoiDestination = null;
         let activePoiPolyline = null;
         let activePoiMarker = null;
-        let osrmRouteSteps = [];
         let audioRecognitionInstance = null;
         let capturedPhotoDataUrl = null;
         let capturedVideoDataUrl = null;
@@ -1362,13 +1361,19 @@
             clearMapOverlays();
             isTracking = true;
             isPaused = false;
+            
+            // Garantisce il punto di partenza alle coordinate correnti
             pathCoordinates = [[currentLat, currentLng]];
             waypointsList = [];
             currentTrackColor = '#00bfff';
             activeTripStart = [currentLat, currentLng];
+            
             map.setView([currentLat, currentLng], 16);
+            
+            // Primo Waypoint automatico di avvio
             addAutoWaypoint();
 
+            // Avvio del timer ogni 3 minuti
             if (waypointInterval) clearInterval(waypointInterval);
             waypointInterval = setInterval(() => {
                 if (isTracking && !isPaused) addAutoWaypoint();
@@ -1379,8 +1384,12 @@
             speak("Registrazione percorso avviata.");
         }
 
+        function getCurrentPointCoord() {
+            return [currentLat, currentLng];
+        }
+
         function addAutoWaypoint() {
-            const latlng = getUniqueWaypointCoord();
+            const latlng = getCurrentPointCoord();
             const wpIndex = waypointsList.length;
             const marker = L.marker(latlng, { icon: L.divIcon({ className: 'custom-badge', html: '📍 ' + wpIndex }) }).addTo(map);
             activeWaypointMarkers.push(marker);
@@ -1393,26 +1402,12 @@
             speak(isPaused ? "Registrazione in pausa." : "Registrazione ripresa.");
         }
 
-        function getUniqueWaypointCoord() {
-            let lat = currentLat;
-            let lng = currentLng;
-            if (waypointsList.length > 0) {
-                const lastWp = waypointsList[waypointsList.length - 1].latlng;
-                const dist = Math.abs(lastWp[0] - lat) + Math.abs(lastWp[1] - lng);
-                if (dist < 0.00005) {
-                    lat += (Math.random() - 0.5) * 0.00015;
-                    lng += (Math.random() - 0.5) * 0.00015;
-                }
-            }
-            return [lat, lng];
-        }
-
         function addManualWaypoint() {
             if (!isTracking) { 
                 alert("Avvia prima la registrazione del percorso."); 
                 return; 
             }
-            const latlng = getUniqueWaypointCoord();
+            const latlng = getCurrentPointCoord();
             const wpIndex = waypointsList.length;
             
             const marker = L.marker(latlng, {
@@ -1471,7 +1466,7 @@
         function saveAudioWaypoint() {
             if (audioRecognitionInstance) { audioRecognitionInstance.stop(); audioRecognitionInstance = null; }
             const noteText = document.getElementById('voiceNoteText').value.trim();
-            const latlng = getUniqueWaypointCoord();
+            const latlng = getCurrentPointCoord();
             const wpIndex = waypointsList.length;
 
             const marker = L.marker(latlng, { icon: L.divIcon({ className: 'custom-badge', html: '🎙️ ' + wpIndex }) }).addTo(map);
@@ -1527,7 +1522,7 @@
         function savePhotoWaypoint() {
             if (!capturedPhotoDataUrl) { alert("Scatta o seleziona una foto."); return; }
             const caption = document.getElementById('photoCaption').value.trim();
-            const latlng = getUniqueWaypointCoord();
+            const latlng = getCurrentPointCoord();
             const wpIndex = waypointsList.length;
 
             const marker = L.marker(latlng, { icon: L.divIcon({ className: 'custom-badge', html: '📸 ' + wpIndex }) }).addTo(map);
@@ -1572,7 +1567,7 @@
         function saveVideoWaypoint() {
             if (!capturedVideoDataUrl) { alert("Registra o seleziona un video."); return; }
             const caption = document.getElementById('videoCaption').value.trim();
-            const latlng = getUniqueWaypointCoord();
+            const latlng = getCurrentPointCoord();
             const wpIndex = waypointsList.length;
 
             const marker = L.marker(latlng, { icon: L.divIcon({ className: 'custom-badge', html: '🎥 ' + wpIndex }) }).addTo(map);
@@ -1622,6 +1617,10 @@
         }
 
         function openStopSave() {
+            if (!isTracking && pathCoordinates.length === 0) {
+                alert("Nessuna registrazione o traccia attiva da salvare.");
+                return;
+            }
             document.getElementById('saveTrackName').value = currentTrackName || 'Escursione';
             const folders = getKnownFolders();
             const selectEl = document.getElementById('saveExistingFolderSelect');
@@ -1672,13 +1671,14 @@
             waypointsList = [];
             currentTrackName = '';
 
+            // Pulizia mappa eseguita SOLO ORA dopo la conferma del salvataggio
             clearMapOverlays();
             if (waypointInterval) { clearInterval(waypointInterval); waypointInterval = null; }
 
             document.getElementById('mainTrackIcon').innerText = '▶️';
             document.getElementById('mainTrackText').innerText = 'Avvia';
             closeModal('stopSaveModal');
-            alert(`✅ Percorso "${trackName}" salvato nella cartella "${folderName}"!`);
+            alert(`✅ Percorso "${trackName}" salvato con successo nella cartella "${folderName}"!`);
             speak("Percorso salvato con successo.");
         }
 
