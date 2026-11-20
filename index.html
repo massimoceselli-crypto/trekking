@@ -433,15 +433,16 @@
         }
 
         .custom-badge {
-            background: rgba(18, 18, 18, 0.85);
+            background: rgba(18, 18, 18, 0.9);
             color: #fff;
-            padding: 2px 6px;
+            padding: 3px 7px;
             border-radius: 6px;
             font-size: 11px;
             font-weight: bold;
             border: 1px solid var(--primary);
             white-space: nowrap;
             cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.6);
         }
 
         .folder-choice-row {
@@ -1371,29 +1372,67 @@
             }
         }
 
+        // Calcola una leggera separazione visiva solo quando più bandierine cadono sullo stesso punto
+        function getDisplayLatLngForWaypoint(wp, allWaypoints, currentIdx) {
+            const baseLat = wp.latlng[0];
+            const baseLng = wp.latlng[1];
+            const sameSpotIndices = [];
+
+            for (let i = 0; i < allWaypoints.length; i++) {
+                const other = allWaypoints[i];
+                if (!other || !Array.isArray(other.latlng)) continue;
+                const dLat = Math.abs(other.latlng[0] - baseLat);
+                const dLng = Math.abs(other.latlng[1] - baseLng);
+                if (dLat < 0.00002 && dLng < 0.00002) {
+                    sameSpotIndices.push(i);
+                }
+            }
+
+            if (sameSpotIndices.length <= 1) {
+                return [baseLat, baseLng];
+            }
+
+            const posInCluster = sameSpotIndices.indexOf(currentIdx);
+            const totalInCluster = sameSpotIndices.length;
+            const angle = (2 * Math.PI * posInCluster) / totalInCluster;
+            const radiusDeg = 0.000045; // ~5 metri visivi sulla mappa senza alterare i dati salvati
+
+            return [
+                baseLat + radiusDeg * Math.cos(angle),
+                baseLng + radiusDeg * Math.sin(angle)
+            ];
+        }
+
+        function createMarkerForWaypoint(wp, displayLatLng, zOffset) {
+            let iconPrefix = '📍 ';
+            if (wp.type === 'manual') iconPrefix = '🏁 ';
+            else if (wp.type === 'audio') iconPrefix = '🎙️ ';
+            else if (wp.type === 'photo') iconPrefix = '📸 ';
+            else if (wp.type === 'video') iconPrefix = '🎥 ';
+
+            const marker = L.marker(displayLatLng, {
+                icon: L.divIcon({ className: 'custom-badge', html: iconPrefix + wp.index }),
+                zIndexOffset: zOffset
+            }).addTo(map);
+
+            if (wp.type === 'photo' && wp.photo) {
+                marker.on('click', () => openFullScreenPhoto(wp.photo, `Foto #${wp.index} - ${wp.caption || ''}`));
+            } else if (wp.type === 'video' && wp.video) {
+                marker.on('click', () => openFullScreenVideo(wp.video, `Video #${wp.index} - ${wp.caption || ''}`));
+            } else if (wp.type === 'audio') {
+                marker.on('click', () => openAudioPlayerModal(wp.index, wp.note));
+            }
+
+            return marker;
+        }
+
         function renderAllWaypointsOnMap() {
             activeWaypointMarkers.forEach(m => map.removeLayer(m));
             activeWaypointMarkers = [];
 
-            waypointsList.forEach(wp => {
-                let iconPrefix = '📍 ';
-                if (wp.type === 'manual') iconPrefix = '🏁 ';
-                else if (wp.type === 'audio') iconPrefix = '🎙️ ';
-                else if (wp.type === 'photo') iconPrefix = '📸 ';
-                else if (wp.type === 'video') iconPrefix = '🎥 ';
-
-                let marker = L.marker(wp.latlng, {
-                    icon: L.divIcon({ className: 'custom-badge', html: iconPrefix + wp.index })
-                }).addTo(map);
-
-                if (wp.type === 'photo' && wp.photo) {
-                    marker.on('click', () => openFullScreenPhoto(wp.photo, `Foto #${wp.index} - ${wp.caption || ''}`));
-                } else if (wp.type === 'video' && wp.video) {
-                    marker.on('click', () => openFullScreenVideo(wp.video, `Video #${wp.index} - ${wp.caption || ''}`));
-                } else if (wp.type === 'audio') {
-                    marker.on('click', () => openAudioPlayerModal(wp.index, wp.note));
-                }
-
+            waypointsList.forEach((wp, idx) => {
+                const dispLatLng = getDisplayLatLngForWaypoint(wp, waypointsList, idx);
+                const marker = createMarkerForWaypoint(wp, dispLatLng, 100 + idx);
                 activeWaypointMarkers.push(marker);
             });
         }
@@ -1497,10 +1536,9 @@
         function addAutoWaypoint() {
             const latlng = getCurrentPointCoord();
             const wpIndex = waypointsList.length;
-            const marker = L.marker(latlng, { icon: L.divIcon({ className: 'custom-badge', html: '📍 ' + wpIndex }) }).addTo(map);
-            activeWaypointMarkers.push(marker);
             waypointsList.push({ type: 'auto', index: wpIndex, latlng: latlng });
             lastAutoWpTime = Date.now();
+            renderAllWaypointsOnMap();
         }
 
         function pauseTracking() {
@@ -1517,13 +1555,8 @@
             }
             const latlng = getCurrentPointCoord();
             const wpIndex = waypointsList.length;
-            
-            const marker = L.marker(latlng, {
-                icon: L.divIcon({ className: 'custom-badge', html: '🏁 ' + wpIndex })
-            }).addTo(map);
-            activeWaypointMarkers.push(marker);
-
             waypointsList.push({ type: 'manual', index: wpIndex, latlng: latlng });
+            renderAllWaypointsOnMap();
             speak("Bandierina manuale " + wpIndex + " registrata.");
         }
 
@@ -1577,11 +1610,8 @@
             const latlng = getCurrentPointCoord();
             const wpIndex = waypointsList.length;
 
-            const marker = L.marker(latlng, { icon: L.divIcon({ className: 'custom-badge', html: '🎙️ ' + wpIndex }) }).addTo(map);
-            marker.on('click', () => openAudioPlayerModal(wpIndex, noteText));
-            activeWaypointMarkers.push(marker);
-
             waypointsList.push({ type: 'audio', index: wpIndex, latlng: latlng, note: noteText });
+            renderAllWaypointsOnMap();
             closeModal('voiceRecordModal');
             speak("Bandierina vocale " + wpIndex + " salvata.");
         }
@@ -1633,11 +1663,8 @@
             const latlng = getCurrentPointCoord();
             const wpIndex = waypointsList.length;
 
-            const marker = L.marker(latlng, { icon: L.divIcon({ className: 'custom-badge', html: '📸 ' + wpIndex }) }).addTo(map);
-            marker.on('click', () => openFullScreenPhoto(capturedPhotoDataUrl, `Foto #${wpIndex} - ${caption || 'Senza didascalia'}`));
-            activeWaypointMarkers.push(marker);
-
             waypointsList.push({ type: 'photo', index: wpIndex, latlng: latlng, photo: capturedPhotoDataUrl, caption: caption });
+            renderAllWaypointsOnMap();
             closeModal('photoRecordModal');
             speak("Bandierina fotografica " + wpIndex + " salvata.");
         }
@@ -1678,11 +1705,8 @@
             const latlng = getCurrentPointCoord();
             const wpIndex = waypointsList.length;
 
-            const marker = L.marker(latlng, { icon: L.divIcon({ className: 'custom-badge', html: '🎥 ' + wpIndex }) }).addTo(map);
-            marker.on('click', () => openFullScreenVideo(capturedVideoDataUrl, `Video #${wpIndex} - ${caption || 'Senza didascalia'}`));
-            activeWaypointMarkers.push(marker);
-
             waypointsList.push({ type: 'video', index: wpIndex, latlng: latlng, video: capturedVideoDataUrl, caption: caption });
+            renderAllWaypointsOnMap();
             closeModal('videoRecordModal');
             speak("Bandierina video " + wpIndex + " salvata.");
         }
